@@ -10,3 +10,76 @@
 .forest-profile{margin-top:18px;padding:18px}.forest-profile-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start}.forest-profile-score{min-width:90px;text-align:center;font-size:34px;font-weight:900;color:#b4f07a}.forest-profile-score small{display:block;font-size:9px;color:#7f9888;font-weight:700}.forest-profile-photo{margin-top:14px;aspect-ratio:16/6;border-radius:18px;overflow:hidden;background:#0c1b11}.forest-profile-photo img{width:100%;height:100%;object-fit:cover}.forest-detail-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:14px}.forest-detail-grid>div{padding:12px;border-radius:13px;background:rgba(255,255,255,.03)}.forest-detail-grid small{display:block;color:#7f9888;font-size:9px}.forest-detail-grid b{display:block;margin-top:4px}.forest-wild-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}.forest-wild{padding:12px;border-radius:14px;border:1px solid rgba(255,255,255,.06);background:#0d1f14;color:#eef6ef;text-align:left;cursor:pointer}.forest-wild:hover{border-color:rgba(180,238,114,.28)}.forest-wild strong{display:block}.forest-wild small{display:block;color:#789181;margin-top:4px}.forest-disclaimer{margin-top:15px;font-size:10px;line-height:1.5;color:#839789;padding:12px;border-left:3px solid #b4f07a;background:rgba(180,238,114,.04)}
 @media(max-width:980px){.forest-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.forest-wild-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:640px){.forest-toolbar{grid-template-columns:1fr}.forest-grid{grid-template-columns:1fr}.forest-profile-head{flex-direction:column}.forest-wild-grid{grid-template-columns:1fr}.forest-profile-photo{aspect-ratio:16/9}}
+
+
+/* Forest Explorer: clear cards + full-page-like internal habitat profile */
+.forest-explorer-section [hidden]{display:none!important}
+.forest-card{border-color:rgba(88,239,180,.22);background:linear-gradient(155deg,#113d30,#0a241d);box-shadow:0 14px 34px rgba(0,0,0,.2)}
+.forest-card:focus-visible{outline:3px solid #d4ff70;outline-offset:3px}
+.forest-card-image{aspect-ratio:16/10}
+.forest-card-image img{transition:transform .35s ease}
+.forest-card:hover .forest-card-image img{transform:scale(1.035)}
+.forest-rank{background:rgba(4,25,20,.88);border-color:rgba(113,244,190,.32);color:#d1ffe6;font-size:11px}
+.forest-score{background:rgba(5,36,26,.91);border-color:rgba(212,255,112,.42);color:#e4ff9e;font-size:11px}
+.forest-card-body{padding:18px}
+.forest-kicker{font-size:12px;color:#a6dfc4}
+.forest-card h3{font-size:20px;line-height:1.35;color:#f2fff8;letter-spacing:normal}
+.forest-card p{font-size:14px;line-height:1.65;color:#bedccd}
+.forest-tags span{font-size:11px;color:#d6f4e5;background:rgba(78,169,129,.15);border:1px solid rgba(111,241,194,.12)}
+.forest-open{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;white-space:normal;font-size:14px!important}
+.forest-profile{margin-top:0;padding:clamp(14px,2vw,24px);border:1px solid rgba(111,241,194,.23)!important;border-radius:22px;background:linear-gradient(155deg,#10392e,#09231d)!important;box-shadow:0 22px 60px rgba(0,0,0,.28)!important}
+.forest-detail-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.forest-detail-label{font-size:11px;font-weight:900;letter-spacing:.12em;color:#a1dfbd}
+.forest-profile-hero{position:relative;isolation:isolate;min-height:330px;border:1px solid rgba(111,241,194,.2);border-radius:20px;overflow:hidden;background:#09261d;display:flex;align-items:flex-end;padding:clamp(18px,3vw,32px)}
+.forest-profile-hero>img{position:absolute;z-index:-2;inset:0;width:100%;height:100%;object-fit:cover}
+.forest-profile-hero:after{content:"";position:absolute;z-index:-1;inset:0;background:linear-gradient(90deg,rgba(3,20,15,.92),rgba(4,25,18,.58) 57%,rgba(4,25,18,.18)),linear-gradient(0deg,rgba(1,13,9,.86),transparent 75%)}
+.forest-profile-overlay{max-width:70%;padding-right:18px}
+.forest-profile-overlay h2{font-size:clamp(28px,4vw,44px)!important;line-height:1.18!important;letter-spacing:normal!important;color:#f4fff8;margin:12px 0!important}
+.forest-profile-overlay p{font-size:14px;color:#d1eadc;margin:0;overflow-wrap:anywhere}
+.forest-region-pill{display:inline-flex;padding:7px 11px;border-radius:999px;background:rgba(11,65,46,.78);border:1px solid rgba(111,241,194,.28);color:#d9ffe9;font-size:12px;font-weight:800}
+.forest-profile-score{position:absolute;right:22px;top:22px;min-width:106px;min-height:106px;display:flex;flex-direction:row;align-items:baseline;justify-content:center;gap:3px;padding:12px;border-radius:20px;background:rgba(4,29,21,.82);border:1px solid rgba(212,255,112,.38);color:#ddff8b;text-align:center;backdrop-filter:blur(9px)}
+.forest-profile-score strong{font-size:34px;font-weight:950}
+.forest-profile-score span{font-size:12px;color:#dbefb2}
+.forest-profile-score small{position:absolute;left:4px;right:4px;bottom:10px;font-size:10px;line-height:1.3;color:#d2e8d7;font-weight:700}
+.forest-profile-intro{padding:16px 2px 4px}
+.forest-profile-intro p{font-size:16px;line-height:1.8;color:#d5ecdf;margin:0}
+.forest-fact-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:18px 0 24px}
+.forest-fact{min-width:0;padding:16px;border:1px solid rgba(111,241,194,.17);border-radius:15px;background:linear-gradient(145deg,rgba(24,76,57,.66),rgba(9,39,30,.82))}
+.forest-fact>span{display:block;font-size:23px;margin-bottom:10px}
+.forest-fact small{display:block;color:#add3bf;font-size:12px;line-height:1.45}
+.forest-fact b{display:block;color:#f0fff7;font-size:15px;line-height:1.55;margin-top:5px;overflow-wrap:anywhere}
+.forest-profile-section-head{display:flex;justify-content:space-between;align-items:end;gap:16px;margin:18px 0}
+.forest-profile-section-head h3{margin:6px 0;font-size:24px;line-height:1.3;color:#f4fff8;letter-spacing:normal}
+.forest-profile-section-head p{color:#b8d9c8;margin:0;font-size:14px}
+.forest-species-count{white-space:nowrap;padding:7px 10px;border-radius:999px;background:rgba(212,255,112,.1);border:1px solid rgba(212,255,112,.2);color:#e4ff9e;font-size:12px;font-weight:800}
+.forest-wild-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+a.forest-wild{display:flex;gap:10px;align-items:center;text-decoration:none;background:linear-gradient(145deg,#123d30,#0b291f);border-color:rgba(111,241,194,.16);min-width:0}
+.forest-wild-icon{display:grid;place-items:center;width:42px;height:42px;flex:0 0 42px;border-radius:13px;background:rgba(212,255,112,.1);font-size:22px}
+.forest-wild>span:nth-child(2){min-width:0;flex:1}
+.forest-wild strong{font-size:15px;color:#effff6}
+.forest-wild small{font-size:12px;color:#aad0bd;line-height:1.45;overflow-wrap:anywhere}
+.forest-wild>b{color:#d4ff70;font-size:17px}
+.forest-disclaimer{font-size:13px;line-height:1.7;color:#c2decf;background:rgba(212,255,112,.055);border-left-color:#d4ff70;border-radius:0 12px 12px 0}
+.forest-disclaimer p{margin:5px 0 0}
+@media(max-width:980px){.forest-fact-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.forest-wild-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:640px){
+  .forest-card-body{padding:15px}
+  .forest-card h3{font-size:19px}
+  .forest-profile{padding:12px}
+  .forest-profile-hero{min-height:370px;padding:18px;align-items:flex-end}
+  .forest-profile-hero:after{background:linear-gradient(0deg,rgba(3,20,15,.96),rgba(4,25,18,.58) 62%,rgba(4,25,18,.18))}
+  .forest-profile-overlay{max-width:100%;padding:0 0 6px}
+  .forest-profile-overlay h2{font-size:29px!important;padding-right:2px}
+  .forest-profile-overlay p{max-width:80%;font-size:12px}
+  .forest-profile-score{right:12px;top:12px;min-width:83px;min-height:83px;border-radius:16px;padding:9px}
+  .forest-profile-score strong{font-size:27px}
+  .forest-profile-score small{font-size:9px;bottom:6px}
+  .forest-profile-intro p{font-size:14px}
+  .forest-fact-grid{grid-template-columns:1fr 1fr;gap:8px}
+  .forest-fact{padding:12px}
+  .forest-fact b{font-size:13px}
+  .forest-profile-section-head{align-items:flex-start;flex-direction:column}
+  .forest-profile-section-head h3{font-size:20px}
+  .forest-wild-grid{grid-template-columns:1fr}
+  .forest-detail-label{font-size:10px}
+}
