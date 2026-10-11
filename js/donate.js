@@ -98,8 +98,10 @@
 
   function renderLeaderboard(payload) {
     const rows = Array.isArray(payload?.donations) ? payload.donations : [];
-    const total = rows.reduce((sum, row) => sum + Number(row.totalAmount || 0), 0);
-    const count = rows.reduce((sum, row) => sum + Number(row.donationCount || 0), 0);
+    const rowTotal = rows.reduce((sum, row) => sum + Number(row.totalAmount || 0), 0);
+    const rowCount = rows.reduce((sum, row) => sum + Number(row.donationCount || 0), 0);
+    const total = Number.isFinite(Number(payload?.totalAmount)) ? Number(payload.totalAmount) : rowTotal;
+    const count = Number.isFinite(Number(payload?.donationCount)) ? Number(payload.donationCount) : rowCount;
     if (countEl) countEl.textContent = String(count);
     if (totalDonationsEl) totalDonationsEl.textContent = formatMoney(total);
     if (!rows.length) {
