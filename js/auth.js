@@ -104,19 +104,37 @@
     if(path==='/signout'&&options.method==='POST'){clearLocalSession();return {ok:true,localMode:true};}
     throw new Error('ანგარიშის სერვერთან კავშირი ვერ მოხერხდა.');
   }
+  let apiConfigPromise=null;
+  async function ensureApiConfig(){
+    if(window.__GN_API_CONFIG_LOADED)return;
+    if(!apiConfigPromise)apiConfigPromise=new Promise(resolve=>{
+      const script=document.createElement('script');
+      script.src=new URL('js/api-config.js',document.baseURI).href;
+      script.onload=resolve;script.onerror=resolve;document.head.appendChild(script);
+    });
+    await apiConfigPromise;
+  }
+  function apiUrl(path){
+    let base=String(window.GN_API_BASE_URL||'').trim();
+    while(base.endsWith('/'))base=base.slice(0,-1);
+    return (base||'')+API+path;
+  }
   async function request(path,options={}){
     if(isFileMode)return localRequest(path,options);
+    await ensureApiConfig();
+    const remote=Boolean(String(window.GN_API_BASE_URL||'').trim());
+    const url=apiUrl(path);
     try{
-      const r=await fetch(API+path,{credentials:'include',headers:{'Content-Type':'application/json',...(options.headers||{})},...options});
+      const r=await fetch(url,{credentials:'include',headers:{'Content-Type':'application/json',...(options.headers||{})},...options});
       let data={};try{data=await r.json();}catch{}
       if(!r.ok){
-        if([404,405,501].includes(r.status)&&/^\/(?:signup|signin|signout|me)$/.test(path))return localRequest(path,options);
+        if(!remote&&[404,405,501].includes(r.status)&&/^\\/(?:signup|signin|signout|me)$/.test(path))return localRequest(path,options);
         throw new Error(data.message||`Request failed (${r.status})`);
       }
       return data;
     }catch(err){
-      if(/^\/(?:signup|signin|signout|me)$/.test(path)&&err instanceof TypeError)return localRequest(path,options);
-      throw new Error(err?.message||'ანგარიშის სერვერთან დაკავშირება ვერ მოხერხდა. გაუშვი GeoNature server.');
+      if(!remote&&/^\\/(?:signup|signin|signout|me)$/.test(path)&&err instanceof TypeError)return localRequest(path,options);
+      throw new Error(err?.message||'ანგარიშის სერვერთან დაკავშირება ვერ მოხერხდა. შეამოწმე js/api-config.js და Node API.');
     }
   }
   async function me(){try{return (await request('/me')).user||null;}catch{return null;}}
@@ -161,10 +179,10 @@
       if(!validEmail(eMail))return setMessage('შეიყვანე სწორი Gmail / Email.','error');
       if(pass.length<8)return setMessage('პაროლი უნდა იყოს მინიმუმ 8 სიმბოლო.','error');
       if(mode==='signup'&&pass!==password2.value)return setMessage('პაროლები არ ემთხვევა.','error');
-      try{localStorage.setItem(LAST_EMAIL_KEY,eMail);await request(mode==='signup'?'/signup':'/signin',{method:'POST',body:JSON.stringify({email:eMail,password:pass,remember})});setMessage(mode==='signup'?'ანგარიში შეიქმნა.':'წარმატებით შეხვედით.','success');setTimeout(()=>location.href='index.html',350);}catch(err){setMessage(err.message||'ვერ მოხერხდა.','error');}
+      try{localStorage.setItem(LAST_EMAIL_KEY,eMail);await request(mode==='signup'?'/signup':'/signin',{method:'POST',body:JSON.stringify({email:eMail,password:pass,remember,referralCode:mode==='signup'?(localStorage.getItem('gn_referral_code')||''):''})});setMessage(mode==='signup'?'ანგარიში შეიქმნა.':'წარმატებით შეხვედით.','success');setTimeout(()=>location.href='index.html',350);}catch(err){setMessage(err.message||'ვერ მოხერხდა.','error');}
     };
     applyMode(mode);
   }
-  window.GeoNatureAuth={me,request,renderHeader,localMode:isFileMode};
+  window.GeoNatureAuth={me,request,renderHeader,localMode:isFileMode,apiUrl};
   document.addEventListener('DOMContentLoaded',()=>{renderHeader();bindAuthPage();});
 })();
