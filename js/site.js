@@ -33,7 +33,6 @@ document.addEventListener('DOMContentLoaded', function(){
     a.className='more-item';
     a.href=href;
     a.innerHTML='<span class="mi">'+icon+'</span><span class="mt">'+label+'<small>'+sub+'</small></span>';
-    if(href==='ai.html') a.setAttribute('data-required-plan','pro');
     if(location.pathname.endsWith(href)) a.classList.add('active');
 
     const headings=Array.from(more.querySelectorAll('.more-group-title'));
