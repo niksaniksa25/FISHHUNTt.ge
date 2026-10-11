@@ -82,6 +82,7 @@
   $('adminLogout').onclick=async()=>{try{await req('/logout',{method:'POST',body:'{}'})}catch{}try{localStorage.removeItem('gn_admin_local');localStorage.removeItem('gn_admin_unlocked_at')}catch{}location.reload()};
   $('refreshFeedback').onclick=()=>reloadFeedback().catch(e=>alert(e.message));
   $('refreshStats').onclick=()=>reloadAll();
+  $('refreshActivity')?.addEventListener('click',()=>reloadAll());
   $('feedbackFilter').onchange=()=>reloadFeedback().catch(e=>alert(e.message));
   $('adminFeedback').addEventListener('click',async e=>{
     const btn=e.target.closest('[data-feedback-id][data-feedback-status]');if(!btn)return;
