@@ -81,6 +81,30 @@ let sessions=readJsonFile(SESSIONS_FILE,{});
 const ORDERS_FILE=path.join(__dirname,'orders.json');
 for(const [savedId,savedOrder] of Object.entries(readJsonFile(ORDERS_FILE,{}))) orders.set(savedId,savedOrder);
 function persistOrders(){ writeJsonFile(ORDERS_FILE,Object.fromEntries(orders.entries())); }
+
+const DONATIONS_FILE=path.join(__dirname,'donations.json');
+let donations=readJsonFile(DONATIONS_FILE,[]);
+if(!Array.isArray(donations)) donations=[];
+function persistDonations(){ writeJsonFile(DONATIONS_FILE,donations); }
+function donationLeaderboard(){
+  const groups=new Map();
+  for(const d of donations){
+    if(d?.verified!==true || d?.status!=='paid' || !Number.isFinite(Number(d.amount)) || Number(d.amount)<=0) continue;
+    const donorName=String(d.displayName||'').trim().replace(/\\s+/g,' ').slice(0,30);
+    const anonymous=!donorName;
+    const key=anonymous ? 'anonymous:'+String(d.orderId||'') : 'named:'+donorName.toLocaleLowerCase();
+    const item=groups.get(key)||{id:key,name:donorName||'ანონიმური მხარდამჭერი',totalAmount:0,donationCount:0,lastDonatedAt:0};
+    item.totalAmount=Math.round((item.totalAmount+Number(d.amount))*100)/100;
+    item.donationCount+=1;
+    item.lastDonatedAt=Math.max(item.lastDonatedAt,Number(d.paidAt)||0);
+    groups.set(key,item);
+  }
+  return Array.from(groups.values())
+    .sort((a,b)=>b.totalAmount-a.totalAmount || b.lastDonatedAt-a.lastDonatedAt)
+    .slice(0,20)
+    .map((d,index)=>({rank:index+1,name:d.name,totalAmount:d.totalAmount,donationCount:d.donationCount,lastDonatedAt:d.lastDonatedAt}));
+}
+
 const ANALYTICS_FILE=path.join(__dirname,'analytics.json');
 const FEEDBACK_FILE=path.join(__dirname,'feedback.json');
 let analytics=readJsonFile(ANALYTICS_FILE,{visitors:{},pageViews:[],pageViewsTotal:0,logins:[],loginsTotal:0,registrations:[],purchases:[],purchasesTotal:0,purchaseRevenueTotal:0});
@@ -214,11 +238,79 @@ async function createBogOrder(plan,email,promoCode,termMonths=1,user=null){
   };
   const r=await fetch(BOG_ORDER_URL,{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(payload)});
   const txt=await r.text();if(!r.ok)throw new Error(`BOG order ${r.status}: ${txt.slice(0,800)}`);
-  const data=JSON.parse(txt); const checkoutUrl=data?.links?.redirect?.href||data?.redirect_url||data?.checkout_url;
+  const data=JSON.parse(txt); const checkoutUrl=data?._links?.redirect?.href||data?.links?.redirect?.href||data?.redirect_url||data?.checkout_url;
   if(!checkoutUrl)throw new Error('BOG response did not include a checkout URL. Check merchant API contract.');
   orders.set(externalOrderId,{plan,termMonths:term.months,status:'created',createdAt:Date.now(),provider:data,promo,totalAmount:finalAmount}); persistOrders();
   return {checkoutUrl,orderId:externalOrderId,admin:false,plan,termMonths:term.months,term,promo,originalAmount:term.baseTotal,regularAmount:pricing.regularPrice*term.months,saleActive:pricing.saleActive,saleEnds:pricing.saleEnds,totalAmount:finalAmount};
 }
+
+async function getBogReceipt(bogOrderId){
+  if(!bogOrderId || !CLIENT_ID || !CLIENT_SECRET) return null;
+  const token=await bogToken();
+  const url='https://api.bog.ge/payments/v1/receipt/'+encodeURIComponent(String(bogOrderId));
+  const r=await fetch(url,{method:'GET',headers:{Authorization:'Bearer '+token,Accept:'application/json','Accept-Language':'ka'}});
+  if(!r.ok) return null;
+  try{return await r.json()}catch{return null}
+}
+async function verifyAndRecordDonation(externalOrderId,callback={}){
+  const order=orders.get(externalOrderId);
+  if(!order || order.kind!=='donation') return false;
+  const bogOrderId=String(callback.order_id||order.provider?.id||order.provider?.order_id||'');
+  if(!bogOrderId) return false;
+  const receipt=await getBogReceipt(bogOrderId);
+  if(!receipt) return false;
+  const status=String(receipt.order_status?.key||receipt.status||'').toLowerCase();
+  const external=String(receipt.external_order_id||'');
+  const amount=Number(receipt.purchase_units?.total_amount ?? receipt.total_amount);
+  const currency=String(receipt.purchase_units?.currency||receipt.currency||'').toUpperCase();
+  const paymentCode=receipt.payment_detail?.code;
+  if(status!=='completed' || (external && external!==externalOrderId) ||
+     !Number.isFinite(amount) || Math.round(amount*100)!==Math.round(Number(order.totalAmount)*100) ||
+     currency!=='GEL' || (paymentCode!==undefined && paymentCode!==null && Number(paymentCode)!==100)) return false;
+  const paidAt=Date.parse(receipt.payment_date||'')||Date.now();
+  order.status='paid'; order.paidAt=paidAt; order.verifiedAt=Date.now(); order.receiptStatus=status;
+  orders.set(externalOrderId,order); persistOrders();
+  if(!donations.some(d=>d.orderId===externalOrderId)){
+    keepRecent(donations,{orderId:externalOrderId,displayName:String(order.donationName||''),amount:Number(order.totalAmount),currency:'GEL',status:'paid',verified:true,paidAt},5000);
+    persistDonations();
+  }
+  return true;
+}
+async function createBogDonationOrder(amount,displayName){
+  const n=Number(amount);
+  if(!Number.isFinite(n) || n<1 || n>5000 || Math.abs(n*100-Math.round(n*100))>0.000001){
+    throw new Error('დონაციის თანხა უნდა იყოს 1.00–5,000.00 ₾, მაქსიმუმ ორი ათწილადით.');
+  }
+  const name=String(displayName||'').replace(/[<>\\u0000-\\u001f]/g,'').trim().replace(/\\s+/g,' ').slice(0,30);
+  if(!CLIENT_ID || !CLIENT_SECRET) throw new Error('საქართველოს ბანკის Merchant/API მონაცემები ჯერ არ არის კონფიგურირებული სერვერზე.');
+  const base=PUBLIC_BASE_URL.replace(/\\/+$/,'');
+  if(!/^https:\\/\\//i.test(base) || base.includes('your-domain.example')){
+    throw new Error('სერვერს უნდა ჰქონდეს საჯარო HTTPS მისამართი. PUBLIC_BASE_URL შეცვალე ჰოსტინგის რეალური მისამართით.');
+  }
+  const finalAmount=Math.round(n*100)/100;
+  const externalOrderId='fh_donation_'+Date.now()+'_'+crypto.randomBytes(12).toString('hex');
+  const token=await bogToken();
+  const payload={
+    callback_url:base+'/api/payments/bog/callback',
+    external_order_id:externalOrderId,
+    capture:'automatic',
+    purchase_units:{currency:'GEL',total_amount:finalAmount,basket:[{product_id:'fishhunt-donation',description:'FishHunt • ერთჯერადი დონაცია',quantity:1,unit_price:finalAmount}]},
+    redirect_urls:{
+      success:base+'/donate.html?status=return&order='+encodeURIComponent(externalOrderId),
+      fail:base+'/donate.html?status=failed'
+    }
+  };
+  const r=await fetch(BOG_ORDER_URL,{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json',Accept:'application/json','Accept-Language':'ka','Idempotency-Key':crypto.randomUUID()},body:JSON.stringify(payload)});
+  const txt=await r.text();
+  if(!r.ok) throw new Error('BOG გადახდის შექმნა ვერ მოხერხდა (HTTP '+r.status+'). გადაამოწმე Merchant/API წვდომა და სერვერის კონფიგურაცია.');
+  let data={}; try{data=JSON.parse(txt)}catch{throw new Error('BOG-მა არასწორი პასუხი დააბრუნა.')}
+  const checkoutUrl=data?._links?.redirect?.href||data?.links?.redirect?.href||data?.redirect_url||data?.checkout_url;
+  if(!checkoutUrl) throw new Error('BOG-ის პასუხში გადახდის ბმული არ მოიძებნა.');
+  orders.set(externalOrderId,{kind:'donation',externalOrderId,status:'created',createdAt:Date.now(),provider:data,donationName:name,totalAmount:finalAmount,currency:'GEL'});
+  persistOrders();
+  return {ok:true,checkoutUrl,orderId:externalOrderId,amount:finalAmount,currency:'GEL'};
+}
+
 function serveStatic(req,res){
   let p=new URL(req.url,`http://${req.headers.host}`).pathname; if(p==='/')p='/index.html';
   const safe=path.normalize(p).replace(/^\/+/, ''); const fp=path.join(__dirname,safe);
@@ -266,6 +358,19 @@ async function sendPush(subscription,payload){
   const r=await fetch(subscription.endpoint,{method:'POST',headers:{TTL:'86400',Urgency:'normal','Content-Type':'application/octet-stream','Content-Encoding':'aes128gcm',Authorization:`vapid t=${vapid.jwt}, k=${vapid.publicKey}`},body});
   if(r.status===404||r.status===410)throw Object.assign(new Error('Push subscription expired'),{code:'GONE'}); if(!r.ok)throw new Error(`Push provider HTTP ${r.status}`); return true;
 }
+
+function donationCors(req,res){
+  const origin=String(req.headers.origin||'');
+  const configured=String(process.env.DONATION_FRONTEND_ORIGIN||'https://niksaniksa25.github.io').replace(/\\/+$/,'');
+  const local=/^https?:\\/\\/(localhost|127\\.0\\.0\\.1)(:\\d+)?$/.test(origin);
+  if(origin && (origin.replace(/\\/+$/,'')===configured || local)){
+    res.setHeader('Access-Control-Allow-Origin',origin);
+    res.setHeader('Vary','Origin');
+  }
+  res.setHeader('Access-Control-Allow-Headers','Content-Type');
+  res.setHeader('Access-Control-Allow-Methods','GET,POST,OPTIONS');
+}
+
 function pushCors(req,res){const origin=String(req.headers.origin||''); if(origin&&/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)){res.setHeader('Access-Control-Allow-Origin',origin);res.setHeader('Vary','Origin')}else if(!origin){res.setHeader('Access-Control-Allow-Origin','*')}res.setHeader('Access-Control-Allow-Headers','Content-Type');res.setHeader('Access-Control-Allow-Methods','GET,POST,OPTIONS');}
 function pushPrefsValid(p){return p&&Array.isArray(p.fish)&&Array.isArray(p.places)}
 function normalizePushSub(sub){return {endpoint:String(sub?.endpoint||''),keys:{p256dh:String(sub?.keys?.p256dh||''),auth:String(sub?.keys?.auth||'')}}}
@@ -320,6 +425,34 @@ const server=http.createServer(async(req,res)=>{
       }
       if(u.pathname==='/api/push/check-now'&&req.method==='POST'){runPushChecks().catch(()=>{});return json(res,200,{ok:true,message:'შემოწმება დაიწყო.'});}
     }
+
+    if(u.pathname.startsWith('/api/donations/')){
+      donationCors(req,res);
+      if(req.method==='OPTIONS'){res.writeHead(204);return res.end();}
+      if(u.pathname==='/api/donations/leaderboard'&&req.method==='GET'){
+        return json(res,200,{ok:true,donations:donationLeaderboard()});
+      }
+      if(u.pathname==='/api/donations/create-order'&&req.method==='POST'){
+        const b=await body(req);
+        const amount=typeof b.amount==='number'?b.amount:Number(String(b.amount||'').replace(',','.'));
+        if(!Number.isFinite(amount)||amount<1||amount>5000||Math.abs(amount*100-Math.round(amount*100))>0.000001){
+          return json(res,400,{ok:false,message:'აირჩიე მინიმუმ 1 ₾ და მაქსიმუმ 5,000 ₾ (ორ ათწილადამდე).'});
+        }
+        const out=await createBogDonationOrder(amount,b.displayName);
+        return json(res,200,out);
+      }
+      if(u.pathname==='/api/donations/status'&&req.method==='GET'){
+        const id=String(u.searchParams.get('order')||'');
+        const order=orders.get(id);
+        if(!order||order.kind!=='donation') return json(res,404,{ok:false,message:'დონაციის შეკვეთა ვერ მოიძებნა.'});
+        if(order.status!=='paid'){
+          try{await verifyAndRecordDonation(id,{order_id:order.provider?.id||order.provider?.order_id||''});}catch(e){console.error('BOG donation verification failed:',e.message);}
+        }
+        const latest=orders.get(id);
+        return json(res,200,{ok:true,paid:latest?.status==='paid',status:latest?.status||'unknown'});
+      }
+    }
+
     if(u.pathname==='/api/analytics/visit'&&req.method==='POST'){
       const b=await body(req); const visitorId=String(b.visitorId||'').trim();
       if(!/^[A-Za-z0-9_-]{16,80}$/.test(visitorId)) return json(res,400,{ok:false,message:'Visitor ID არასწორია.'});
@@ -443,10 +576,36 @@ const server=http.createServer(async(req,res)=>{
     }
     if(u.pathname==='/api/payments/bog/callback'){
       const b=await body(req).catch(()=>({}));
-      const orderId=b.external_order_id||b.order_id||b.orderId||b.order?.external_order_id;
+      let orderId=String(b.external_order_id||b.externalOrderId||b.order?.external_order_id||'');
+      const bogOrderId=String(b.order_id||b.orderId||b.order?.id||'');
+      if(!orders.has(orderId) && bogOrderId){
+        const matched=Array.from(orders.entries()).find((entry)=>String(entry[1]?.provider?.id||entry[1]?.provider?.order_id||'')===bogOrderId);
+        if(matched) orderId=matched[0];
+      }
       if(orderId&&orders.has(orderId)){
-        const o=orders.get(orderId); o.callback=b; o.status=String(b.order_status?.key||b.order_status||b.status_key||b.status||'callback_received'); o.updatedAt=Date.now(); orders.set(orderId,o); persistOrders();
-        const status=String(o.status).toLowerCase();
+        const o=orders.get(orderId);
+        const status=String(b.order_status?.key||b.status||b.status_key||b.order_status?.value||b.order_status||'callback_received').toLowerCase();
+        o.callbackStatus=status; o.updatedAt=Date.now();
+        if(o.kind==='donation'){
+          if(status==='completed'){
+            try{
+              const verified=await verifyAndRecordDonation(orderId,{order_id:bogOrderId||o.provider?.id||o.provider?.order_id||''});
+              if(!verified && o.status!=='paid') o.status='verification_pending';
+            }catch(e){
+              if(o.status!=='paid') o.status='verification_pending';
+              console.error('BOG donation verification failed:',e.message);
+            }
+          }else if(['rejected','expired','refunded','partially_refunded','cancelled','failed'].includes(status)){
+            o.status=status;
+            if(status==='refunded') {
+              donations=donations.filter(d=>d.orderId!==orderId);
+              persistDonations();
+            }
+          }else if(o.status!=='paid'){o.status=status;}
+          orders.set(orderId,o); persistOrders();
+          return json(res,200,{ok:true});
+        }
+        o.callback=b; o.status=status; orders.set(orderId,o); persistOrders();
         if(['completed','paid','succeeded','success','successful','approved'].includes(status)&&!analytics.purchases.some(x=>x.orderId===orderId)){
           const amount=Number(o.totalAmount??b.purchase_units?.total_amount??b.total_amount??0)||0;
           keepRecent(analytics.purchases,{orderId,plan:o.plan||'plus',termMonths:o.termMonths||1,amount,currency:'GEL',status:'confirmed',provider:'BOG',at:Date.now()},10000);
