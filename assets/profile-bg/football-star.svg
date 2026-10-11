@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 420">
+<defs>
+  <linearGradient id="g" x1="0" x2="1"><stop stop-color="#07152d"/><stop offset=".55" stop-color="#092d4f"/><stop offset="1" stop-color="#7a0f1b"/></linearGradient>
+  <radialGradient id="glow"><stop stop-color="#f7d774" stop-opacity=".9"/><stop offset="1" stop-color="#f7d774" stop-opacity="0"/></radialGradient>
+</defs>
+<rect width="1200" height="420" fill="url(#g)"/>
+<circle cx="930" cy="80" r="180" fill="url(#glow)"/>
+<path d="M0 340 C220 260 420 380 680 320 S1050 250 1200 315 V420 H0Z" fill="#061321" opacity=".85"/>
+<g transform="translate(820 28)">
+ <circle cx="125" cy="60" r="42" fill="#d89b73"/>
+ <path d="M86 58c8-52 98-58 96 12-27-22-53-33-96-12Z" fill="#1b1a1f"/>
+ <path d="M44 180c22-79 47-92 82-92s60 13 82 92l-22 24H64Z" fill="#f3f3f4"/>
+ <path d="M126 90v95" stroke="#0f1c2d" stroke-width="3"/>
+ <path d="M89 155h72" stroke="#a0132c" stroke-width="10"/>
+ <circle cx="125" cy="205" r="40" fill="#f2f2f2" stroke="#bd9b31" stroke-width="5"/>
+ <text x="125" y="222" fill="#12243b" text-anchor="middle" font-size="54" font-family="Arial" font-weight="900">10</text>
+ <circle cx="20" cy="220" r="18" fill="#f5f5f5" stroke="#bd9b31" stroke-width="4"/>
+</g>
+<text x="60" y="95" fill="#ffd96b" font-size="48" font-family="Arial" font-weight="800">GEONATURE PLUS</text>
+<text x="60" y="145" fill="#fff" font-size="28" font-family="Arial">Football Star • Premium Background</text>
+<text x="60" y="182" fill="#9de9ff" font-size="20" font-family="Arial">სპორტი • ენერგია • გამარჯვება</text>
+</svg>

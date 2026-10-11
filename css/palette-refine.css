@@ -1,0 +1,125 @@
+/* GeoNature GYR palette — only green / yellow / red accents + dark neutral surfaces */
+:root{
+  --gn-bg:#07100b;
+  --gn-bg-2:#0b150e;
+  --gn-surface:#0f1c14;
+  --gn-surface-2:#13251a;
+  --gn-surface-3:#193022;
+  --gn-text:#f1f5f0;
+  --gn-muted:#9eaca2;
+  --gn-line:rgba(255,255,255,.10);
+  --gn-green:#32bf68;
+  --gn-green-soft:#54d47f;
+  --gn-yellow:#e7c23f;
+  --gn-red:#e24b4b;
+  --gn-radius:18px;
+}
+
+html,body{background:var(--gn-bg)!important;color:var(--gn-text)!important}
+body{background:linear-gradient(180deg,#07100b 0%,#0a140e 52%,#07100b 100%)!important}
+
+/* Header / navigation — green is the main accent, yellow is active state */
+.header{background:rgba(7,16,11,.97)!important;border-color:rgba(50,191,104,.18)!important}
+.logo-mark{background:var(--gn-green)!important;color:#07100b!important;box-shadow:0 0 0 1px rgba(84,212,127,.18),0 6px 20px rgba(50,191,104,.14)}
+.logo small{color:var(--gn-muted)!important}
+.nav a{color:#c0c9c2!important}
+.nav a.active,.nav a:hover{background:rgba(231,194,63,.13)!important;color:var(--gn-yellow)!important}
+
+/* Main surfaces */
+.page-head,.hero,.fish-hero{background:linear-gradient(180deg,#0d1b12,#08110c)!important;border-color:rgba(50,191,104,.14)!important}
+.panel,.card,.location-card,.catalog-card,.gn-card,.live-card,.hero-card,.chat,.ai-sidebar,.best-callout,.baro,.feature-card,.fish-card,.daily-card,.day-card,.trip-card,.form-card,.account-panel{
+  background:linear-gradient(180deg,var(--gn-surface-2),var(--gn-surface))!important;
+  border-color:rgba(50,191,104,.14)!important;
+  box-shadow:0 16px 42px rgba(0,0,0,.20)!important;
+}
+
+/* Inputs */
+input,select,textarea,.search-row input,.search-row select,.fish-search-wrap input,.fish-search-wrap select,.place-tools input,.place-tools select,.form-card input,.form-card textarea,.map-side input,.planner-controls input,.planner-controls select,.chat-input input{
+  background:#0b1710!important;color:var(--gn-text)!important;border-color:rgba(50,191,104,.20)!important;
+}
+input:focus,select:focus,textarea:focus{border-color:rgba(231,194,63,.65)!important;box-shadow:0 0 0 3px rgba(231,194,63,.08)!important}
+
+/* Buttons — green primary, yellow secondary/attention, red danger */
+.btn.primary{background:linear-gradient(180deg,#3bd174,#28ae5d)!important;border-color:#3bd174!important;color:#06100a!important;box-shadow:0 8px 20px rgba(50,191,104,.16)!important}
+.btn.ghost{background:#122017!important;color:var(--gn-text)!important;border-color:rgba(255,255,255,.11)!important}
+.btn.danger{background:#311516!important;color:#ff9d9d!important;border-color:rgba(226,75,75,.38)!important}
+
+/* Main copy / links */
+.eyebrow,.link{color:var(--gn-yellow)!important}
+.muted,.small,.page-head p,.section-head p,.factor-label,.factor-detail{color:var(--gn-muted)!important}
+.hero h1 span{color:#d7dfd8!important}
+.footer{background:#050c07!important;border-color:rgba(255,255,255,.08)!important}
+
+/* Green/yellow UI chips */
+.badge,.gn-chip,.count-pill,.small-live,.live-tag{background:rgba(50,191,104,.08)!important;border-color:rgba(50,191,104,.23)!important;color:var(--gn-green-soft)!important}
+.badge.earned,.gn-season.on{background:rgba(50,191,104,.10)!important;border-color:rgba(50,191,104,.35)!important;color:var(--gn-green-soft)!important}
+.count-pill{color:var(--gn-green-soft)!important}
+
+/* Progress / status */
+.gn-progress{background:#1a2a1f!important}.gn-progress span{background:var(--gn-green)!important}
+.gn-record{background:rgba(50,191,104,.06)!important;border-color:rgba(50,191,104,.24)!important}
+.hero-score b,.dash-score b,.live-score b{color:var(--gn-green-soft)!important}
+.live-dot{background:var(--gn-green)!important}
+
+/* Score gauge — red -> yellow -> green */
+.gauge{background:conic-gradient(from 270deg,var(--gn-red) 0 38%,var(--gn-yellow) 38% 68%,var(--gn-green) 68% 100%)!important}
+.gauge:after{background:#0a140e!important}
+.gauge-center b{color:var(--gn-text)!important}
+
+/* Map score markers */
+.outdoor-score-marker.score-good,.map-score-popup .popup-score.score-good{background:var(--gn-green)!important;color:#06100a!important}
+.outdoor-score-marker.score-mid,.map-score-popup .popup-score.score-mid{background:var(--gn-yellow)!important;color:#171407!important}
+.outdoor-score-marker.score-low,.map-score-popup .popup-score.score-low{background:var(--gn-yellow)!important;color:#171407!important}
+.outdoor-score-marker.score-bad,.map-score-popup .popup-score.score-bad{background:var(--gn-red)!important;color:#fff!important}
+.score-legend{background:rgba(7,16,11,.95)!important;color:var(--gn-text)!important;border:1px solid rgba(255,255,255,.10)!important}
+
+/* Live factors — same three colors only */
+.live-factors{background:linear-gradient(180deg,#102017,#09140d)!important;border-color:rgba(50,191,104,.15)!important}
+.live-factors:before{background:radial-gradient(circle at 80% 0%,rgba(50,191,104,.07),transparent 28%)!important}
+.factor-live-state{background:rgba(50,191,104,.08)!important;border-color:rgba(50,191,104,.28)!important;color:var(--gn-green-soft)!important}
+.factor-bar{background:#1b2a20!important}.factor-bar>span{background:var(--gn-green)!important}
+.factor-item:nth-child(2) .factor-bar>span,.factor-item:nth-child(4) .factor-bar>span,.factor-item:nth-child(6) .factor-bar>span,.factor-item:nth-child(8) .factor-bar>span{background:var(--gn-yellow)!important}
+
+/* Hourly forecast */
+.gn-hourly-strip::-webkit-scrollbar-thumb{background:#36502e!important}
+.weather-hour-card{background:#0d1a12!important;border-color:rgba(50,191,104,.15)!important}
+.weather-hour-card.active{background:#13261a!important;border-color:rgba(231,194,63,.60)!important;box-shadow:0 0 0 1px rgba(231,194,63,.12)!important}
+.weather-hour-card strong{color:var(--gn-green-soft)!important}
+.gn-max-badge,.gn-live-max{background:var(--gn-yellow)!important;color:#161205!important}
+
+/* Activity / bait */
+.gn-activity-card{background:linear-gradient(180deg,#14271b,#0b1710)!important;border-color:rgba(50,191,104,.14)!important}
+.gn-activity-card.max{border-color:rgba(231,194,63,.55)!important;box-shadow:0 0 22px rgba(231,194,63,.07)!important}
+.gn-bait-icon{background:#172619!important}.gn-activity-bar{background:#1a2a1f!important}.gn-activity-bar span{background:var(--gn-green)!important}
+.tag{background:#183020!important;color:var(--gn-green-soft)!important}
+
+/* AI / chat */
+.ai-status{color:var(--gn-green-soft)!important}.ai-status.busy{color:var(--gn-yellow)!important}.ai-typing i{background:var(--gn-green)!important}
+.ai-tabs button.active{border-color:rgba(231,194,63,.62)!important;background:#1a2414!important}
+.ai-question-list button:hover{border-color:rgba(50,191,104,.45)!important;background:#142519!important}
+
+/* Best states */
+.best-callout strong{color:var(--gn-green-soft)!important}
+.day-card.best{border-color:rgba(231,194,63,.50)!important}
+.route-active{border-color:rgba(231,194,63,.65)!important}
+
+/* Homepage accent gradients — no blue/cyan */
+.hero{background:
+  radial-gradient(circle at 78% 8%,rgba(50,191,104,.10),transparent 27%),
+  radial-gradient(circle at 15% 60%,rgba(231,194,63,.06),transparent 30%),
+  linear-gradient(180deg,#0d1b12,#08110c)!important}
+
+/* Selection / active cards */
+.fish-card:hover,.location-card:hover,.feature-card:hover{border-color:rgba(231,194,63,.45)!important}
+
+/* Keep score colors as the ONLY strong red/yellow/green colors */
+.danger,.score-bad-text{color:var(--gn-red)!important}
+.score-good-text{color:var(--gn-green-soft)!important}
+.score-mid-text{color:var(--gn-yellow)!important}
+
+/* Remove lingering blue/cyan/purple accents from common legacy classes */
+[style*="#25b9ee"],[style*="#67cdf4"],[style*="#4fd3ff"],[style*="#2ab4ff"],[style*="#1f78d1"],[style*="#2c8cff"]{color:var(--gn-green)!important;background-color:var(--gn-green)!important;border-color:var(--gn-green)!important}
+
+@media(max-width:1000px){
+  .nav{background:#09140d!important;border-color:rgba(50,191,104,.18)!important}
+}

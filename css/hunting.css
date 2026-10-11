@@ -1,0 +1,22 @@
+.hunt-hero{background:radial-gradient(circle at 80% 20%,rgba(194,155,82,.12),transparent 28%)}
+.hunt-hero h1 span{color:#c3b69b}
+.hunt-profile-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.hunt-fact-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.hunt-fact{padding:10px;border:1px solid var(--line);background:#0d1b13;border-radius:10px}
+.hunt-fact small{display:block;color:var(--muted);font-size:9px}.hunt-fact b{display:block;font-size:12px;margin-top:3px}
+@media(max-width:620px){.hunt-fact-grid{grid-template-columns:1fr}}
+
+
+/* Prominent chance indicators — shared by fish, wildlife, places and hunting. */
+.gn-chance{display:inline-flex;align-items:center;gap:8px;padding:5px 8px 5px 5px;border-radius:999px;background:rgba(5,15,9,.9);border:1px solid rgba(255,255,255,.08);box-shadow:0 8px 22px rgba(0,0,0,.16)}
+.gn-chance-ring{--ring:#a8ea67;display:grid;place-items:center;width:48px;height:48px;border-radius:50%;background:conic-gradient(var(--ring) calc(var(--chance)*1%),rgba(255,255,255,.10) 0);position:relative;flex:0 0 auto}
+.gn-chance-ring::after{content:"";position:absolute;inset:4px;border-radius:50%;background:#0b160e}
+.gn-chance-ring b{position:relative;z-index:2;font-size:12px;color:#fff}
+.gn-chance-copy{display:flex;flex-direction:column;min-width:72px}.gn-chance-copy strong{font-size:10px;line-height:1.15;color:#eff8f0}.gn-chance-copy small{font-size:9px;color:#95aa9d;margin-top:2px}
+.gn-chance-excellent .gn-chance-ring{--ring:#66e277}.gn-chance-good .gn-chance-ring{--ring:#b6ea63}.gn-chance-medium .gn-chance-ring{--ring:#f6c64c}.gn-chance-weak .gn-chance-ring{--ring:#f39a3d}.gn-chance-poor .gn-chance-ring{--ring:#ef5f5f}
+.fg-image-score{padding:7px 10px !important}.fg-card-image-wrap .fg-image-score .gn-chance{display:none}
+.fg-card .gn-chance{margin-left:auto}.fg-card .fg-top>.gn-chance{transform:translateY(-2px)}
+.fg-hunt-place{border-color:rgba(194,155,82,.16)}.fg-hunt-place .fg-image-score{background:rgba(53,33,13,.9);color:#ffe0a2;border-color:rgba(255,210,120,.18)}
+@media(max-width:640px){.gn-chance-ring{width:44px;height:44px}.gn-chance-copy{min-width:64px}.gn-chance-copy strong{font-size:9px}.gn-chance-copy small{font-size:8px}}
+
+.hunt-card-top{position:relative}.hunt-card-top .gn-chance{background:rgba(24,18,9,.95);border-color:rgba(255,208,125,.18)}.hunt-card-chance{position:absolute;right:8px;top:8px}.hunt-profile-topline{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}

@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="720" viewBox="0 0 720 720">
+<defs>
+ <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5a3e1d"/><stop offset="1" stop-color="#07110d"/></linearGradient>
+ <radialGradient id="glow" cx="50%" cy="35%" r="60%"><stop offset="0" stop-color="#f1ba67" stop-opacity=".32"/><stop offset="1" stop-color="#f1ba67" stop-opacity="0"/></radialGradient>
+ <linearGradient id="skin" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d8aa87"/><stop offset="1" stop-color="#8c604f"/></linearGradient>
+ <linearGradient id="cloth" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#171717"/><stop offset="1" stop-color="#0b0e0d"/></linearGradient>
+ <filter id="shadow"><feDropShadow dx="0" dy="18" stdDeviation="18" flood-opacity=".35"/></filter>
+</defs>
+<rect width="720" height="720" rx="80" fill="url(#bg)"/>
+<circle cx="530" cy="170" r="190" fill="url(#glow)"/>
+<path d="M0 590 Q110 490 230 560 T470 545 T720 505 V720H0Z" fill="#07130e" opacity=".65"/>
+<path d="M70 540 Q160 435 270 525 T500 520 T680 430" fill="none" stroke="#f1ba67" stroke-opacity=".16" stroke-width="22"/>
+<!-- shoulders -->
+<path d="M135 720C148 585 212 535 360 525C508 535 572 585 585 720Z" fill="url(#cloth)" filter="url(#shadow)"/>
+<!-- neck -->
+<path d="M306 480C308 515 304 540 292 562Q360 602 428 562C416 540 412 515 414 480Z" fill="url(#skin)"/>
+<!-- ears -->
+<ellipse cx="246" cy="333" rx="33" ry="48" fill="url(#skin)"/>
+<ellipse cx="474" cy="333" rx="33" ry="48" fill="url(#skin)"/>
+<!-- head -->
+<ellipse cx="360" cy="330" rx="118" ry="145" fill="url(#skin)" filter="url(#shadow)"/>
+<!-- hair -->
+<path d="M246 320C236 220 286 166 363 168C449 168 488 232 474 321C458 265 426 242 384 242C325 244 290 276 246 320Z" fill="#4b2f28"/>
+<path d="M247 295C251 216 308 177 367 176C418 176 468 206 478 272" fill="none" stroke="#4b2f28" stroke-width="24" stroke-linecap="round"/>
+<!-- brows -->
+<path d="M286 326Q314 309 337 324" fill="none" stroke="#3c2a20" stroke-width="10" stroke-linecap="round"/>
+<path d="M383 324Q408 309 437 326" fill="none" stroke="#3c2a20" stroke-width="10" stroke-linecap="round"/>
+<!-- eyes -->
+<ellipse cx="315" cy="348" rx="9" ry="12" fill="#181514"/><ellipse cx="405" cy="348" rx="9" ry="12" fill="#181514"/>
+<circle cx="318" cy="345" r="3" fill="#fff"/><circle cx="408" cy="345" r="3" fill="#fff"/>
+<!-- nose -->
+<path d="M353 348Q345 378 351 388Q359 394 371 386" fill="none" stroke="#7d5748" stroke-width="7" stroke-linecap="round"/>
+<!-- mouth -->
+<path d="M327 414Q360 435 393 414" fill="none" stroke="#673e38" stroke-width="8" stroke-linecap="round"/>
+<!-- jacket detail -->
+<path d="M270 574L360 635L450 574" fill="none" stroke="#f1ba67" stroke-opacity=".46" stroke-width="10"/>
+<circle cx="360" cy="635" r="17" fill="#f1ba67" opacity=".8"/>
+<text x="48" y="66" fill="#ffffff" font-family="Arial,sans-serif" font-size="25" font-weight="700" opacity=".84">GEONATURE</text>
+<text x="48" y="693" fill="#ffffff" font-family="Arial,sans-serif" font-size="24" font-weight="700" opacity=".9">განთიადის მეთევზე</text>
+</svg>

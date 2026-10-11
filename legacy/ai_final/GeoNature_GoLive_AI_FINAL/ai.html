@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ka">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GeoNature • AI ასისტენტი</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="header"><div class="container header-inner">
+<a class="logo" href="index.html"><span class="logo-icon">G</span><span><b>GEONATURE</b><small>SMART NATURE ASSISTANT</small></span></a>
+<button class="menu-button" id="menuButton">☰</button>
+<nav id="mainNav" class="nav"><a href="index.html">მთავარი</a><a href="weather.html">ამინდი</a><a href="places.html">ადგილები</a><a href="map.html">Live რუკა</a><a href="index.html#catalog">კატალოგი</a><a href="ai.html">AI ასისტენტი</a><a href="safety.html">უსაფრთხოება</a><a href="about.html">ჩვენ შესახებ</a></nav>
+</div></header>
+
+<section class="ai-hero"><div class="container">
+<span class="eyebrow">NATURE AI • GEORGIA</span>
+<h1>დაუსვი კითხვა ბუნებაზე.</h1>
+<p>მოსახერხებელი AI ასისტენტი, რომელსაც აქვს დიდი წინასწარ მომზადებული კითხვების ბიბლიოთეკა. შეგიძლია დაწერო საკუთარი კითხვა ან აირჩიო მზა ვარიანტი.</p>
+<div class="ai-search"><input id="aiInput" autocomplete="off" placeholder="მაგ: სად გვხვდება მწყერი? რა არის კარგი ამინდი გასვლისთვის?"><button class="btn primary" id="aiAsk">პასუხი</button><button class="btn ghost" id="aiClear">გასუფთავება</button></div>
+<div id="aiSuggestions" class="suggestions"></div>
+</div></section>
+
+<section class="container section ai-layout">
+<aside class="ai-sidebar panel">
+  <div class="ai-side-title"><span class="eyebrow">QUESTION LIBRARY</span><h2>მზა კითხვები</h2><p>აირჩიე კატეგორია. აქ არის ასეულობით ვარიანტი.</p></div>
+  <div id="aiCategories" class="ai-categories"></div>
+  <div class="ai-tip"><b>როგორ გამოვიყენო?</b><p>დააჭირე კითხვას → პასუხი გამოჩნდება ჩატში. შეგიძლია იგივე თემაზე დამატებითი კითხვა დაწერო.</p></div>
+</aside>
+
+<main class="ai-main">
+  <div id="aiChat" class="ai-chat">
+    <div class="ai-message ai-system"><div class="ai-avatar">G</div><div><b>GeoNature AI</b><p>გამარჯობა. აირჩიე მზა კითხვა ან დამიწერე საკუთარი კითხვა. პასუხები ორიენტირებულია ბუნების, ამინდის, სახეობების, რუკისა და უსაფრთხოების ინფორმაციაზე.</p></div></div>
+  </div>
+  <div class="ai-footer-card panel"><div><span class="eyebrow">POPULAR</span><h3>სწრაფი კითხვები</h3></div><div id="popularQuestions" class="popular-grid"></div></div>
+</main>
+</section>
+
+<footer class="footer"><div class="container footer-grid"><div><a class="logo footer-logo" href="index.html"><span class="logo-icon">G</span><span><b>GEONATURE</b><small>SMART NATURE</small></span></a><p>საქართველოს ბუნების საინფორმაციო პლატფორმა.</p></div><div><h4>AI</h4><p>ადგილობრივი ცოდნის ბაზა</p><p>300+ მზა კითხვა</p></div><div><h4>Live</h4><a href="weather.html">ამინდი</a><a href="map.html">რუკა</a></div></div><div class="footer-bottom">© 2026 GeoNature Georgia</div></footer>
+<script src="js/script.js"></script>
+<script src="js/ai.js"></script>
+</body>
+</html>

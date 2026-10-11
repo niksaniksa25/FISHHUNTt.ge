@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ka">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GeoNature • BOG Payment</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/premium-ui.css">
+<link rel="stylesheet" href="css/premium-gating.css">
+
+<link rel="stylesheet" href="css/promo.css">
+<link rel="stylesheet" href="css/auth.css"><link rel="stylesheet" href="css/responsive.css?v=20261006"></head>
+<body>
+<header class="header"><div class="container header-inner"><a class="logo" href="index.html"><span class="logo-mark">G</span><span><b>GEONATURE</b><small>SMART NATURE GEORGIA</small></span></a><button class="menu" id="menuBtn">☰</button><nav id="nav"><a href="index.html">მთავარი</a><a href="weather.html">ამინდი</a><a href="catalog.html">კატალოგი</a><a href="map.html">რუკა</a><a href="fishing.html">🎣 თევზაობა</a><a href="fishing-guide.html">🎯 სად წავიდეთ</a><a href="hunting.html">🦌 ნადირობა</a><a href="ai.html">AI</a><a class="admin-nav-link" href="admin.html" data-admin-return title="Admin Panel">🛡️ Admin</a></nav></div></header>
+<main class="premium-page"><div class="container">
+<section class="page-head"><span class="eyebrow">BANK OF GEORGIA</span><h1>უსაფრთხო გადახდა</h1><p id="payPlanText">გადახდის გეგმა იტვირთება…</p></section>
+<section class="pricing-card featured payment-box">
+<div class="eyebrow">BOG CHECKOUT</div><h2 id="payPlanTitle">GeoNature Plus</h2>
+<div class="pricing-price" id="payPrice">2.99 ₾ <small>/ თვე</small></div><div id="termChoices" class="term-choices" aria-label="ვადის არჩევა"></div>
+<div class="panel payment-info"><p>გადახდის შემდეგ Premium ფუნქციები გაიხსნება შენს ანგარიშზე.</p><ul><li>Plus — 2.99 ₾ / თვე</li><li>AI Pro — 7.99 ₾ / თვე</li><li>3 თვე — 10% ფასდაკლება</li><li>6 თვე — 15% ფასდაკლება</li><li>1 წელი — 25% ფასდაკლება</li><li>გადახდა გადადის Bank of Georgia-ის უსაფრთხო გვერდზე.</li></ul></div><div id="plusSaleBanner" class="sale-banner" hidden><span class="sale-badge">50% SALE</span><span><s>5.99 ₾</s> → <b>2.99 ₾ / თვე</b> <small>მოქმედებს 1 ნოემბრამდე</small></span></div><div class="sale-banner" id="proSaleBanner"><span class="sale-badge">SALE</span><span><s>15.00 ₾</s> → <b>7.99 ₾ / თვე</b> <small>AI Pro სპეციალური ფასი</small></span></div>
+<div class="promo-card"><div class="promo-title">🎟️ Promo Code</div><div class="promo-row"><input id="promoCode" class="promo-input" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="შეიყვანე promo code (პატარა ასოებით)"><button class="btn ghost" id="applyPromoBtn" type="button">გამოყენება</button></div><small class="promo-hint">შეიყვანე შენთვის მოწოდებული promo კოდი. ფასდაკლება სერვერზე მოწმდება.</small><p id="promoStatus" class="promo-status" aria-live="polite"></p></div>
+<div class="promo-card trial-banner"><div class="promo-title">🎁 3 დღე უფასოდ</div><p class="promo-hint" style="margin:0 0 10px">გადახდის გარეშე გამოცადე ეს გეგმა 72 საათით.</p><a id="trialLink" class="btn ghost" href="trial.html?plan=plus">უფასო trial →</a></div><div id="priceSummary" class="price-summary">
+ <div><span>ფასი ფასდაკლებამდე</span><b id="originalAmount">2.99 ₾</b></div>
+ <div><span>ფასდაკლება სულ</span><b id="discountAmount">− 0.00 ₾</b></div>
+ <div class="total"><span>გადასახდელი</span><strong id="finalAmount">2.99 ₾</strong></div>
+</div>
+<button class="btn primary full" id="bogPayBtn" type="button">BOG-ით გადახდა</button>
+<p class="muted" id="bogStatus" style="margin-top:12px"></p>
+</section></div></main>
+<script src="js/site.js"></script><script src="js/i18n-dict.js"></script><script src="js/i18n.js"></script><script src="js/bog-payment.js?v=20261010-promo-fallback-fix2"></script>
+<script src="js/auth.js"></script><script src="js/admin-return.js"></script><script src="js/device-responsive.js?v=20261006"></script><script src="js/analytics-feedback.js?v=20261010" defer></script></body></html>

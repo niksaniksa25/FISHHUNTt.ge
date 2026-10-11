@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ka">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bird Explorer • GeoNature Georgia</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+</head>
+<body>
+<header class="header"><div class="container header-inner">
+<a class="logo" href="index.html"><span class="logo-icon">G</span><span><b>GEONATURE</b><small>GEORGIA OUTDOOR</small></span></a>
+<button class="menu-button" id="menuButton">☰</button>
+<nav id="mainNav" class="nav"><a href="index.html">მთავარი</a><a href="weather.html">ამინდი</a><a href="map.html">Live რუკა</a><a class="active" href="birds.html">ფრინველები</a><a href="species.html">სახეობები</a><a href="search.html">🔎 ძებნა</a><a href="safety.html">უსაფრთხოება</a></nav>
+</div></header>
+
+<section class="page compact bird-head"><div class="container">
+<span class="eyebrow">BIRD EXPLORER • LIVE MAP • AI</span>
+<h1>აირჩიე ფრინველი და გაიგე სად შეიძლება დააკვირდე.</h1>
+<p>ფრინველის არჩევის შემდეგ ვაჩვენებთ მის ზოგად ჰაბიტატებსა და რეგიონულ ზონებს, სეზონურობას და ტიპურ აქტივობის პერიოდს. რუკაზე წერტილები არის ფართო საორიენტაციო ზონები და არა ზუსტი ბუდეების/ლოკაციების მონაცემები.</p>
+</div></section>
+
+<section class="container bird-layout">
+<aside class="bird-controls panel">
+  <div class="control-group"><label>ფრინველის არჩევა</label><select id="birdSelect"></select></div>
+  <div id="birdCard" class="bird-card"></div>
+  <button id="showBirdMap" class="btn primary full">🗺️ რუკაზე ჩვენება</button>
+  <button id="locateBird" class="btn ghost full">📍 ჩემი მდებარეობა</button>
+  <div id="nearestZone" class="info-box">აირჩიე ფრინველი და შემდეგ დააჭირე „რუკაზე ჩვენება“.</div>
+  <div class="control-group village-group"><label>ნებისმიერი სოფლის/ქალაქის ძებნა</label><div class="village-search"><input id="villageInput" placeholder="მაგ. შემოქმედი, ოზურგეთი, ნატანები..."><button id="villageSearch" class="btn primary">🔎</button></div><div id="villageResults" class="search-results"></div></div>
+  <div class="instructions-box"><b>როგორ გამოიყენო</b><ol><li>აირჩიე ფრინველი.</li><li>დააჭირე „რუკაზე ჩვენება“.</li><li>მოიძიე ნებისმიერი სოფელი/ქალაქი.</li><li>GPS-ით ნახე შენი მდებარეობა.</li><li>AI-ს ჰკითხე ჰაბიტატზე, სეზონზე ან რუკაზე.</li></ol></div>
+  <div class="source-note">ზონები არის ფართო საინფორმაციო/დაკვირვების უბნები და არა ზუსტი ბუდეების, ბუდობის ან მოპოვების წერტილები. ბიომრავალფეროვნების გვერდებისთვის გამოიყენება ოფიციალური დაცული ტერიტორიების ინფორმაცია.</div>
+</aside>
+
+<div class="bird-main">
+  <div class="panel bird-map-panel"><div class="map-heading"><div><span class="eyebrow">GENERAL RANGE MAP</span><h2>სად შეიძლება შეხვდე?</h2></div><span id="mapLegend">საორიენტაციო ზონები</span></div><div id="birdMap"></div></div>
+
+  <div class="panel qa-panel">
+    <div class="map-heading"><div><span class="eyebrow">QUICK QUESTIONS</span><h2>ხშირი კითხვები</h2></div></div>
+    <div class="question-buttons" id="questionButtons"></div>
+    <div id="qaAnswer" class="answer">აირჩიე კითხვა ან დაწერე საკუთარი შეკითხვა AI ასისტენტს ქვემოთ.</div>
+  </div>
+
+  <div class="panel ai-panel">
+    <div class="map-heading"><div><span class="eyebrow">NATURE AI</span><h2>AI ასისტენტი</h2><p class="muted">შეეკითხე არჩეულ ფრინველს, ჰაბიტატს, სეზონს, ამინდს, სოფელს ან რუკას.</p></div></div>
+    <div class="ai-status" id="aiStatus">🟢 ადგილობრივი ასისტენტი მზადაა — ონლაინ AI გასაღები სურვილისამებრ.</div>
+    <div id="chat" class="chat"></div>
+    <div class="api-row"><input id="aiKey" type="password" placeholder="ონლაინ AI გასაღები (არ შეინახება სერვერზე)"><button id="saveKey" class="btn ghost">გასაღების ჩართვა</button></div>
+    <div class="chat-row"><input id="aiInput" placeholder="მაგ: სად შეიძლება მწყერზე დაკვირვება საქართველოში?"><button id="aiSend" class="btn primary">გაგზავნა</button></div>
+    <small class="muted">ონლაინ რეჟიმისთვის გამოიყენე შენი API გასაღები. გასაღები ინახება მხოლოდ ამ მიმდინარე ბრაუზერის სესიაში და გვერდის დახურვისას იშლება.</small>
+  </div>
+</div>
+</section>
+
+<footer class="footer"><div class="container footer-grid"><div><a class="logo footer-logo" href="index.html"><span class="logo-icon">G</span><span><b>GEONATURE</b><small>GEORGIA OUTDOOR</small></span></a><p>საქართველოს ბუნების, ამინდისა და outdoor დაგეგმვის საინფორმაციო პლატფორმა.</p></div><div><h4>მონაცემები</h4><p>ამინდი: Open-Meteo</p><p>რუკა: OpenStreetMap + Leaflet</p></div><div><h4>ფრინველები</h4><a href="birds.html">Bird Explorer</a><a href="map.html">Live რუკა</a></div></div><div class="footer-bottom">© 2026 GeoNature Georgia</div></footer>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="js/script.js"></script>
+<script src="js/birds.js"></script>
+</body></html>

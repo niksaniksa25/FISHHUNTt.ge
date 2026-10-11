@@ -1,0 +1,1 @@
+(function(){function set(){document.querySelectorAll('a[data-admin-return]').forEach(function(a){try{var u=new URL('admin.html',location.href);u.searchParams.set('return',location.pathname.split('/').pop()+location.search+location.hash);a.href=u.href;}catch(e){}})}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',set);else set();})();

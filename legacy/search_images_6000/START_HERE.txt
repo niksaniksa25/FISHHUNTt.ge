@@ -1,0 +1,29 @@
+GeoNature Georgia — Go Live
+
+1) გახსენი ეს საქაღალდე VS Code-ში.
+2) index.html-ზე დააჭირე Open with Live Server / Go Live.
+3) მთავარ გვერდზე შედი „ფრინველები“-ში.
+4) Bird Explorer-ში აირჩიე მწყერი ან სხვა ფრინველი.
+5) „რუკაზე ჩვენება“ აჩვენებს ფართო, საორიენტაციო რეგიონულ ზონებს.
+6) GPS ღილაკით შეგიძლია ნახო შენს მდებარეობასთან უახლოესი ასეთი ზონა.
+7) AI ასისტენტს აქვს ადგილობრივი პასუხები. ონლაინ AI-სთვის შეგიძლია შეიყვანო შენი Pollinations API key; ის ინახება მხოლოდ ამ ბრაუზერში sessionStorage-ში და არ იგზავნება GeoNature-ის სერვერზე.
+
+მნიშვნელოვანი: რუკის ფრინველის ზონები ფართო საორიენტაციო არეალებია და არა ზუსტი ბუდეების ან სხვა მგრძნობიარე ლოკაციების მონაცემები.
+
+
+NEW IN THIS VERSION
+- Bird Explorer has deterministic local answers, so AI does not have to invent basic facts.
+- Any Georgian village/town can be searched using OpenStreetMap Nominatim.
+- Search results show the exact geocoded point for the selected village/town.
+- Bird zones remain broad observation/information zones, not exact nest or hunting locations.
+- The online AI key is optional; without it, the local assistant still answers the main questions.
+- For online AI, enter your API key only into the browser UI; it is stored in that browser's sessionStorage.
+- Nominatim is intended for low-volume user-driven queries; do not automate bulk searches.
+
+
+SEARCH IMAGES UPDATE
+- Universal Search cards now load online species photos lazily from Wikimedia Commons via its public API.
+- Clicking a result opens detailed species information.
+- The detail panel includes a large image and a large-image modal.
+- If the online image service is unavailable, a species icon placeholder remains visible.
+- No image bytes are bundled locally, keeping the project lightweight.

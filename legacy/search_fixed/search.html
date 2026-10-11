@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ka">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#07110c">
+<title>GeoNature • ცხოველები, ფრინველები და თევზები</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body class="search-page">
+<header class="header">
+  <div class="container header-inner">
+    <a class="logo" href="index.html"><span class="logo-icon">G</span><span><b>GEONATURE</b><small>GEORGIA OUTDOOR</small></span></a>
+    <button class="menu-button" id="menuButton" aria-label="მენიუ">☰</button>
+    <nav id="mainNav" class="nav">
+      <a href="index.html">მთავარი</a><a href="weather.html">ამინდი</a><a href="places.html">ადგილები</a><a href="map.html">Live რუკა</a><a href="birds.html">ფრინველები</a><a class="active" href="search.html">🔎 ძებნა</a><a href="safety.html">უსაფრთხოება</a><a href="about.html">ჩვენ შესახებ</a>
+    </nav>
+  </div>
+</header>
+
+<section class="search-hero-pro">
+  <div class="container">
+    <div class="eyebrow">GEONATURE EXPLORER</div>
+    <div class="hero-row">
+      <div>
+        <h1>მოძებნე <span>ნებისმიერი სახეობა.</span></h1>
+        <p>ცხოველები, ფრინველები და თევზები ერთ დიდ კატალოგში. დაწერე ერთი ასო, სიტყვა, ლათინური სახელი ან რეგიონი.</p>
+      </div>
+      <div class="search-stats">
+        <div><strong id="statAll">0</strong><span>ყველა</span></div>
+        <div><strong id="statBird">0</strong><span>ფრინველი</span></div>
+        <div><strong id="statMammal">0</strong><span>ცხოველი</span></div>
+        <div><strong id="statFish">0</strong><span>თევზი</span></div>
+      </div>
+    </div>
+
+    <div class="smart-search" id="smartSearch">
+      <div class="search-input-row">
+        <span class="search-icon">⌕</span>
+        <input id="universalSearch" autocomplete="off" spellcheck="false" placeholder="მაგ. მწყერი, კალმახი, დათვი, Aquila..." aria-label="სახეობის ძებნა">
+        <kbd>/</kbd>
+        <button id="clearSearch" type="button" aria-label="გასუფთავება">×</button>
+      </div>
+      <div class="suggestion-box" id="liveSuggestions" hidden></div>
+    </div>
+
+    <div class="quick-row" id="quickPills"></div>
+    <div class="tip-line"><span>💡</span><span>რჩევა: შეგიძლია მოძებნო სახელით, ლათინური სახელით, ჰაბიტატით ან რეგიონით.</span></div>
+  </div>
+</section>
+
+<section class="container search-main-pro">
+  <div class="search-toolbar-pro">
+    <div class="toolbar-left">
+      <button class="filter active" data-group="all">ყველა <span id="countAll"></span></button>
+      <button class="filter" data-group="ფრინველი">🐦 ფრინველები <span id="countBird"></span></button>
+      <button class="filter" data-group="ძუძუმწოვარი">🦌 ცხოველები <span id="countMammal"></span></button>
+      <button class="filter" data-group="თევზი">🐟 თევზები <span id="countFish"></span></button>
+    </div>
+    <div class="toolbar-right">
+      <button class="ghost-action" id="randomSpecies" type="button">🎲 შემთხვევითი</button>
+      <button class="ghost-action" id="favoritesToggle" type="button">★ რჩეულები <span id="favoriteCount">0</span></button>
+    </div>
+  </div>
+
+  <div class="search-content-pro">
+    <section class="results-panel-pro">
+      <div class="result-title-row"><div><span class="eyebrow">CATALOG</span><h2 id="resultCount">ყველა სახეობა</h2></div><div id="resultHint" class="result-hint">მონიშნე ნებისმიერი ბარათი</div></div>
+      <div id="activeChips" class="active-chips"></div>
+      <div id="resultGrid" class="universal-grid-pro"></div>
+    </section>
+
+    <aside id="detailPanel" class="detail-panel-pro" aria-live="polite">
+      <div class="detail-placeholder-pro">
+        <div class="placeholder-orb">🦉</div>
+        <span class="eyebrow">SPECIES PROFILE</span>
+        <h3>აირჩიე სახეობა</h3>
+        <p>ბარათზე დაჭერისას აქ გამოჩნდება ფოტო, სახელები, ჰაბიტატი, გავრცელება, სეზონი, აქტივობის პერიოდი, ტეგები და რუკის ბმული.</p>
+        <div class="placeholder-keys"><span>Enter</span><span>Click</span><span>Search</span></div>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<div id="imageModal" class="image-modal" aria-hidden="true">
+  <div class="image-modal-backdrop" data-close-modal></div>
+  <div class="image-modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <button class="image-modal-close" data-close-modal aria-label="დახურვა">×</button>
+    <img id="modalImage" alt="" src="">
+    <div class="modal-caption"><div><b id="modalTitle"></b><span id="modalLatin"></span></div><small id="modalCredit"></small></div>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container footer-grid"><div><a class="logo footer-logo" href="index.html"><span class="logo-icon">G</span><span><b>GEONATURE</b><small>GEORGIA OUTDOOR</small></span></a><p>საქართველოს ბუნების საინფორმაციო პლატფორმა.</p></div><div><h4>კატალოგი</h4><a href="search.html">ცხოველები</a><a href="search.html">ფრინველები</a><a href="search.html">თევზები</a></div><div><h4>ინსტრუმენტები</h4><a href="weather.html">Live ამინდი</a><a href="map.html">Live რუკა</a><a href="birds.html">Bird Explorer</a></div></div>
+  <div class="footer-bottom">© 2026 GeoNature Georgia</div>
+</footer>
+<script src="js/script.js"></script>
+<script src="js/search.js"></script>
+</body>
+</html>

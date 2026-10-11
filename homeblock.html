@@ -1,0 +1,68 @@
+<link rel="stylesheet" href="css/auth.css">
+<section class="container section home-live" id="homeLive">
+  <div class="section-head">
+    <div><span class="eyebrow">LIVE OUTDOOR • FISHING • HUNTING</span><h2>ყველაფერი მთავარ გვერდზე — საათობრივად</h2><p>აირჩიე დღე და ზუსტი საათი. ქულები და ფაქტორები იმავე საათის Live/პროგნოზის მონაცემებით გადათვლიან.</p></div>
+    <div class="home-legend"><span class="g">80–100 • კარგი</span><span class="m">50–79 • საშუალო</span><span class="b">0–49 • ცუდი</span></div>
+  </div>
+  <div class="home-live-hero">
+    <div class="home-live-top">
+      <div><div class="home-live-title" id="homeLiveTitle">თბილისი</div><div class="home-live-meta" id="homeUpdated">Live მონაცემები იტვირთება…</div></div>
+      <div class="home-live-actions">
+        <select id="homeLocation"><option value="41.7151,44.8271,თბილისი">თბილისი</option><option value="41.6168,41.6367,ბათუმი">ბათუმი</option><option value="42.2679,42.7180,ქუთაისი">ქუთაისი</option><option value="41.8200,44.7833,მცხეთა">მცხეთა</option></select>
+        <select id="homeDateSelect"><option>დღე იტვირთება…</option></select>
+        <select id="homeHourSelect"><option>საათი იტვირთება…</option></select>
+        <button class="refresh" id="homeRefresh">↻ განახლება</button>
+        <button class="live" id="homeLiveToggle">LIVE რეჟიმი: ჩართულია</button>
+        <span class="home-live-meta" id="homeLiveState">● LIVE</span>
+      </div>
+    </div>
+    <div class="home-live-main">
+      <div class="home-current">
+        <div class="home-current-head"><div><span class="eyebrow">არჩეული საათი</span><div class="home-live-meta" id="homeSelectedTime">—</div></div><span class="home-current-icon" id="homeMainIcon">🌤️</span></div>
+        <div class="home-current-temp" id="homeMainTemp">--°C</div><div class="home-current-desc" id="homeMainDesc">იტვირთება…</div>
+        <div class="home-current-score"><div><small>OUTDOOR SCORE</small><div><b id="outdoorScore">--</b><span>/100</span></div></div><div><small>საუკეთესო საათი ამ დღისთვის</small><div><b style="font-size:22px" id="homeBestHour">—</b></div></div></div>
+      </div>
+      <div>
+        <div class="home-score-grid">
+          <div class="home-score-card" id="outdoorScoreCard"><h3>🌿 Outdoor Score</h3><div class="value" id="outdoorScoreValue">--</div><span class="band" id="outdoorBand">—</span><p>გარემო, ამინდი, ქარი, ნალექი და წნევა.</p></div>
+          <div class="home-score-card" id="fishingScoreCard"><h3>🎣 Fishing Score</h3><div class="value" id="fishingScore">--</div><span class="band" id="fishingBand">—</span><p>საათის აქტივობა და გარემოს შესაბამისობა.</p></div>
+          <div class="home-score-card" id="huntingScoreCard"><h3>🦌 Hunting Score</h3><div class="value" id="huntingScore">--</div><span class="band" id="huntingBand">—</span><p>Outdoor + დღის აქტიური პერიოდი.</p></div>
+        </div>
+        <div class="home-go" id="homeGo"><div><small>დღეს გავიდე?</small><strong id="homeGoSummary">იტვირთება…</strong></div><div class="go-score" id="homeGoScore">--/100</div></div>
+      </div>
+    </div>
+    <div class="home-hour-head"><h3>24 საათის პირდაპირი არჩევა</h3><span>დააჭირე ნებისმიერ საათს ან გამოიყენე ზემოთ ჩამოსაშლელი სია.</span></div>
+    <div id="homeHourlyStrip" class="home-hour-strip"></div>
+    <div class="home-factors">
+      <div class="section-head small-head"><div><span class="eyebrow">QUICK FACTORS</span><h3>არჩეული საათის ზუსტი პირობები</h3></div></div>
+      <div class="home-factor-grid">
+        <div class="home-factor"><small>ტემპერატურა</small><b id="homeFactorTemp">—</b></div><div class="home-factor"><small>წნევა</small><b id="homeFactorPressure">—</b></div><div class="home-factor"><small>ქარი</small><b id="homeFactorWind">—</b></div><div class="home-factor"><small>Gust</small><b id="homeFactorGust">—</b></div><div class="home-factor"><small>ნალექი</small><b id="homeFactorRain">—</b></div><div class="home-factor"><small>წვიმის ალბათობა</small><b id="homeFactorRainProb">—</b></div><div class="home-factor"><small>ღრუბლიანობა</small><b id="homeFactorCloud">—</b></div><div class="home-factor"><small>ტენიანობა</small><b id="homeFactorHumidity">—</b></div>
+      </div>
+    </div>
+    <div class="home-best"><div><span class="eyebrow">DAY VIEW</span><h3>აირჩიე საათი — არა მხოლოდ დღის საშუალო</h3><p class="muted">საიტზე Planner-ები კვლავ ინარჩუნებს თევზის/ადგილისა და ნადირობის სახეობის შესაბამისობას.</p></div><a class="btn primary" href="map.html">რუკის გახსნა →</a></div>
+    <div class="home-week"><div class="section-head small-head"><div><span class="eyebrow">7 DAYS</span><h3>დღეების საუკეთესო საათები</h3></div></div><div id="homeWeekStrip" class="home-week-strip"></div></div>
+  </div>
+  <div class="live-factors panel" id="assessmentFactors">
+    <div class="factors-head"><div><span class="eyebrow">LIVE ASSESSMENT</span><h2>შეფასების ფაქტორები</h2><div class="factor-context"><b id="factorLocation">თბილისი</b><span>•</span><span id="factorHour">ახლა</span><span>•</span><span id="factorWeather">—</span></div></div><div class="factors-actions"><span class="factor-live-state" id="assessmentLiveState">● LIVE</span><span class="factor-updated" id="factorUpdated">მონაცემები იტვირთება…</span><button class="btn ghost" id="assessmentRefresh">↻ განახლება</button><button class="btn ghost" id="assessmentLiveToggle">LIVE რეჟიმი: ჩართულია</button></div></div>
+    <div class="factor-grid">
+      <div class="factor-item"><div class="factor-top"><span class="factor-label" id="factorFeedLabel">აქტივობის პერიოდი</span><b class="factor-value" id="factorFeed">—</b></div><div class="factor-bar"><span id="factorFeedBar"></span></div><div class="factor-detail" id="factorFeedDetail">—</div></div>
+      <div class="factor-item"><div class="factor-top"><span class="factor-label">წნევა</span><b class="factor-value" id="factorPressure">—</b></div><div class="factor-bar"><span id="factorPressureBar"></span></div><div class="factor-detail">შკალა: 960–1040 hPa</div></div>
+      <div class="factor-item"><div class="factor-top"><span class="factor-label">წნევის ცვლილება</span><b class="factor-value" id="factorPressureChange">—</b></div><div class="factor-bar"><span id="factorPressureChangeBar"></span></div><div class="factor-detail" id="factorPressureChangeDetail">—</div></div>
+      <div class="factor-item"><div class="factor-top"><span class="factor-label">ქარი</span><b class="factor-value" id="factorWind">—</b></div><div class="factor-bar"><span id="factorWindBar"></span></div><div class="factor-detail">შკალა: 0–35 კმ/სთ</div></div>
+      <div class="factor-item"><div class="factor-top"><span class="factor-label">ტემპერატურა</span><b class="factor-value" id="factorTemp">—</b></div><div class="factor-bar"><span id="factorTempBar"></span></div><div class="factor-detail">საათობრივი ტემპერატურა</div></div>
+      <div class="factor-item"><div class="factor-top"><span class="factor-label">ნალექი</span><b class="factor-value" id="factorRain">—</b></div><div class="factor-bar"><span id="factorRainBar"></span></div><div class="factor-detail">საათობრივი პროგნოზი</div></div>
+      <div class="factor-item"><div class="factor-top"><span class="factor-label">ღრუბლიანობა</span><b class="factor-value" id="factorCloud">—</b></div><div class="factor-bar"><span id="factorCloudBar"></span></div><div class="factor-detail">Cloud cover</div></div>
+      <div class="factor-item"><div class="factor-top"><span class="factor-label">მთვარის ფაზა</span><b class="factor-value" id="factorMoon">—</b></div><div class="factor-bar"><span id="factorMoonBar"></span></div><div class="factor-detail" id="factorMoonLabel">—</div></div>
+      <div class="factor-item"><div class="factor-top"><span class="factor-label">ტენიანობა</span><b class="factor-value" id="factorHumidity">—</b></div><div class="factor-bar"><span id="factorHumidityBar"></span></div><div class="factor-detail">Relative humidity</div></div>
+      <div class="factor-item"><div class="factor-top"><span class="factor-label">Gust</span><b class="factor-value" id="factorGust">—</b></div><div class="factor-bar"><span id="factorGustBar"></span></div><div class="factor-detail">ქარის ძლიერი დარტყმა</div></div>
+      <div class="factor-item"><div class="factor-top"><span class="factor-label">ხილვადობა</span><b class="factor-value" id="factorVisibility">—</b></div><div class="factor-bar"><span id="factorVisibilityBar"></span></div><div class="factor-detail">საათობრივი ხილვადობა</div></div>
+      <div class="factor-item full"><div class="factor-top"><span class="factor-label">გეომაგნიტური ფონი</span><b class="factor-value" id="factorKp">Kp —</b></div><div class="factor-bar"><span id="factorKpBar"></span></div><div class="factor-detail">NOAA SWPC • Live planetary K index</div></div>
+    </div>
+    <div class="factor-weather-note"><span>წყარო:</span><b id="factorSource">Open-Meteo + NOAA SWPC • Live საათობრივი მონაცემი</b><span>•</span><span>Live ავტომატური განახლება ყოველ 5 წუთში.</span></div>
+  </div>
+</section><link rel="stylesheet" href="css/nav-dropdown.css"><script src="js/nav-dropdown.js"></script>
+
+
+<script src="js/i18n-dict.js"></script><script src="js/i18n.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/device-responsive.js?v=20261006"></script><script src="js/analytics-feedback.js?v=20261010" defer></script>

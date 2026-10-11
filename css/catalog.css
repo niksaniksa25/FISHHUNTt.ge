@@ -1,0 +1,30 @@
+.catalog-toolbar{padding:10px;display:grid;grid-template-columns:1fr 180px auto;gap:8px}.catalog-toolbar input,.catalog-toolbar select{min-height:45px;background:#0d1b13;color:#fff;border:1px solid var(--line);border-radius:10px;padding:0 12px;outline:none}.catalog-layout{display:grid;grid-template-columns:1fr 330px;gap:15px;margin-top:15px}.catalog-results{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.catalog-card{background:#0d1b13;border:1px solid var(--line);border-radius:15px;overflow:hidden;cursor:pointer}.catalog-card:hover{border-color:rgba(180,238,114,.5);transform:translateY(-2px)}.catalog-card img{width:100%;height:155px;display:block;object-fit:cover;background:#12261a}.catalog-card-body{padding:12px}.catalog-card h3{font-size:14px;margin:0 0 4px}.catalog-card p{font-size:10px;color:var(--muted);margin:0}.catalog-profile{padding:17px;height:max-content;position:sticky;top:90px}.catalog-profile img{width:100%;height:220px;object-fit:cover;border-radius:12px;background:#12261a}.catalog-stats{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:12px}.catalog-stats div{background:#0d1b13;border:1px solid var(--line);padding:9px;border-radius:9px}.catalog-stats small{display:block;color:var(--muted);font-size:9px}.catalog-stats b{font-size:11px}.catalog-tag{display:inline-block;padding:4px 7px;border-radius:999px;background:#173021;color:var(--accent);font-size:9px;margin:8px 4px 0 0}@media(max-width:1000px){.catalog-layout{grid-template-columns:1fr}.catalog-profile{position:static}.catalog-results{grid-template-columns:repeat(2,1fr)}}@media(max-width:620px){.catalog-toolbar{grid-template-columns:1fr}.catalog-results{grid-template-columns:1fr}}
+
+/* Shared spacing override */
+body, button, input, select, textarea { word-spacing:0.08em; letter-spacing:normal !important; }
+h1,h2,h3,h4,h5,h6,p,span,small,label,a { letter-spacing:normal !important; }
+
+
+/* FINAL TITLE TYPOGRAPHY */
+h1, h2, h3, h4, h5, h6 { letter-spacing: 5px !important; line-height: 1.15 !important; }
+
+.cat-img{display:block;width:100%;aspect-ratio:16/10;height:auto;object-fit:cover;object-position:center;background:#12261a}.catalog-profile img{display:block}
+
+.catalog-chance,.fish-chance{z-index:2}
+
+
+/* Prominent chance indicators — shared by fish, wildlife, places and hunting. */
+.gn-chance{display:inline-flex;align-items:center;gap:8px;padding:5px 8px 5px 5px;border-radius:999px;background:rgba(5,15,9,.9);border:1px solid rgba(255,255,255,.08);box-shadow:0 8px 22px rgba(0,0,0,.16)}
+.gn-chance-ring{--ring:#a8ea67;display:grid;place-items:center;width:48px;height:48px;border-radius:50%;background:conic-gradient(var(--ring) calc(var(--chance)*1%),rgba(255,255,255,.10) 0);position:relative;flex:0 0 auto}
+.gn-chance-ring::after{content:"";position:absolute;inset:4px;border-radius:50%;background:#0b160e}
+.gn-chance-ring b{position:relative;z-index:2;font-size:12px;color:#fff}
+.gn-chance-copy{display:flex;flex-direction:column;min-width:72px}.gn-chance-copy strong{font-size:10px;line-height:1.15;color:#eff8f0}.gn-chance-copy small{font-size:9px;color:#95aa9d;margin-top:2px}
+.gn-chance-excellent .gn-chance-ring{--ring:#66e277}.gn-chance-good .gn-chance-ring{--ring:#b6ea63}.gn-chance-medium .gn-chance-ring{--ring:#f6c64c}.gn-chance-weak .gn-chance-ring{--ring:#f39a3d}.gn-chance-poor .gn-chance-ring{--ring:#ef5f5f}
+.fg-image-score{padding:7px 10px !important}.fg-card-image-wrap .fg-image-score .gn-chance{display:none}
+.fg-card .gn-chance{margin-left:auto}.fg-card .fg-top>.gn-chance{transform:translateY(-2px)}
+.fg-hunt-place{border-color:rgba(194,155,82,.16)}.fg-hunt-place .fg-image-score{background:rgba(53,33,13,.9);color:#ffe0a2;border-color:rgba(255,210,120,.18)}
+@media(max-width:640px){.gn-chance-ring{width:44px;height:44px}.gn-chance-copy{min-width:64px}.gn-chance-copy strong{font-size:9px}.gn-chance-copy small{font-size:8px}}
+
+.catalog-profile-top{position:relative;margin-bottom:10px}.catalog-profile-top img{margin:0}.catalog-profile-chance{position:absolute;right:9px;bottom:9px}.catalog-image-wrap .gn-chance{position:absolute;right:9px;top:9px}.catalog-image-wrap .gn-chance-ring{width:44px;height:44px}.catalog-image-wrap .gn-chance-copy{display:none}.catalog-card .catalog-image-wrap .catalog-chance-slot{position:absolute;right:9px;top:9px}.catalog-card .catalog-image-wrap .gn-chance{position:static}.catalog-chance{padding:5px 8px;border-radius:999px;background:rgba(5,15,9,.88);color:#c7f38f;border:1px solid rgba(180,238,114,.2);font-size:10px;font-weight:900}
+
+.red-mini-badge{display:inline-flex;align-items:center;gap:4px;padding:4px 7px;border-radius:999px;background:#4f1818;color:#ffd5d5;border:1px solid rgba(255,150,150,.16);font-size:8px;font-weight:900}.catalog-image-wrap>.red-mini-badge{position:absolute;left:8px;bottom:8px;z-index:3}

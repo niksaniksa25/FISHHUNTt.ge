@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ka">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Live რუკა • GeoNature</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+</head>
+<body>
+<header class="header"><div class="container header-inner">
+<a class="logo" href="index.html"><span class="logo-icon">G</span><span><b>GEONATURE</b><small>GEORGIA OUTDOOR</small></span></a>
+<button class="menu-button" id="menuButton">☰</button>
+<nav id="mainNav" class="nav"><a href="index.html">მთავარი</a><a href="weather.html">ამინდი</a><a href="places.html">ადგილები</a><a href="map.html">Live რუკა</a><a href="index.html#catalog">კატალოგი</a><a href="ai.html">AI ასისტენტი</a><a href="safety.html">უსაფრთხოება</a><a href="about.html">ჩვენ შესახებ</a></nav>
+</div></header>
+<section class="map-title"><div class="container"><span class="eyebrow">LIVE MAP • GPS • WEATHER</span><h1>საქართველოს დიდი Live რუკა</h1><p>რუკა შეიძლება გამოიყენო ბუნებრივი მიმართულებების მოსაძებნად, საკუთარი მდებარეობის სანახავად, ამინდის შესამოწმებლად და უსაფრთხო outdoor მარშრუტის დასაგეგმად.</p></div></section>
+<section class="map-wrap">
+<div class="map-main"><div id="map"></div></div>
+<aside class="map-side">
+<div class="side-section"><div class="side-label">რუკის მართვა</div><div class="side-row"><button id="locateBtn" class="btn primary">📍 ჩემი მდებარეობა</button><button id="zoomGeorgia" class="btn ghost">🇬🇪 საქართველო</button></div><div id="mapStatus" class="map-status">Live რუკა იტვირთება...</div></div>
+<div class="side-section"><div class="side-label">ადგილის ძებნა</div><div class="search-box"><input id="mapQ" placeholder="ოზურგეთი, ბათუმი..."><button id="mapBtn">🔎</button></div><div id="mapResults" class="map-results"></div></div>
+<div class="side-section"><div class="side-label">რომელ ფრინველზე გინდა ინფორმაცია?</div><select id="mapSpecies"><option value="all">ყველა ფრინველი</option><option value="quail">მწყერი</option><option value="chukar">კაკაბი</option><option value="pheasant">ხოხობი</option><option value="heron">დიდი თეთრი ყანჩა</option></select><div id="speciesHint" class="info-box">არჩევის შემდეგ მიიღებ ზოგად ინფორმაციას ჰაბიტატზე, სეზონზე და აქტივობის პერიოდზე. კონკრეტული მოპოვების წერტილები არ გამოიყენება.</div></div>
+<div class="side-section"><div class="side-label">ბუნებრივი მიმართულებები</div><div id="placeItems" class="place-list"></div></div>
+<div class="side-section"><div class="side-label">მარშრუტის დაგეგმვა</div><p class="muted small">უსაფრთხო outdoor მარშრუტი: აიღე შენი GPS მდებარეობა და აირჩიე ერთ-ერთი ბუნებრივი მიმართულება. ეს არ არის ნადირობის მარშრუტი.</p><div class="route-controls"><button id="routeStart" class="btn primary">▶ მარშრუტის რეჟიმი</button><button id="routeClear" class="btn ghost">გასუფთავება</button></div><div id="routeStatus" class="map-status">ჯერ არ არის არჩეული მარშრუტი.</div></div>
+</aside>
+</section>
+<footer class="footer"><div class="container"><div>© 2026 GeoNature Georgia</div></div></footer>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="js/script.js"></script>
+<script src="js/map-extra.js"></script>
+</body></html>

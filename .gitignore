@@ -1,0 +1,12 @@
+.env
+.env.*
+!.env.example
+node_modules/
+sessions.json
+users.json
+orders.json
+analytics.json
+feedback.json
+push-state.json
+*.log
+.DS_Store

@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ka">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Universal Search • GeoNature Georgia</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="header"><div class="container header-inner">
+<a class="logo" href="index.html"><span class="logo-icon">G</span><span><b>GEONATURE</b><small>GEORGIA OUTDOOR</small></span></a>
+<button class="menu-button" id="menuButton">☰</button>
+<nav id="mainNav" class="nav"><a href="index.html">მთავარი</a><a href="weather.html">ამინდი</a><a href="places.html">ადგილები</a><a href="map.html">Live რუკა</a><a href="birds.html">ფრინველები</a><a class="active" href="search.html">🔎 ძებნა</a><a href="safety.html">უსაფრთხოება</a><a href="about.html">ჩვენ შესახებ</a></nav>
+</div></header>
+
+<section class="search-hero">
+<div class="container">
+<span class="eyebrow">UNIVERSAL WILDLIFE SEARCH</span>
+<h1>მოძებნე ცხოველი, ფრინველი ან თევზი.</h1>
+<p>Google-ის მსგავსი ცოცხალი ძებნა: ჩაწერე ერთი ასო ან სრული სახელი — შედეგები დაუყოვნებლივ გაფილტრავს დიდ კატალოგს.</p>
+<div class="universal-search-wrap">
+  <div class="universal-search-box"><span>🔎</span><input id="universalSearch" autocomplete="off" placeholder="მაგ: მწყერი, დათვი, კალმახი, არწივი..."><button id="clearSearch" title="გასუფთავება">×</button></div>
+  <div class="quick-pills" id="quickPills"></div>
+  <div id="liveSuggestions" class="live-suggestions"></div>
+</div>
+</div>
+</section>
+
+<section class="container search-body">
+<div class="filterbar">
+<button class="filter active" data-group="all">ყველა <span id="countAll"></span></button>
+<button class="filter" data-group="ფრინველი">🐦 ფრინველები <span id="countBird"></span></button>
+<button class="filter" data-group="ძუძუმწოვარი">🦌 ცხოველები <span id="countMammal"></span></button>
+<button class="filter" data-group="თევზი">🐟 თევზები <span id="countFish"></span></button>
+</div>
+<div class="search-layout">
+<div>
+<div class="result-head"><span id="resultCount">ყველა სახეობა</span><span class="muted" id="resultHint">ჩაწერე ტექსტი ზემოთ</span></div>
+<div id="resultGrid" class="universal-grid"></div>
+</div>
+<aside id="detailPanel" class="detail-panel panel">
+<div class="detail-placeholder"><div>🦉</div><h3>აირჩიე სახეობა</h3><p>ბარათზე დაჭერისას აქ გამოჩნდება სრული ინფორმაცია, ჰაბიტატი, გავრცელება, სეზონი, აქტივობის პერიოდი და რუკაზე საორიენტაციო მდებარეობა.</p></div>
+</aside>
+</div>
+</section>
+<div id="imageModal" class="image-modal" aria-hidden="true">
+  <div class="image-modal-backdrop" data-close-modal></div>
+  <div class="image-modal-card" role="dialog" aria-modal="true">
+    <button class="image-modal-close" data-close-modal aria-label="დახურვა">×</button>
+    <img id="modalImage" alt="" src="">
+    <div class="modal-caption"><b id="modalTitle"></b><span id="modalCredit"></span></div>
+  </div>
+</div>
+<footer class="footer"><div class="container footer-grid"><div><a class="logo footer-logo" href="index.html"><span class="logo-icon">G</span><span><b>GEONATURE</b><small>GEORGIA OUTDOOR</small></span></a><p>საქართველოს ბუნების საინფორმაციო პლატფორმა.</p></div><div><h4>კატალოგი</h4><p>ფრინველები</p><p>ძუძუმწოვრები</p><p>თევზები</p></div><div><h4>საიტის ინსტრუმენტები</h4><a href="weather.html">Live ამინდი</a><a href="map.html">Live რუკა</a><a href="birds.html">Bird Explorer</a></div></div><div class="footer-bottom">© 2026 GeoNature Georgia</div></footer>
+<script src="js/script.js"></script><script src="js/search.js"></script>
+</body></html>

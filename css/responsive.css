@@ -1,0 +1,177 @@
+/* GeoNature responsive system
+   Desktop / tablet / phone are intentionally different layouts.
+   This stylesheet is loaded LAST so it can override page-specific desktop rules. */
+:root{--gn-content:1200px;--gn-gutter:24px}
+html{width:100%;overflow-x:hidden;-webkit-text-size-adjust:100%}
+body{width:100%;min-width:0;overflow-x:hidden}
+*,*::before,*::after{box-sizing:border-box}
+img,video,canvas,svg{max-width:100%;height:auto}
+.container{width:min(var(--gn-content),calc(100% - (var(--gn-gutter) * 2)));margin-inline:auto}
+
+/* Desktop: spacious layout + full navigation */
+@media (min-width:1025px){
+  #menuBtn.menu{display:none!important}
+  #nav,.header #nav{display:flex!important;position:static!important;flex-direction:row!important;align-items:center!important;width:auto!important;max-width:none!important;height:auto!important;padding:0!important;margin:0!important;background:transparent!important;border:0!important;box-shadow:none!important;overflow:visible!important}
+  .header-inner{min-height:76px;height:auto;gap:18px}
+  .header #nav>a,.header #nav .more-wrap,.header #nav .admin-nav-link{width:auto!important}
+  .nav a,.more-trigger{white-space:nowrap}
+}
+
+/* Tablet: still a touch-friendly compact navigation */
+@media (min-width:769px) and (max-width:1024px){
+  :root{--gn-gutter:20px}
+  #menuBtn.menu{display:inline-flex!important;align-items:center;justify-content:center;width:46px;height:46px;padding:0;flex:0 0 46px}
+  #nav,.header #nav{display:none;position:absolute;left:12px;right:12px;top:68px;z-index:1500;flex-direction:column;align-items:stretch;gap:4px;width:auto;padding:10px;border:1px solid var(--line);border-radius:16px;background:rgba(7,16,12,.985);box-shadow:0 22px 60px rgba(0,0,0,.45);max-height:calc(100vh - 82px);overflow:auto}
+  #nav.open,.header #nav.open{display:flex}
+  #nav>a,#nav>.more-wrap,.admin-nav-link{width:100%!important}
+  #nav>a,.more-trigger{min-height:44px;padding:11px 13px}
+  .hero-grid{grid-template-columns:1fr 1fr;gap:28px}
+  .grid,.feature-grid,.stat-grid,.cards-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .home-live-main{grid-template-columns:1fr!important}
+  .home-score-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .home-factor-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .two-col,.planner-grid,.location-layout,.ai-layout,.fish-profile-grid,.baro{grid-template-columns:1fr}
+  .map-shell{grid-template-columns:1fr;height:auto}
+  .map-shell #map{height:64vh;min-height:460px}
+  .map-side{max-height:none}
+  .daily-grid{grid-template-columns:repeat(7,minmax(120px,1fr));overflow-x:auto}
+  .pricing-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .fish-results,.location-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+
+/* Shared responsive primitives */
+.table-wrap,.table-scroll{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.table-wrap table,.table-scroll table{min-width:680px}
+.panel,.card,.feature-card,.pricing-card{max-width:100%}
+input,select,textarea{max-width:100%;font-size:16px}
+button,a,input,select,textarea{touch-action:manipulation}
+button{min-height:42px}
+
+/* Phone: completely different composition from desktop */
+@media (max-width:768px){
+  :root{--gn-gutter:11px}
+  .container{width:calc(100% - (var(--gn-gutter) * 2));max-width:none}
+  .header{position:sticky;top:0;z-index:2000}
+  .header-inner{min-height:60px;height:auto;padding-block:8px;gap:9px}
+  .logo{min-width:0;gap:8px}
+  .logo-mark{width:36px!important;height:36px!important;flex:0 0 36px;font-size:18px}
+  .logo b{font-size:12px;letter-spacing:.11em}
+  .logo small{display:none}
+  #menuBtn.menu{display:inline-flex!important;align-items:center;justify-content:center;width:44px;height:44px;padding:0;flex:0 0 44px;border:1px solid rgba(255,255,255,.10);border-radius:12px;background:#0d1b14}
+  #nav,.header #nav{display:none;position:absolute;left:9px;right:9px;top:62px;z-index:2100;flex-direction:column;align-items:stretch;gap:4px;width:auto;padding:9px;border:1px solid rgba(255,255,255,.11);border-radius:17px;background:rgba(5,14,9,.985);box-shadow:0 22px 60px rgba(0,0,0,.55);max-height:calc(100vh - 74px);overflow:auto}
+  #nav.open,.header #nav.open{display:flex}
+  #nav>a,#nav>.more-wrap,#nav .admin-nav-link{width:100%!important;flex:0 0 auto}
+  #nav>a,.more-trigger{min-height:46px;width:100%;padding:12px 13px;font-size:13px;justify-content:flex-start;text-align:left;white-space:normal}
+  #nav>a{display:flex;align-items:center;border-radius:11px}
+  #nav>a:hover,#nav>a.active,#nav .more-trigger:hover,#nav .more-trigger.open{background:#12261a}
+  .more-wrap{display:block!important}
+  .more-menu{position:static!important;width:100%!important;max-height:none!important;margin:3px 0 0!important;display:none;opacity:1!important;visibility:visible!important;transform:none!important;background:#091810!important;box-shadow:none!important}
+  .more-menu.open{display:block!important}
+  .more-menu .more-item{min-height:48px}
+  .header-live-pill{margin:4px 0 0!important;width:max-content!important;max-width:100%}
+  .hero{padding:34px 0 30px!important}
+  .hero-grid{grid-template-columns:1fr!important;gap:18px!important}
+  .hero h1{font-size:clamp(34px,10vw,48px)!important;line-height:1.03!important;margin:12px 0 15px!important}
+  .hero p,.page-head p{font-size:14px;line-height:1.7}
+  .hero-card{padding:18px!important}
+  .hero-weather{margin:18px 0;gap:10px}
+  .hero-weather strong{font-size:50px}
+  .hero-score b{font-size:45px}
+  .section{padding:38px 0!important}
+  .section-head{display:block!important;margin-bottom:15px}
+  .section-head h2{font-size:23px!important;line-height:1.3!important}
+  .section-head>.link{display:inline-block;margin-top:10px}
+  .actions,.hero-actions,.btn-row,.form-actions,.search-row,.fish-search-wrap,.place-tools,.filters{display:grid!important;grid-template-columns:1fr!important;gap:9px!important}
+  .actions .btn,.hero-actions .btn,.btn-row .btn,.form-actions .btn,.search-row .btn{width:100%!important}
+  .grid,.feature-grid,.pricing-grid,.factor-grid,.stat-grid,.cards-grid,.home-insight-grid,.quick-tools,.location-grid,.fish-results,.fish-stat-grid,.day-cards{grid-template-columns:1fr!important}
+  .two-col,.planner-grid,.location-layout,.ai-layout,.fish-profile-grid,.baro{grid-template-columns:1fr!important}
+  .home-live-hero{padding:15px!important}
+  .home-live-top{align-items:stretch;display:flex;flex-direction:column}
+  .home-live-actions{display:grid!important;grid-template-columns:1fr!important;gap:8px}
+  .home-live-actions select,.home-live-actions button{width:100%;min-height:44px}
+  .home-live-main{grid-template-columns:1fr!important;gap:12px!important}
+  .home-current{padding:15px!important}
+  .home-current-icon{font-size:44px}
+  .home-current-temp{font-size:38px!important}
+  .home-current-score{display:grid;grid-template-columns:1fr 1fr;align-items:end}
+  .home-current-score b{font-size:39px!important}
+  .home-score-grid{grid-template-columns:1fr!important;gap:9px!important}
+  .home-score-card{padding:14px!important}
+  .home-score-card .value{font-size:34px!important}
+  .home-factor-grid{grid-template-columns:1fr 1fr!important;gap:8px!important}
+  .home-best{align-items:flex-start!important;flex-direction:column!important}
+  .home-hour-strip{display:flex!important;overflow-x:auto!important;grid-template-columns:none!important;gap:8px!important;padding-bottom:7px}
+  .home-hour{flex:0 0 92px!important;min-width:92px!important}
+  .home-legend{display:grid;grid-template-columns:1fr;gap:6px}
+  .home-legend span{display:block}
+  .mini-grid{grid-template-columns:1fr 1fr!important}
+  .metrics{grid-template-columns:1fr 1fr!important}
+  .metrics-6{grid-template-columns:1fr 1fr!important}
+  .weather-dashboard{display:grid!important;grid-template-columns:1fr!important;gap:16px;align-items:start}
+  .weather-score{text-align:left!important;margin-top:0!important}
+  .temp-big b{font-size:64px!important}
+  .daily-grid{display:flex!important;overflow-x:auto!important;gap:8px!important;padding-bottom:6px}
+  .daily-card{flex:0 0 132px;min-width:132px}
+  .map-shell{height:auto!important;display:grid!important;grid-template-columns:1fr!important}
+  .map-shell #map{height:58vh!important;min-height:400px!important;max-height:none!important}
+  .map-side{height:auto!important;max-height:none!important;order:2}
+  .map-info{font-size:12px}
+  .fish-img,.location-card img{height:180px}
+  .fish-profile-img{height:230px!important}
+  .chat{min-height:62vh!important}
+  .chat-input{display:grid!important;grid-template-columns:1fr!important}
+  .ai-questions{max-height:none!important}
+  .page-head{padding:30px 0 14px!important}
+  .page-head h1{font-size:clamp(30px,9vw,42px)!important;line-height:1.14!important;margin:10px 0 14px!important}
+  .page-head p{max-width:100%}
+  .pricing-card,.feature-card,.panel{border-radius:16px}
+  .pricing-price{font-size:34px!important}
+  .field-kit-grid{grid-template-columns:1fr!important}
+  .admin-container{padding-inline:0}
+  .hacker-topbar{flex-wrap:wrap;gap:10px}
+  .admin-stats{grid-template-columns:1fr 1fr!important}
+  .premium-table,.compare-table{overflow-x:auto}
+  .premium-table table,.compare-table table{min-width:700px}
+  .footer-grid{grid-template-columns:1fr!important;gap:16px}
+}
+
+@media (max-width:430px){
+  :root{--gn-gutter:8px}
+  .header-inner{min-height:56px;padding-block:7px}
+  .logo-mark{width:33px!important;height:33px!important;flex-basis:33px}
+  #menuBtn.menu{width:42px;height:42px;flex-basis:42px}
+  #nav,.header #nav{top:57px;left:7px;right:7px}
+  .hero{padding-top:28px!important}
+  .hero h1{font-size:31px!important}
+  .hero-card{padding:15px!important}
+  .hero-weather strong{font-size:46px}
+  .home-factor-grid{grid-template-columns:1fr 1fr!important}
+  .home-current-score{grid-template-columns:1fr!important;gap:12px}
+  .metrics,.metrics-6{grid-template-columns:1fr 1fr!important}
+  .map-shell #map{height:54vh!important;min-height:360px!important}
+}
+
+@media (max-width:374px){
+  .hero h1{font-size:28px!important}
+  .section-head h2{font-size:21px!important}
+  .home-factor-grid{grid-template-columns:1fr!important}
+  .metrics,.metrics-6{grid-template-columns:1fr!important}
+  .mini-grid{grid-template-columns:1fr 1fr!important}
+  .daily-card{flex-basis:124px;min-width:124px}
+}
+
+/* iOS safe area + prevent Safari input zoom */
+@supports (padding:max(0px)){
+  .header-inner{padding-left:max(var(--gn-gutter),env(safe-area-inset-left));padding-right:max(var(--gn-gutter),env(safe-area-inset-right))}
+  body{padding-bottom:max(0px,env(safe-area-inset-bottom))}
+}
+@supports (-webkit-touch-callout:none){
+  input,select,textarea{font-size:16px!important}
+}
+
+/* Device classes stay useful on hybrids / tablets too. */
+body.device-ios .btn,body.device-ios button{min-height:46px}
+body.device-android .btn,body.device-android button{min-height:44px}
+body.device-tablet .container{width:min(94vw,var(--gn-content))}
+
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}}

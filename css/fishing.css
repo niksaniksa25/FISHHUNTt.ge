@@ -1,0 +1,54 @@
+.fish-hero{padding:70px 0 55px;background:radial-gradient(circle at 80% 20%,rgba(77,165,120,.12),transparent 28%);border-bottom:1px solid var(--line)}.fish-hero-grid{display:grid;grid-template-columns:1.12fr .88fr;gap:30px;align-items:center}.fish-hero h1{font-size:58px;line-height:1;letter-spacing:-.04em;margin:15px 0}.fish-hero h1 span{color:#aebbb2}.fish-hero p{color:#b9c6bf;max-width:650px}.live-card{padding:22px}.fish-search-top{margin-bottom:14px}.fish-search-wrap{background:#0d1b13}.planner-controls .full{margin-top:12px}.best-callout{border-color:rgba(180,238,114,.25)}
+
+/* Shared spacing override */
+body, button, input, select, textarea { word-spacing:0.08em; letter-spacing:normal !important; }
+h1,h2,h3,h4,h5,h6,p,span,small,label,a { letter-spacing:normal !important; }
+
+
+/* FINAL TITLE TYPOGRAPHY */
+h1, h2, h3, h4, h5, h6 { letter-spacing: 5px !important; line-height: 1.15 !important; }
+
+/* Reliable image layout */
+.fish-img,.fish-profile-img{display:block;object-fit:cover;object-position:center;width:100%;background:#12261a}.fish-img{aspect-ratio:16/10;height:auto}.fish-profile-img{min-height:280px}.profile-days{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-top:10px}.profile-day{padding:12px;border:1px solid var(--line);border-radius:12px;background:#0d1b13;color:#fff;text-align:left;cursor:pointer}.profile-day span{display:block;font-size:23px;margin:6px 0}.profile-day strong{display:block;color:var(--accent);font-size:20px}.profile-day small{display:block;color:var(--muted);font-size:9px;margin-top:3px}.profile-day.active-day{border-color:var(--accent)}
+@media(max-width:1000px){.profile-days{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:620px){.profile-days{grid-template-columns:1fr}}
+
+
+/* Hour-by-hour synchronized weather strip */
+.hourly-section{overflow:hidden}
+.hourly-context{display:flex;gap:12px;align-items:center;flex-wrap:wrap;font-size:11px;color:var(--muted)}
+.hourly-context b{color:#d8e5dc}.hourly-context span{padding:5px 8px;border:1px solid var(--line);border-radius:999px;background:#0b1910}
+.hourly-strip{display:flex;gap:8px;overflow-x:auto;overflow-y:hidden;padding:10px 3px 14px;scroll-snap-type:x proximity;scrollbar-width:thin}
+.hourly-strip::-webkit-scrollbar{height:7px}.hourly-strip::-webkit-scrollbar-thumb{background:#24447c;border-radius:99px}
+.hour-card{min-width:112px;scroll-snap-align:start;border:1px solid var(--line);background:#0b1a11;color:white;border-radius:14px;padding:11px 10px;text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;transition:.16s ease}
+.hour-card:hover{transform:translateY(-2px);border-color:rgba(77,165,120,.45)}.hour-card.active{border-color:#2ab4ff;box-shadow:0 0 0 1px rgba(42,180,255,.2) inset;background:#0a3150}
+.hour-card small{font-size:9px;color:#718399}.hour-card .hour-icon{font-size:24px;line-height:1.15;margin:4px 0}.hour-card strong{font-size:19px}.hour-card em{font-style:normal;color:#6e7d93;font-size:10px}.hour-card>b{font-size:9px;color:#67778a;font-weight:600}.hour-score{display:block;width:100%;padding:5px 0;border-radius:9px;background:#273044;color:#f3b326;font-size:12px;font-weight:900}.hour-card.active .hour-score{background:#0c526f;color:#b7ebff}
+.hourly-selected{margin-top:7px;padding:14px}.selected-hour-grid{display:grid;grid-template-columns:1.2fr repeat(6,1fr);gap:1px;background:var(--line);border-radius:12px;overflow:hidden}.selected-hour-grid>div{background:#0b1910;padding:12px}.selected-hour-grid span{display:block;font-size:25px}.selected-hour-grid small{display:block;color:var(--muted);font-size:8px}.selected-hour-grid b{display:block;font-size:14px;margin-top:3px}.selected-hour-grid .selected-score{color:var(--accent);font-size:22px}
+@media(max-width:980px){.selected-hour-grid{grid-template-columns:repeat(4,1fr)}.selected-hour-grid>div:first-child{grid-column:span 2}}
+@media(max-width:620px){.hour-card{min-width:100px}.selected-hour-grid{grid-template-columns:1fr 1fr}.selected-hour-grid>div:first-child{grid-column:1/-1}.hourly-context{font-size:9px}}
+
+#fishSelect{border-color:rgba(180,238,114,.28)}
+#fishSelect:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px rgba(180,238,114,.12)}
+
+.hero-score{display:grid;justify-items:end;gap:4px}.hero-score .score-band{display:inline-flex;align-items:center;padding:5px 9px;border-radius:999px;background:#16253d;border:1px solid rgba(106,190,255,.2);font-size:10px;font-weight:800;color:#c9d6e5}.hero-score .score-band[data-level="excellent"]{color:#9ff0a5;border-color:rgba(44,186,94,.35)}.hero-score .score-band[data-level="good"]{color:#d8ed87;border-color:rgba(178,226,67,.35)}.hero-score .score-band[data-level="medium"]{color:#ffd06a;border-color:rgba(255,177,24,.35)}.hero-score .score-band[data-level="weak"]{color:#ffac58;border-color:rgba(255,103,34,.35)}.hero-score .score-band[data-level="poor"],.hero-score .score-band[data-level="very-poor"]{color:#ff8e8e;border-color:rgba(255,56,56,.35)}
+
+.score-gauge{position:relative;width:126px;height:72px;margin:4px 0 2px;overflow:hidden;border-radius:126px 126px 0 0;background:conic-gradient(from 270deg,#b3161b 0deg,#ff3030 62deg,#ff7f21 118deg,#ffbd22 174deg,#9ed337 234deg,#1fb94e 288deg,#1fb94e var(--score-deg),#1a2940 var(--score-deg) 180deg,transparent 180deg);filter:drop-shadow(0 8px 14px rgba(0,0,0,.16))}.score-gauge::before{content:"";position:absolute;left:10px;right:10px;bottom:-1px;height:54px;border-radius:90px 90px 0 0;background:#0b172b}.score-gauge-inner{position:absolute;inset:auto 0 5px;z-index:2;text-align:center;display:flex;align-items:baseline;justify-content:center;gap:3px}.score-gauge-inner b{font-size:34px;line-height:1;font-weight:950}.score-gauge-inner span{font-size:10px;color:#7e91a8}
+@media(max-width:620px){.score-gauge{width:112px;height:66px}.score-gauge-inner b{font-size:30px}}
+
+
+/* Prominent chance indicators — shared by fish, wildlife, places and hunting. */
+.gn-chance{display:inline-flex;align-items:center;gap:8px;padding:5px 8px 5px 5px;border-radius:999px;background:rgba(5,15,9,.9);border:1px solid rgba(255,255,255,.08);box-shadow:0 8px 22px rgba(0,0,0,.16)}
+.gn-chance-ring{--ring:#a8ea67;display:grid;place-items:center;width:48px;height:48px;border-radius:50%;background:conic-gradient(var(--ring) calc(var(--chance)*1%),rgba(255,255,255,.10) 0);position:relative;flex:0 0 auto}
+.gn-chance-ring::after{content:"";position:absolute;inset:4px;border-radius:50%;background:#0b160e}
+.gn-chance-ring b{position:relative;z-index:2;font-size:12px;color:#fff}
+.gn-chance-copy{display:flex;flex-direction:column;min-width:72px}.gn-chance-copy strong{font-size:10px;line-height:1.15;color:#eff8f0}.gn-chance-copy small{font-size:9px;color:#95aa9d;margin-top:2px}
+.gn-chance-excellent .gn-chance-ring{--ring:#66e277}.gn-chance-good .gn-chance-ring{--ring:#b6ea63}.gn-chance-medium .gn-chance-ring{--ring:#f6c64c}.gn-chance-weak .gn-chance-ring{--ring:#f39a3d}.gn-chance-poor .gn-chance-ring{--ring:#ef5f5f}
+.fg-image-score{padding:7px 10px !important}.fg-card-image-wrap .fg-image-score .gn-chance{display:none}
+.fg-card .gn-chance{margin-left:auto}.fg-card .fg-top>.gn-chance{transform:translateY(-2px)}
+.fg-hunt-place{border-color:rgba(194,155,82,.16)}.fg-hunt-place .fg-image-score{background:rgba(53,33,13,.9);color:#ffe0a2;border-color:rgba(255,210,120,.18)}
+@media(max-width:640px){.gn-chance-ring{width:44px;height:44px}.gn-chance-copy{min-width:64px}.gn-chance-copy strong{font-size:9px}.gn-chance-copy small{font-size:8px}}
+
+.fish-card-title-row{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}.fish-card-title-row h3{margin:5px 0}.fish-chance-slot{position:absolute;right:9px;top:9px}.fish-card .fish-card-body>.gn-chance{display:none}.hunt-card-top{position:relative}.hunt-card-top .fish-img{width:100%;height:auto;display:block;aspect-ratio:16/10;object-fit:cover}.hunt-card-chance{position:absolute;right:8px;top:8px}.hunt-profile-topline{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:5px}
+
+/* Keep the clicked card estimate clearly identified while hourly context updates separately. */
+.fish-score-consistency-note{display:block;margin-top:8px;font-size:.78rem;line-height:1.45;color:var(--muted,#8faebf);max-width:48ch}
