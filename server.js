@@ -393,14 +393,19 @@ function donationCors(req,res){
   res.setHeader('Access-Control-Allow-Headers','Content-Type');
   res.setHeader('Access-Control-Allow-Methods','GET,POST,OPTIONS');
 }
-function pushCors(req,res){const origin=String(req.headers.origin||''); if(origin&&/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)){res.setHeader('Access-Control-Allow-Origin',origin);res.setHeader('Vary','Origin')}else if(!origin){res.setHeader('Access-Control-Allow-Origin','*')}res.setHeader('Access-Control-Allow-Headers','Content-Type');res.setHeader('Access-Control-Allow-Methods','GET,POST,OPTIONS');}
-function pushPrefsValid(p){return p&&Array.isArray(p.fish)&&Array.isArray(p.places)}
+function pushCors(req,res){const origin=String(req.headers.origin||'');if(origin&&originIsAllowed(origin)){res.setHeader('Access-Control-Allow-Origin',origin);res.setHeader('Vary','Origin')}else if(!origin){res.setHeader('Access-Control-Allow-Origin','*')}res.setHeader('Access-Control-Allow-Headers','Content-Type');res.setHeader('Access-Control-Allow-Methods','GET,POST,OPTIONS');}
+function pushPrefsValid(p){return Boolean(p&&Array.isArray(p.fish)&&p.fish.length>0&&Array.isArray(p.places)&&p.places.length>0&&(p.hour===undefined||p.hour==='any'||/^(?:[01]\\d|2[0-3])$/.test(String(p.hour)))&&(p.threshold===undefined||(Number.isFinite(Number(p.threshold))&&Number(p.threshold)>=40&&Number(p.threshold)<=95)))}
 function normalizePushSub(sub){return {endpoint:String(sub?.endpoint||''),keys:{p256dh:String(sub?.keys?.p256dh||''),auth:String(sub?.keys?.auth||'')}}}
 function calcPushScore(weather,fish){
-  const cur=weather?.current||{}; const now=new Date(); let score=48; const temp=Number(cur.temperature_2m), wind=Number(cur.wind_speed_10m), precip=Number(cur.precipitation||0), pressure=Number(cur.pressure_msl||cur.surface_pressure||1015), hour=now.getHours();
+  const cur=weather?.current||{}; let score=48; const temp=Number(cur.temperature_2m), wind=Number(cur.wind_speed_10m), precip=Number(cur.precipitation||0), pressure=Number(cur.pressure_msl||cur.surface_pressure||1015), hour=(/^\\d{2}:/.test(String(cur.time||''))?Number(String(cur.time).slice(11,13)):new Date().getUTCHours());
   const tmin=Number(fish?.temp?.min),tmax=Number(fish?.temp?.max); if(Number.isFinite(temp)&&Number.isFinite(tmin)&&Number.isFinite(tmax)){const mid=(tmin+tmax)/2,span=Math.max(2,(tmax-tmin)/2);score+=Math.max(-18,18-Math.abs(temp-mid)/span*18)}
   const tags=new Set(fish?.tags||[]); const good=(tags.has('morning')&&hour>=5&&hour<=10)||(tags.has('day')&&hour>=9&&hour<=17)||(tags.has('evening')&&hour>=17&&hour<=21)||(tags.has('night')&&(hour>=21||hour<=3)); if(good)score+=18; else score-=3;
   if(Number.isFinite(wind))score+=wind<=8?10:wind<=15?5:wind<=22?0:-8; if(precip<=0.3)score+=7; else if(precip<=2)score+=2; else score-=7; if(pressure>=1005&&pressure<=1027)score+=5; return Math.max(0,Math.min(98,Math.round(score)));
+}
+function frontendLink(relativePath){
+  const configured=String(process.env.GN_FRONTEND_URL||'https://niksaniksa25.github.io/FISHHUNTt.ge/').trim();
+  try{return new URL(String(relativePath||'').replace(/^\\/+/,''),configured.endsWith('/')?configured:configured+'/').toString()}
+  catch{return 'https://niksaniksa25.github.io/FISHHUNTt.ge/'+String(relativePath||'').replace(/^\\/+/,'')}
 }
 async function runPushChecks(){
   let changed=false;
@@ -410,9 +415,14 @@ async function runPushChecks(){
     for(const fish of sub.preferences.fish.slice(0,5)){
       for(const place of sub.preferences.places.slice(0,5)){
         try{
-          const w=await getWeatherData(Number(place.lat),Number(place.lon)); const score=calcPushScore(w,fish); const key=`${fish.id}|${place.id}`; const last=Number(sub.lastSent[key]||0);
-          if(score<72 || Date.now()-last<6*60*60*1000)continue;
-          await sendPush(sub.subscription,{title:'🎣 GeoNature • დროა!',body:`${fish.name} • ${place.name}: აქტივობის შანსი ${score}%. კარგი დროა შესამოწმებლად.`,url:`/fishing.html?fish=${encodeURIComponent(fish.id)}&water=${encodeURIComponent(place.id)}`,tag:`fish-${fish.id}-${place.id}`});
+          const w=await getWeatherData(Number(place.lat),Number(place.lon));
+          const localTime=String(w?.current?.time||'');
+          const localHour=/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:/.test(localTime)?Number(localTime.slice(11,13)):new Date().getUTCHours();
+          if(sub.preferences.hour&&sub.preferences.hour!=='any'&&Number(sub.preferences.hour)!==localHour)continue;
+          const score=calcPushScore(w,fish); const key=`${fish.id}|${place.id}`; const last=Number(sub.lastSent[key]||0);
+          const threshold=Math.max(40,Math.min(95,Number(sub.preferences.threshold)||72));
+          if(score<threshold || Date.now()-last<6*60*60*1000)continue;
+          await sendPush(sub.subscription,{title:'🎣 GeoNature • დროა!',body:`${fish.name} • ${place.name}: აქტივობის შეფასება ${score}/100 (შენი ზღვარი: ${threshold}).`,url:frontendLink(`fishing.html?fish=${encodeURIComponent(fish.id)}&water=${encodeURIComponent(place.id)}`),tag:`fish-${fish.id}-${place.id}`});
           sub.lastSent[key]=Date.now();changed=true;
         }catch(e){if(e.code==='GONE'){sub.enabled=false;changed=true}}
       }
@@ -449,7 +459,7 @@ const server=http.createServer(async(req,res)=>{
       }
       if(u.pathname==='/api/push/test'&&req.method==='POST'){
         const b=await body(req);const rec=pushState.subscriptions.find(x=>x.clientId===String(b.clientId||''));if(!rec||!rec.subscription)return json(res,404,{ok:false,message:'ჯერ ჩართე შეტყობინებები.'});
-        try{await sendPush(rec.subscription,{title:'🔔 GeoNature',body:'სატესტო შეტყობინება წარმატებით მოვიდა. Push მუშაობს!',url:'/dashboard.html',tag:'geonature-test'});return json(res,200,{ok:true,message:'📨 სატესტო შეტყობინება გაიგზავნა.'})}catch(e){if(e.code==='GONE'){rec.enabled=false;writeJsonFile(PUSH_STATE_FILE,pushState)}return json(res,502,{ok:false,message:'Push პროვაიდერმა შეტყობინება ვერ მიიღო.'})}
+        try{await sendPush(rec.subscription,{title:'🔔 GeoNature',body:'სატესტო შეტყობინება წარმატებით მოვიდა. Push მუშაობს!',url:frontendLink('dashboard.html'),tag:'geonature-test'});return json(res,200,{ok:true,message:'📨 სატესტო შეტყობინება გაიგზავნა.'})}catch(e){if(e.code==='GONE'){rec.enabled=false;writeJsonFile(PUSH_STATE_FILE,pushState)}return json(res,502,{ok:false,message:'Push პროვაიდერმა შეტყობინება ვერ მიიღო.'})}
       }
       if(u.pathname==='/api/push/check-now'&&req.method==='POST'){runPushChecks().catch(()=>{});return json(res,200,{ok:true,message:'შემოწმება დაიწყო.'});}
     }
