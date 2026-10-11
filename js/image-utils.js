@@ -65,9 +65,11 @@
     return score;
   }
 
-  async function commonsImage(queries, terms){
+  async function commonsImage(queries, terms, strictTitleMatch=false){
     const queryList=Array.isArray(queries)?queries:[queries];
     let best=null;
+    const fullTitle=normalizeImageTitle((terms||[])[0]||'');
+    const distinctive=(terms||[]).slice(1).map(normalizeImageTitle).filter(t=>t.length>=5);
     for(const q of queryList){
       if(!q)continue;
       try{
@@ -77,9 +79,16 @@
         for(const page of pages){
           const src=page?.imageinfo?.[0]?.thumburl||page?.imageinfo?.[0]?.url||'';
           if(!validImage(src))continue;
+          const filename=normalizeImageTitle(page?.title||'');
           const relevance=scoreCommonsTitle(page?.title,terms);
+          // Forest photos must match the full place title or all the distinctive
+          // place-name tokens. A match on only "forest" or "Georgia" is not enough.
+          if(strictTitleMatch){
+            const matched=distinctive.filter(t=>filename.includes(t)).length;
+            const minimum=distinctive.length>=2?2:1;
+            if(!(fullTitle&&filename.includes(fullTitle))&&matched<minimum)continue;
+          }
           // Search order is not proof that an image depicts the requested place/species.
-          // Discard items whose actual file title has no meaningful match.
           if(relevance<3)continue;
           const score=relevance+(page?.index?Math.max(0,4-page.index)*0.25:0);
           if(!best||score>best.score)best={src,score,relevance};
@@ -207,7 +216,7 @@
       // result alone is not enough, which was causing forests to show mixed-up photos.
       const terms=[title,...distinctive];
       const queries=[title,title+' Georgia',...distinctive.map(w=>w+' forest Georgia')];
-      try{src=await commonsImage(queries,terms)}catch(_){}
+      try{src=await commonsImage(queries,terms,true)}catch(_){}
     }
     if(!src)src=placeholder(name,'nature');
     memory.set(key,src);
