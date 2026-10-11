@@ -33,6 +33,7 @@ document.addEventListener('DOMContentLoaded', function(){
     a.className='more-item';
     a.href=href;
     a.innerHTML='<span class="mi">'+icon+'</span><span class="mt">'+label+'<small>'+sub+'</small></span>';
+    if(href==='ai.html') a.setAttribute('data-required-plan','pro');
     if(location.pathname.endsWith(href)) a.classList.add('active');
 
     const headings=Array.from(more.querySelectorAll('.more-group-title'));
@@ -53,6 +54,8 @@ document.addEventListener('DOMContentLoaded', function(){
   addTopLink('hunting.html','🦌 ნადირობა','fishing.html');
 
   // Secondary destinations live in the expandable "მეტი" menu on every page.
+  ensureMoreLink('fishing-guide.html','🎯','სად წავიდეთ','TOP თევზები • ადგილები • შანსი','🧭 ინსტრუმენტები');
+  ensureMoreLink('ai.html','🤖','AI ასისტენტი','Premium AI გეგმები','💎 Premium');
   ensureMoreLink('dashboard.html','📊','ჩემი GeoNature','XP • სტატისტიკა • გეგმები','🧭 ინსტრუმენტები');
   ensureMoreLink('forests.html','🌲','ტყეების Explorer','ტყე → ბინადრები','📚 ცოდნა');
   ensureMoreLink('red-book.html','📕','წითელი წიგნი','დაცული სახეობების ცნობარი','📚 ცოდნა');
