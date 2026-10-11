@@ -90,7 +90,7 @@ function donationLeaderboard(){
   const groups=new Map();
   for(const d of donations){
     if(d?.verified!==true || d?.status!=='paid' || !Number.isFinite(Number(d.amount)) || Number(d.amount)<=0) continue;
-    const donorName=String(d.displayName||'').trim().replace(/\\s+/g,' ').slice(0,30);
+    const donorName=String(d.displayName||'').trim().replace(/\s+/g,' ').slice(0,30);
     const anonymous=!donorName;
     const key=anonymous ? 'anonymous:'+String(d.orderId||'') : 'named:'+donorName.toLocaleLowerCase();
     const item=groups.get(key)||{id:key,name:donorName||'ანონიმური მხარდამჭერი',totalAmount:0,donationCount:0,lastDonatedAt:0};
@@ -281,10 +281,10 @@ async function createBogDonationOrder(amount,displayName){
   if(!Number.isFinite(n) || n<1 || n>5000 || Math.abs(n*100-Math.round(n*100))>0.000001){
     throw new Error('დონაციის თანხა უნდა იყოს 1.00–5,000.00 ₾, მაქსიმუმ ორი ათწილადით.');
   }
-  const name=String(displayName||'').replace(/[<>\\u0000-\\u001f]/g,'').trim().replace(/\\s+/g,' ').slice(0,30);
+  const name=String(displayName||'').replace(/[<>\u0000-\u001f]/g,'').trim().replace(/\s+/g,' ').slice(0,30);
   if(!CLIENT_ID || !CLIENT_SECRET) throw new Error('საქართველოს ბანკის Merchant/API მონაცემები ჯერ არ არის კონფიგურირებული სერვერზე.');
-  const base=PUBLIC_BASE_URL.replace(/\\/+$/,'');
-  if(!/^https:\\/\\//i.test(base) || base.includes('your-domain.example')){
+  const base=PUBLIC_BASE_URL.replace(/\/+$/,'');
+  if(!/^https:\/\//i.test(base) || base.includes('your-domain.example')){
     throw new Error('სერვერს უნდა ჰქონდეს საჯარო HTTPS მისამართი. PUBLIC_BASE_URL შეცვალე ჰოსტინგის რეალური მისამართით.');
   }
   const finalAmount=Math.round(n*100)/100;
@@ -361,16 +361,15 @@ async function sendPush(subscription,payload){
 
 function donationCors(req,res){
   const origin=String(req.headers.origin||'');
-  const configured=String(process.env.DONATION_FRONTEND_ORIGIN||'https://niksaniksa25.github.io').replace(/\\/+$/,'');
-  const local=/^https?:\\/\\/(localhost|127\\.0\\.0\\.1)(:\\d+)?$/.test(origin);
-  if(origin && (origin.replace(/\\/+$/,'')===configured || local)){
+  const configured=String(process.env.DONATION_FRONTEND_ORIGIN||'https://niksaniksa25.github.io').replace(/\/+$/,'');
+  const local=/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+  if(origin && (origin.replace(/\/+$/,'')===configured || local)){
     res.setHeader('Access-Control-Allow-Origin',origin);
     res.setHeader('Vary','Origin');
   }
   res.setHeader('Access-Control-Allow-Headers','Content-Type');
   res.setHeader('Access-Control-Allow-Methods','GET,POST,OPTIONS');
 }
-
 function pushCors(req,res){const origin=String(req.headers.origin||''); if(origin&&/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)){res.setHeader('Access-Control-Allow-Origin',origin);res.setHeader('Vary','Origin')}else if(!origin){res.setHeader('Access-Control-Allow-Origin','*')}res.setHeader('Access-Control-Allow-Headers','Content-Type');res.setHeader('Access-Control-Allow-Methods','GET,POST,OPTIONS');}
 function pushPrefsValid(p){return p&&Array.isArray(p.fish)&&Array.isArray(p.places)}
 function normalizePushSub(sub){return {endpoint:String(sub?.endpoint||''),keys:{p256dh:String(sub?.keys?.p256dh||''),auth:String(sub?.keys?.auth||'')}}}
