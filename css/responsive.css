@@ -175,3 +175,167 @@ body.device-android .btn,body.device-android button{min-height:44px}
 body.device-tablet .container{width:min(94vw,var(--gn-content))}
 
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+
+/* =============================
+   READABLE, WELCOMING DESIGN REFRESH
+   Stronger contrast + comfortable text sizes across the whole site.
+   ============================= */
+:root{
+  --bg:#071710;
+  --bg-soft:#0a2018;
+  --surface:#10271e;
+  --surface2:#18392b;
+  --surface-2:#18392b;
+  --surface-3:#214836;
+  --text:#f3fff7;
+  --muted:#b6cec0;
+  --line:rgba(197,255,218,.16);
+  --accent:#c5ff73;
+  --green:#43df92;
+  --gn-green:#43df92;
+  --gn-green-soft:#92ffc2;
+  --lime:#c5ff73;
+  --gn-yellow:#ffd166;
+  --yellow:#ffd166;
+  --cyan:#55e2ca;
+  --cyan-2:#8cf4e1;
+  --blue:#36bda3;
+  --orange:#ffb86b;
+  --radius:18px;
+  --gn-bg:#071710;
+  --gn-bg-2:#0a2018;
+  --gn-surface:#10271e;
+  --gn-surface-2:#18392b;
+  --gn-surface-3:#214836;
+  --gn-text:#f3fff7;
+  --gn-muted:#b6cec0;
+  --gn-line:rgba(197,255,218,.16);
+}
+html{font-size:16px;scroll-behavior:smooth}
+body{
+  color:var(--text)!important;
+  background:
+    radial-gradient(ellipse at 5% 0%,rgba(67,223,146,.075),transparent 31%),
+    radial-gradient(ellipse at 95% 8%,rgba(197,255,115,.055),transparent 26%),
+    #071710!important;
+  font-size:16px;
+  line-height:1.68;
+}
+::selection{background:rgba(197,255,115,.30);color:#fff}
+a{transition:color .16s ease,border-color .16s ease,background-color .16s ease}
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{
+  outline:3px solid var(--accent)!important;
+  outline-offset:3px!important;
+}
+p{line-height:1.72}
+.eyebrow{font-size:11px!important;letter-spacing:.12em!important;color:var(--accent)!important}
+.muted,.muted-text,.subtitle,.description{color:#c0d6c9}
+h1,h2,h3,h4{color:#f4fff8}
+.page-head h1,.hero h1,.fish-hero h1{
+  text-wrap:balance;
+  text-shadow:0 5px 24px rgba(0,0,0,.18);
+}
+.panel,.card,.feature-card,.pricing-card,.quick-tool,.insight-card,.home-live-hero,.home-score-card,.home-factors,.account-panel,.location-card,.catalog-card,.fish-card,.daily-card,.day-card,.trip-card,.form-card{
+  border-color:rgba(150,255,190,.19)!important;
+}
+.feature-card,.quick-tool,.pricing-card,.card,.location-card,.catalog-card,.fish-card{
+  transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;
+}
+.btn,.gn-feedback-submit,.hacker-btn{
+  font-size:15px!important;
+  line-height:1.35!important;
+}
+.btn.primary,.btn.primary:hover{
+  background:linear-gradient(135deg,#d0ff82 0%,#8af0a5 100%)!important;
+  border-color:#baff7d!important;
+  color:#092116!important;
+  box-shadow:0 8px 22px rgba(104,235,145,.15);
+}
+.btn.ghost{
+  border-color:rgba(151,255,194,.24)!important;
+  background:rgba(28,67,49,.72)!important;
+  color:#f1fff6!important;
+}
+.btn.ghost:hover{background:rgba(43,91,65,.88)!important;border-color:rgba(197,255,115,.5)!important}
+input,select,textarea{
+  color:#f3fff7!important;
+  border-color:rgba(151,255,194,.25)!important;
+}
+input::placeholder,textarea::placeholder{color:#9bb8a7!important;opacity:1}
+input:focus,select:focus,textarea:focus{
+  border-color:var(--accent)!important;
+  box-shadow:0 0 0 3px rgba(197,255,115,.15)!important;
+}
+.nav a,.more-trigger{font-size:13px!important}
+.header{border-bottom-color:rgba(151,255,194,.18)!important}
+.header-live-pill{border-color:rgba(67,223,146,.32)!important;color:#c9ffdd!important}
+.more-menu{
+  border-color:rgba(151,255,194,.25)!important;
+  box-shadow:0 24px 70px rgba(0,0,0,.48)!important;
+}
+.more-group-title{font-size:11px!important;color:#aee9c4!important}
+.more-menu .more-item{font-size:14px!important;line-height:1.45}
+.more-menu .more-item .mt{font-size:14px!important}
+.more-menu .more-item small{font-size:12px!important;line-height:1.45;color:#bad3c4!important}
+.quick-tool h3,.feature-card h3,.insight-card h3{font-size:17px}
+.quick-tool p,.feature-card p,.insight-card p{font-size:14px}
+.footer,.footer p,.footer a{color:#c0d6c9}
+.footer b,.footer h3{color:#f3fff7}
+
+/* Desktop: give menu labels room without bringing every destination back. */
+@media (min-width:1025px){
+  .header #nav > a,.header #nav .more-trigger{
+    font-size:12px!important;
+    padding:8px 7px!important;
+  }
+  .header #nav{gap:6px!important}
+}
+
+/* Phones and small tablets: prioritize readability over dense layouts. */
+@media (max-width:768px){
+  body{font-size:16px!important;line-height:1.72!important}
+  p,li,.muted,.muted-text,.subtitle,.description,.page-head p,.hero p{
+    font-size:15px!important;
+    line-height:1.72!important;
+  }
+  .hero h1{font-size:clamp(34px,9vw,46px)!important;line-height:1.12!important}
+  .page-head h1{font-size:clamp(31px,8.5vw,42px)!important;line-height:1.17!important}
+  h2,.section-head h2{font-size:clamp(23px,6vw,29px)!important;line-height:1.3!important}
+  h3{font-size:19px!important;line-height:1.35!important}
+  h4{font-size:16px!important}
+  .eyebrow{font-size:11px!important;line-height:1.5!important;letter-spacing:.1em!important}
+  small,.small,.caption,.helper,.field-note,.more-menu .more-item small{
+    font-size:12px!important;line-height:1.55!important;
+  }
+  .btn,.more-trigger,#nav>a{font-size:15px!important}
+  .btn{min-height:48px!important;padding:11px 16px!important}
+  input,select,textarea{font-size:16px!important;min-height:46px}
+  .feature-card,.quick-tool,.insight-card,.panel,.card,.pricing-card{padding:16px!important}
+  .feature-card h3,.quick-tool h3,.insight-card h3{font-size:18px!important}
+  .feature-card p,.quick-tool p,.insight-card p{font-size:14px!important}
+  .more-menu .more-item{min-height:52px;padding:12px!important}
+  .more-menu .more-item .mt{font-size:15px!important}
+  .more-menu .more-item small{font-size:12px!important}
+  .home-live-meta,.home-current-desc,.home-score-card p,.home-factor small{font-size:13px!important}
+  .home-score-card h3{font-size:17px!important}
+  .home-score-card .value{font-size:38px!important}
+  .tag,.badge,.chip,.kit-chip{font-size:12px!important}
+  .footer p,.footer a{font-size:14px!important}
+}
+@media (max-width:380px){
+  .container{width:calc(100% - 18px)!important}
+  .hero h1{font-size:33px!important}
+  .page-head h1{font-size:30px!important}
+  .section-head h2,h2{font-size:22px!important}
+  .feature-card p,.quick-tool p,.insight-card p{font-size:14px!important}
+}
+
+/* Gentle interaction makes controls feel responsive, without flashy movement. */
+@media (hover:hover) and (prefers-reduced-motion:no-preference){
+  .feature-card:hover,.quick-tool:hover,.pricing-card:hover,.location-card:hover,.catalog-card:hover,.fish-card:hover{
+    transform:translateY(-3px);
+    border-color:rgba(197,255,115,.45)!important;
+    box-shadow:0 20px 42px rgba(0,0,0,.28),0 0 0 1px rgba(197,255,115,.06)!important;
+  }
+}
