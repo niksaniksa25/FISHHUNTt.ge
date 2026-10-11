@@ -16,10 +16,31 @@
   }
   const visitorId = getVisitorId();
   const currentPath = location.pathname || '/';
-  if (!/\/admin\.html$/i.test(currentPath)) {
-    fetch('/api/analytics/visit', {
-      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ visitorId, path: currentPath, title: document.title || 'GeoNature' }), keepalive: true
+  const apiConfigReady = new Promise(resolve => {
+    if (window.__GN_API_CONFIG_LOADED) { resolve(); return; }
+    const script = document.createElement('script');
+    script.src = new URL('js/api-config.js', document.baseURI).href;
+    script.onload = resolve;
+    script.onerror = resolve;
+    document.head.appendChild(script);
+  });
+  function apiBase() { return String(window.GN_API_BASE_URL || '').trim().replace(/\\/+$/, ''); }
+  function apiEndpoint(route) {
+    const base = apiBase();
+    if (base) return base + route;
+    // GitHub Pages serves only static files: /api/* exists only on the Node backend.
+    if (/\\.github\\.io$/i.test(location.hostname)) return '';
+    return route;
+  }
+  if (!/\\/admin\\.html$/i.test(currentPath)) {
+    apiConfigReady.then(() => {
+      const endpoint = apiEndpoint('/api/analytics/visit');
+      if (!endpoint) return;
+      return fetch(endpoint, {
+        method: 'POST', credentials: apiBase() ? 'include' : 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ visitorId, path: currentPath, title: document.title || 'GeoNature' }), keepalive: true
+      });
     }).catch(() => {});
   }
 
@@ -61,13 +82,30 @@
     const submit = form.querySelector('button[type="submit"]'); submit.disabled = true; status.textContent = 'იგზავნება…'; status.className = 'gn-feedback-status';
     const message = form.message.value.trim();
     try {
-      const response = await fetch('/api/feedback', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ visitorId, category: form.category.value, message, email: form.email.value.trim(), page: location.pathname }) });
+      await apiConfigReady;
+      const endpoint = apiEndpoint('/api/feedback');
+      if (!endpoint) {
+        const configError = new Error('API_NOT_CONFIGURED');
+        configError.code = 'API_NOT_CONFIGURED';
+        throw configError;
+      }
+      const response = await fetch(endpoint, {
+        method: 'POST', credentials: apiBase() ? 'include' : 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ visitorId, category: form.category.value, message, email: form.email.value.trim(), page: location.pathname })
+      });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.message || 'შეტყობინების გაგზავნა ვერ მოხერხდა.');
       status.textContent = '✅ ' + (result.message || 'შეტყობინება გაიგზავნა.'); form.reset();
       setTimeout(() => { if (!overlay.hidden) close(); }, 1800);
     } catch (err) {
-      status.textContent = (err && err.message && err.message.includes('Failed to fetch')) ? 'სერვერთან კავშირი ვერ შედგა. გაუშვი START_GeoNature.bat და გახსენი სერვერის მისამართი.' : (err.message || 'შეტყობინება ვერ გაიგზავნა.');
+      if (err && err.code === 'API_NOT_CONFIGURED') {
+        status.textContent = 'Feedback ვერ შეინახება: GitHub Pages-ზე API სერვერი არ მუშაობს. js/api-config.js-ში ჩაწერე Node სერვერის HTTPS მისამართი და განათავსე server.js.';
+      } else if (err && err.message && err.message.includes('Failed to fetch')) {
+        status.textContent = 'სერვერთან კავშირი ვერ შედგა. გადაამოწმე js/api-config.js-ში API მისამართი, სერვერის გაშვება და CORS-ის პარამეტრები.';
+      } else {
+        status.textContent = (err && err.message) || 'შეტყობინება ვერ გაიგზავნა.';
+      }
       status.className = 'gn-feedback-status error';
     } finally { submit.disabled = false; }
   });
