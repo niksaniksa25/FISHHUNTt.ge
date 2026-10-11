@@ -109,9 +109,9 @@ function donationLeaderboard(){
 
 const ANALYTICS_FILE=path.join(DATA_DIR,'analytics.json');
 const FEEDBACK_FILE=path.join(DATA_DIR,'feedback.json');
-let analytics=readJsonFile(ANALYTICS_FILE,{visitors:{},pageViews:[],pageViewsTotal:0,logins:[],loginsTotal:0,registrations:[],purchases:[],purchasesTotal:0,purchaseRevenueTotal:0});
+let analytics=readJsonFile(ANALYTICS_FILE,{visitors:{},pageViews:[],pageViewsTotal:0,inviteOpens:[],logins:[],loginsTotal:0,registrations:[],purchases:[],purchasesTotal:0,purchaseRevenueTotal:0});
 analytics.visitors=analytics.visitors&&typeof analytics.visitors==='object'?analytics.visitors:{};
-for(const k of ['pageViews','logins','registrations','purchases']) if(!Array.isArray(analytics[k])) analytics[k]=[];
+for(const k of ['pageViews','logins','registrations','purchases','inviteOpens']) if(!Array.isArray(analytics[k])) analytics[k]=[];
 for(const k of ['pageViewsTotal','loginsTotal','purchasesTotal','purchaseRevenueTotal']) if(!Number.isFinite(Number(analytics[k]))) analytics[k]=0;
 analytics.pageViewsTotal=Math.max(analytics.pageViewsTotal,analytics.pageViews.length);
 analytics.loginsTotal=Math.max(analytics.loginsTotal,analytics.logins.length);
@@ -127,7 +127,7 @@ function validEmail(email){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)}
 function hashPassword(password,salt){return crypto.scryptSync(password,salt,64).toString('hex')}
 function createPasswordHash(password){const salt=crypto.randomBytes(16).toString('hex');return {salt,hash:hashPassword(password,salt)} }
 function verifyPassword(password,user){try{const got=hashPassword(password,user.passwordSalt);return crypto.timingSafeEqual(Buffer.from(got,'hex'),Buffer.from(user.passwordHash,'hex'))}catch{return false}}
-function cleanUser(user){return {id:user.id,email:user.email,createdAt:user.createdAt,role:user.role||'user',plan:user.plan||'free',planExpiresAt:user.planExpiresAt||null,displayName:user.displayName||'',avatarId:user.avatarId||'free-fish',backgroundId:user.backgroundId||'bg-fishing-lake'}}
+function cleanUser(user){return {id:user.id,email:user.email,createdAt:user.createdAt,role:user.role||'user',plan:user.plan||'free',planExpiresAt:user.planExpiresAt||null,displayName:user.displayName||'',avatarId:user.avatarId||'free-fish',backgroundId:user.backgroundId||'bg-fishing-lake',xp:Math.max(0,Number(user.xp)||0)}}
 function cookieToken(req){const m=String(req.headers.cookie||'').match(/(?:^|;\s*)gn_session=([^;]+)/);return m?decodeURIComponent(m[1]):''}
 function currentUser(req){const token=cookieToken(req);const rec=sessions[token];if(!rec)return null;if(Date.now()>rec.expiresAt){delete sessions[token];writeJsonFile(SESSIONS_FILE,sessions);return null}return users.find(u=>u.id===rec.userId)||null}
 function requestIsSecure(req){
@@ -426,7 +426,7 @@ const server=http.createServer(async(req,res)=>{
   try{
     const u=new URL(req.url,`http://${req.headers.host}`);
 
-    const usesAppCors=u.pathname==='/api/feedback'||u.pathname.startsWith('/api/analytics/')||u.pathname.startsWith('/api/admin/');
+    const usesAppCors=u.pathname==='/api/feedback'||u.pathname.startsWith('/api/analytics/')||u.pathname.startsWith('/api/admin/')||u.pathname.startsWith('/api/auth/')||u.pathname.startsWith('/api/leaderboard/');
     if(usesAppCors){
       appCors(req,res);
       if(req.method==='OPTIONS'){res.writeHead(204);return res.end();}
@@ -489,10 +489,19 @@ const server=http.createServer(async(req,res)=>{
       let page=String(b.path||'/').split('?')[0].split('#')[0].slice(0,180);
       if(!page.startsWith('/')) page='/'+page;
       if(page==='/admin.html'||page.endsWith('/admin.html')) return json(res,200,{ok:true,ignored:true});
-      const title=String(b.title||'').replace(/[<>\u0000-\u001f]/g,'').slice(0,120);
-      const now=Date.now(); const rec=analytics.visitors[visitorId]||{firstSeen:now,lastSeen:now,pageViews:0};
-      rec.lastSeen=now; rec.lastPath=page; rec.pageViews=(rec.pageViews||0)+1; analytics.visitors[visitorId]=rec;
-      keepRecent(analytics.pageViews,{visitorId,path:page,title,at:now},20000); analytics.pageViewsTotal=(analytics.pageViewsTotal||0)+1; persistAnalytics();
+      const title=String(b.title||'').replace(/[<>\\u0000-\\u001f]/g,'').slice(0,120);
+      const now=Date.now(); const user=currentUser(req);
+      const rec=analytics.visitors[visitorId]||{firstSeen:now,lastSeen:now,pageViews:0};
+      rec.lastSeen=now; rec.lastPath=page; rec.pageViews=(rec.pageViews||0)+1;
+      if(user){rec.userId=user.id;rec.displayName=String(user.displayName||user.email?.split('@')[0]||'');rec.avatarId=user.avatarId||'free-fish';}
+      analytics.visitors[visitorId]=rec;
+      keepRecent(analytics.pageViews,{visitorId,path:page,title,at:now,userId:user?.id||null,displayName:user?String(user.displayName||user.email?.split('@')[0]||''):'',avatarId:user?.avatarId||'free-fish'},20000);
+      const referralCode=String(b.referralCode||'').trim().slice(0,140);
+      if(referralCode){
+        const inviter=users.find(x=>x.id===referralCode);
+        keepRecent(analytics.inviteOpens,{id:`inv_${now}_${crypto.randomBytes(4).toString('hex')}`,referralCode,inviterId:inviter?.id||null,inviterName:inviter?String(inviter.displayName||inviter.email?.split('@')[0]||'მომხმარებელი'):'ვერ ამოიცნო',inviterAvatarId:inviter?.avatarId||'free-fish',visitorId,openedPath:page,at:now,openerUserId:user?.id||null,openerName:user?String(user.displayName||user.email?.split('@')[0]||'მომხმარებელი'):'სტუმარი',status:'opened'},5000);
+      }
+      analytics.pageViewsTotal=(analytics.pageViewsTotal||0)+1; persistAnalytics();
       return json(res,200,{ok:true});
     }
     if(u.pathname==='/api/feedback'&&req.method==='POST'){
@@ -500,7 +509,7 @@ const server=http.createServer(async(req,res)=>{
       const message=String(b.message||'').replace(/\u0000/g,'').trim();
       const category=['bug','idea','question','other'].includes(String(b.category||''))?String(b.category):'bug';
       const contactEmail=normalizeEmail(b.email||''); const page=String(b.page||'/').split('?')[0].slice(0,180);
-      if(message.length<8) return json(res,400,{ok:false,message:'აღწერე პრობლემა მინიმუმ 8 სიმბოლოთი.'});
+      if(message.length<1) return json(res,400,{ok:false,message:'შეტყობინებაში მინიმუმ ერთი სიმბოლო ჩაწერე.'});
       if(message.length>4000) return json(res,400,{ok:false,message:'შეტყობინება 4000 სიმბოლოზე მოკლე უნდა იყოს.'});
       if(contactEmail && !validEmail(contactEmail)) return json(res,400,{ok:false,message:'ელფოსტის ფორმატი არასწორია.'});
       const rateKey=/^[A-Za-z0-9_-]{16,80}$/.test(visitorId)?visitorId:'anonymous'; const now=Date.now(); const recent=(feedbackRate.get(rateKey)||[]).filter(t=>now-t<15*60*1000);
@@ -536,7 +545,7 @@ const server=http.createServer(async(req,res)=>{
       const byPlan={plus:0,pro:0,other:0}; for(const p of analytics.purchases){if(p.plan==='plus')byPlan.plus++;else if(p.plan==='pro')byPlan.pro++;else byPlan.other++;}
       const revenue=Number(analytics.purchaseRevenueTotal||analytics.purchases.reduce((sum,p)=>sum+(Number(p.amount)||0),0));
       const feedbackUnread=feedbackItems.filter(x=>x.status==='new').length;
-      return json(res,200,{ok:true,stats:{users:regularUsers.length,registrations:regularUsers.length,activePlans,admins,orders:orders.size,uniqueVisitors:Object.keys(analytics.visitors).length,pageViews:analytics.pageViewsTotal||analytics.pageViews.length,logins:analytics.loginsTotal||analytics.logins.length,purchases:analytics.purchasesTotal||analytics.purchases.length,revenue:Math.round(revenue*100)/100,purchasesByPlan:byPlan,feedbackUnread,recent,recentPurchases:analytics.purchases.slice(-15).reverse()}});
+      return json(res,200,{ok:true,stats:{users:regularUsers.length,registrations:regularUsers.length,activePlans,admins,orders:orders.size,uniqueVisitors:Object.keys(analytics.visitors).length,pageViews:analytics.pageViewsTotal||analytics.pageViews.length,logins:analytics.loginsTotal||analytics.logins.length,purchases:analytics.purchasesTotal||analytics.purchases.length,revenue:Math.round(revenue*100)/100,purchasesByPlan:byPlan,feedbackUnread,recent,recentPurchases:analytics.purchases.slice(-15).reverse(),recentPageViews:analytics.pageViews.slice(-100).reverse(),recentInviteOpens:analytics.inviteOpens.slice(-300).reverse(),inviteOpensTotal:analytics.inviteOpens.length}});
     }
     if(u.pathname==='/api/admin/feedback'&&req.method==='GET'){
       if(!currentAdmin(req)) return json(res,401,{ok:false,message:'Admin access required.'});
@@ -549,6 +558,20 @@ const server=http.createServer(async(req,res)=>{
       if(!['new','read','resolved'].includes(status)) return json(res,400,{ok:false,message:'სტატუსი არასწორია.'});
       const item=feedbackItems.find(x=>x.id===id); if(!item) return json(res,404,{ok:false,message:'შეტყობინება ვერ მოიძებნა.'});
       item.status=status; item.updatedAt=Date.now(); persistFeedback(); return json(res,200,{ok:true,item});
+    }
+    if(u.pathname==='/api/leaderboard/xp'&&req.method==='GET'){
+      const leaderboard=users.filter(x=>(x.role||'user')!=='admin'&&Number(x.xp)>0)
+        .map(x=>({id:x.id,name:String(x.displayName||x.email?.split('@')[0]||'GeoNature Explorer').slice(0,30),avatarId:x.avatarId||'free-fish',xp:Math.max(0,Number(x.xp)||0),updatedAt:Number(x.xpUpdatedAt||x.createdAt)||0}))
+        .sort((a,b)=>b.xp-a.xp||a.name.localeCompare(b.name,'ka')).slice(0,50)
+        .map((x,i)=>({rank:i+1,...x}));
+      return json(res,200,{ok:true,leaderboard});
+    }
+    if(u.pathname==='/api/auth/xp'&&req.method==='POST'){
+      const user=currentUser(req);if(!user)return json(res,401,{ok:false,message:'XP-ის სინქრონიზაციისთვის ანგარიშში შედი.'});
+      const b=await body(req);const xp=Number(b.xp);
+      if(!Number.isFinite(xp)||xp<0||xp>10000000)return json(res,400,{ok:false,message:'XP მნიშვნელობა არასწორია.'});
+      user.xp=Math.round(xp);user.xpUpdatedAt=Date.now();writeJsonFile(USERS_FILE,users);
+      return json(res,200,{ok:true,xp:user.xp});
     }
     if(u.pathname==='/api/auth/profile'&&req.method==='GET'){
       const user=currentUser(req); if(!user) return json(res,401,{ok:false,message:'ანგარიშში შესვლა აუცილებელია.'});
