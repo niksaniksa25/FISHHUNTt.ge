@@ -24,7 +24,7 @@ services:
       - key: GEONATURE_SESSION_SECRET
         generateValue: true
       - key: GEONATURE_ADMIN_PANEL_PASSWORD
-        sync: false
+        generateValue: true
       - key: BOG_CLIENT_ID
         sync: false
       - key: BOG_CLIENT_SECRET
