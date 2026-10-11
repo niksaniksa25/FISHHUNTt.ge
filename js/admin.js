@@ -1,11 +1,13 @@
 (function(){
   'use strict';
   const $=id=>document.getElementById(id);
-  const LOCAL_ADMIN_PASSWORD='25201125';
+  function apiBase(){let base=String(window.GN_API_BASE_URL||'').trim();while(base.endsWith('/'))base=base.slice(0,-1);return base;}
   let serverAvailable=true;
   async function req(path,opt={}){
     const options={credentials:'include',headers:{'Content-Type':'application/json',...(opt.headers||{})},...opt};
-    const r=await fetch('/api/admin'+path,options);
+    const base=apiBase();
+    if(!base && String(location.hostname||'').toLowerCase().endsWith('.github.io')) throw new Error('Admin/Feedback API არ არის მიბმული. ჩაწერე Node სერვერის HTTPS მისამართი js/api-config.js-ში.');
+    const r=await fetch(base+'/api/admin'+path,options);
     let d={};try{d=await r.json()}catch{}
     if(!r.ok)throw new Error(d.message||'Admin request failed');
     return d;
@@ -50,8 +52,8 @@
       try{localStorage.removeItem('gn_admin_local');localStorage.setItem('gn_admin_unlocked_at',String(Date.now()));}catch{}
       msg.textContent='ACCESS GRANTED';msg.className='auth-message success';showPanel(false);await reloadAll();
     }catch(e){
-      if(String(pwd)===LOCAL_ADMIN_PASSWORD){try{localStorage.setItem('gn_admin_local','1');}catch{}showPanel(true);msg.textContent='LOCAL PREVIEW — მონაცემები სერვერზე არ იკითხება';msg.className='auth-message';}
-      else{msg.textContent=e.message||'Admin access failed';msg.className='auth-message error';}
+      msg.textContent=e.message||'Admin access failed';
+      msg.className='auth-message error';
     }
   };
   $('adminLogout').onclick=async()=>{try{await req('/logout',{method:'POST',body:'{}'})}catch{}try{localStorage.removeItem('gn_admin_local');localStorage.removeItem('gn_admin_unlocked_at')}catch{}location.reload()};
