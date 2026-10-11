@@ -404,8 +404,10 @@ function calcPushScore(weather,fish){
 }
 function frontendLink(relativePath){
   const configured=String(process.env.GN_FRONTEND_URL||'https://niksaniksa25.github.io/FISHHUNTt.ge/').trim();
-  try{return new URL(String(relativePath||'').replace(/^\\/+/,''),configured.endsWith('/')?configured:configured+'/').toString()}
-  catch{return 'https://niksaniksa25.github.io/FISHHUNTt.ge/'+String(relativePath||'').replace(/^\\/+/,'')}
+  let relative=String(relativePath||'');
+  while(relative.startsWith('/'))relative=relative.slice(1);
+  try{return new URL(relative,configured.endsWith('/')?configured:configured+'/').toString()}
+  catch{return 'https://niksaniksa25.github.io/FISHHUNTt.ge/'+relative}
 }
 async function runPushChecks(){
   let changed=false;
