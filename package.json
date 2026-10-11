@@ -1,11 +1,13 @@
 {
-  "name": "geonature-bog-server",
+  "name": "fishhunt-geonature",
   "version": "1.0.0",
   "private": true,
-  "scripts": {
-    "start": "node server.js"
-  },
+  "description": "GeoNature/FishHunt Node.js API and static site server",
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "check": "node --check server.js && node --check js/admin.js && node --check js/analytics-feedback.js && node --check js/api-config.js && node --check js/site.js && node --check js/donate.js && node --check js/donate-config.js"
   }
 }
