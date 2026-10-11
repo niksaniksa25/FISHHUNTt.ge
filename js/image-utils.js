@@ -174,13 +174,32 @@
     return src;
   }
 
+  async function wikipediaImageExact(title){
+    const wanted=normalizeImageTitle(title);
+    if(!wanted)return '';
+    const urls=[
+      'https://en.wikipedia.org/api/rest_v1/page/summary/'+encodeURIComponent(title),
+      'https://ka.wikipedia.org/api/rest_v1/page/summary/'+encodeURIComponent(title)
+    ];
+    for(const url of urls){
+      try{
+        const data=await json(url);
+        const resolved=normalizeImageTitle(data?.title||'');
+        const src=data?.thumbnail?.source||data?.originalimage?.source||'';
+        // Do not accept a redirect to a different article as a photo for this forest.
+        if(resolved===wanted&&validImage(src))return src;
+      }catch(_){}
+    }
+    return '';
+  }
+
   async function resolveNatureImage(name, english){
     const key='nature:'+name+':'+(english||'');
     if(memory.has(key)) return memory.get(key);
     const title=String(english||name||'').trim();
     let src='';
     // Prefer the exact English Wikipedia page for the named habitat/park.
-    try{src=await wikipediaImage(title)}catch(_){}
+    try{src=await wikipediaImageExact(title)}catch(_){}
     if(!src&&title){
       const stop=new Set(['national','park','parks','protected','areas','managed','reserve','reserves','forest','forests','zone','belt','mountain','mountains','valley','valleys','rainy','rainforest','state','the','and','of','georgia','nature','woodland']);
       const distinctive=title.split(/[^A-Za-z0-9]+/).filter(w=>w.length>=5&&!stop.has(w.toLowerCase()));
