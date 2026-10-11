@@ -1,0 +1,124 @@
+name: Import FishHunt project
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/migrate-fishhunt.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out destination repository
+        uses: actions/checkout@v4
+
+      - name: Copy website and sanitize private runtime files
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 https://github.com/niksaniksa25/fishhunt.ge.git /tmp/fishhunt-source
+          rsync -a --exclude='.git/' \
+            --exclude='sessions.json' \
+            --exclude='users.json' \
+            --exclude='orders.json' \
+            --exclude='analytics.json' \
+            --exclude='feedback.json' \
+            --exclude='push-state.json' \
+            --exclude='.env' \
+            /tmp/fishhunt-source/ ./
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          env_example = Path(".env.example")
+          if env_example.exists():
+              s = env_example.read_text(encoding="utf-8")
+              s = re.sub(r"^GEONATURE_ADMIN_PANEL_PASSWORD=.*$", "GEONATURE_ADMIN_PANEL_PASSWORD=", s, flags=re.M)
+              if "GEONATURE_ADMIN_PANEL_SALT=" not in s:
+                  s += "\nGEONATURE_ADMIN_PANEL_SALT=\nGEONATURE_ADMIN_PANEL_HASH=\n"
+              env_example.write_text(s, encoding="utf-8")
+
+          final_check = Path("README-FINAL-CHECK.md")
+          if final_check.exists():
+              s = final_check.read_text(encoding="utf-8")
+              s = s.replace("- Admin password: 25201125 (server-side verification in production).",
+                            "- Configure the administrator password using private server environment variables; never commit it.")
+              final_check.write_text(s, encoding="utf-8")
+
+          server = Path("server.js")
+          if server.exists():
+              s = server.read_text(encoding="utf-8")
+              s = s.replace(
+                  "const ADMIN_PANEL_SALT=process.env.GEONATURE_ADMIN_PANEL_SALT||'geonature-admin-panel-2026';",
+                  "const ADMIN_PANEL_SALT=process.env.GEONATURE_ADMIN_PANEL_SALT||'';"
+              )
+              s = s.replace(
+                  "const ADMIN_PANEL_HASH=process.env.GEONATURE_ADMIN_PANEL_HASH||'cd5a213370fba57c7d07ee3cf71aae9ce7423defa680be25fec1741e2500ae96';",
+                  "const ADMIN_PANEL_HASH=process.env.GEONATURE_ADMIN_PANEL_HASH||'';"
+              )
+              s = s.replace(
+                  "// DEFAULT ADMIN PASSWORD: 25201125. Production can override via GEONATURE_ADMIN_PANEL_PASSWORD or the hashed value above.",
+                  "// Admin password must be configured through private server environment variables."
+              )
+              s = re.sub(
+                  r"function verifyAdminPanelPassword\(value\)\{.*?\}(?=\s*function cookieValue)",
+                  """function verifyAdminPanelPassword(value){
+            if(!value) return false;
+            if(ADMIN_PANEL_PASSWORD && String(value)===ADMIN_PANEL_PASSWORD) return true;
+            if(!ADMIN_PANEL_SALT || !ADMIN_PANEL_HASH) return false;
+            try{
+              const got=crypto.scryptSync(String(value),ADMIN_PANEL_SALT,32).toString('hex');
+              const expected=Buffer.from(ADMIN_PANEL_HASH,'hex');
+              const candidate=Buffer.from(got,'hex');
+              return candidate.length===expected.length && crypto.timingSafeEqual(candidate,expected);
+            }catch{return false;}
+          }""",
+                  s, flags=re.S
+              )
+              if "25201125" in s or "cd5a213370fba57c7d07ee3cf71aae9ce7423defa680be25fec1741e2500ae96" in s:
+                  raise SystemExit("Refusing to publish server.js: default admin credential material remains.")
+              server.write_text(s, encoding="utf-8")
+
+          gitignore = Path(".gitignore")
+          existing = gitignore.read_text(encoding="utf-8") if gitignore.exists() else ""
+          required = [
+              ".env", ".env.*", "!.env.example", "node_modules/",
+              "sessions.json", "users.json", "orders.json", "analytics.json",
+              "feedback.json", "push-state.json", "*.log", ".DS_Store"
+          ]
+          for entry in required:
+              if entry not in existing.splitlines():
+                  existing += entry + "\n"
+          gitignore.write_text(existing, encoding="utf-8")
+          PY
+
+      - name: Verify runtime and credential files are not staged
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e sessions.json
+          test ! -e users.json
+          if grep -nE '25201125|cd5a213370fba57c7d07ee3cf71aae9ce7423defa680be25fec1741e2500ae96' server.js .env.example README-FINAL-CHECK.md 2>/dev/null; then
+            echo "A hard-coded admin credential remains; refusing to continue."
+            exit 1
+          fi
+
+      - name: Commit project copy
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git commit -m "Copy FishHunt site, assets and folders"
+          git push origin HEAD:main
