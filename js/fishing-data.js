@@ -256,23 +256,73 @@ window.GeoFishChance=(function(){
     const activity=applyTime===false?70:activityFit(f[10],hour);
     const raw=tFit*.31+pFit*.12+wFit*.10+rainFit*.09+probFit*.08+weatherFit(c?.weather_code)*.10+humFit*.07+habitatFit(f,water)*.08+activity*.05;
     // Keep this as a cautious comparative index, never implying an 90–100% guarantee.
-    return Math.max(8,Math.min(58,Math.round(5+raw*.52)));
+    return Math.max(12,Math.min(88,Math.round(6+raw*.86)));
   };
 })();
 window.GeoWildlifeChance=function(x,context={}){
-  const d=context?.date?new Date(`${context.date}T12:00:00`):new Date();
+  const d=context?.date?new Date(context.date+'T12:00:00'):new Date();
   const h=Number.isFinite(Number(context?.local_hour))?Number(context.local_hour):new Date().getHours();
   const m=d.getMonth()+1,s=String(x?.[7]||'').toLowerCase(),a=String(x?.[8]||'').toLowerCase();
-  let season=58;
-  if(s.includes('მთელი'))season=78;
-  else if(s.includes('გაზაფხული')&&[3,4,5].includes(m))season=86;
-  else if(s.includes('ზაფხული')&&[6,7,8].includes(m))season=86;
-  else if(s.includes('შემოდგომა')&&[9,10,11].includes(m))season=86;
-  else if(s.includes('ზამთარი')&&[12,1,2].includes(m))season=86;
-  else if(s.includes('მიგრაციის')&&[3,4,5,9,10,11].includes(m))season=80;
-  let activity=56;
-  const match=(a.includes('დილ')&&h>=5&&h<=10)||(a.includes('საღამ')&&h>=17&&h<=21)||(a.includes('ღამე')&&(h>=21||h<=4))||(a.includes('დღე')&&h>=10&&h<=16)||(a.includes('გამთენიის')&&h>=4&&h<=8);
-  if(match)activity=88;else if(a.includes('მთელი'))activity=72;
-  // Sightings are uncertain; cap the indicative score to avoid presenting invented certainty.
-  return Math.max(8,Math.min(58,Math.round(5+(season*.52+activity*.48)*.52)));
-};
+  const kind=String(x?.[0]||'').toLowerCase();
+  const spread=String(x?.[6]||'').toLowerCase();
+  const habitat=String(x?.[5]||'').toLowerCase();
+
+  let season=56;
+  if(s.includes('მთელი'))season=79;
+  else if(s.includes('გაზაფხული'))season=[3,4,5].includes(m)?92:43;
+  else if(s.includes('ზაფხული'))season=[6,7,8].includes(m)?92:43;
+  else if(s.includes('შემოდგომა'))season=[9,10,11].includes(m)?92:43;
+  else if(s.includes('ზამთარი'))season=[12,1,2].includes(m)?92:43;
+  else if(s.includes('მიგრაციის'))season=[3,4,5,9,10,11].includes(m)?87:47;
+  else if(s.includes('სეზონ'))season=52;
+
+  const windows=[];
+  if(a.includes('განთიადი')||a.includes('გამთენიისას'))windows.push([4,8]);
+  if(a.includes('დილ'))windows.push([5,10]);
+  if(a.includes('დღე'))windows.push([10,16]);
+  if(a.includes('საღამ'))windows.push([17,21]);
+  if(a.includes('ბინდ'))windows.push([18,22]);
+  if(a.includes('ღამ'))windows.push([21,24],[0,4]);
+  let activity=54;
+  if(a.includes('მთელი'))activity=79;
+  else if(windows.some(([lo,hi])=>h>=lo&&h<=hi))activity=92;
+  else if(windows.length){
+    let dist=99;
+    for(const [lo,hi] of windows)dist=Math.min(dist,h<lo?lo-h:h>hi?h-hi:0);
+    activity=dist<=2?73:dist<=4?56:34;
+  }
+
+  const speciesBase=kind.includes('bird')||kind.includes('ფრინ')?63:
+    kind.includes('mammal')||kind.includes('ცხოვ')?58:
+    kind.includes('reptile')||kind.includes('ქვეწარმ')?47:54;
+  let locationFit=62;
+  const requestedRegion=String(context?.region||context?.location||'').toLowerCase();
+  if(requestedRegion){
+    const east=/თბილის|თელავ|კახეთ|რუსთავ|აღმოსავლ/.test(requestedRegion);
+    const west=/ქუთაის|ბათუმ|ფოთ|იმერეთ|გურია|აჭარა|სამეგრელ|დასავლ/.test(requestedRegion);
+    const mountain=/მესტია|ამბროლაურ|ბორჯომ|ახალციხ|მთიან|კავკასიონ/.test(requestedRegion);
+    if((spread.includes('აღმოსავლ')&&east)||(spread.includes('დასავლ')&&west)||(spread.includes('მთიან')&&mountain))locationFit=88;
+    else if(spread.includes('მთელ')||spread.includes('საქართველოში')||spread.includes('საქართველო'))locationFit=70;
+    else locationFit=43;
+  }else if(spread.includes('მთელ')||spread.includes('საქართველოში'))locationFit=68;
+
+  let weatherFit=70;
+  const code=Number(context?.weather_code??context?.weatherCode);
+  if(Number.isFinite(code)){
+    if([95,96,99].includes(code))weatherFit=20;
+    else if([65,75,82,81,73].includes(code))weatherFit=35;
+    else if([51,53,55,61,63,71,80].includes(code))weatherFit=51;
+    else if([45,48].includes(code))weatherFit=48;
+    else if([0,1].includes(code))weatherFit=86;
+    else if([2,3].includes(code))weatherFit=72;
+  }
+  let weatherPenalty=0;
+  const wind=Number(context?.wind_speed_10m??context?.wind);
+  if(Number.isFinite(wind)&&wind>25)weatherPenalty=Math.min(15,(wind-25)*(kind.includes('bird')?1.1:.45));
+  const rain=Number(context?.precipitation);
+  if(Number.isFinite(rain)&&rain>3)weatherPenalty+=Math.min(10,(rain-3)*1.4);
+
+  // This is a comparative activity index, not a guaranteed real-world sighting probability.
+  const score=season*.28+activity*.35+speciesBase*.20+locationFit*.11+weatherFit*.06-weatherPenalty;
+  return Math.max(12,Math.min(88,Math.round(score)));
+}
