@@ -8,6 +8,6 @@
   },
   "scripts": {
     "start": "node server.js",
-    "check": "node --check server.js && node --check js/admin.js && node --check js/analytics-feedback.js && node --check js/api-config.js && node --check js/site.js && node --check js/donate.js && node --check js/donate-config.js && node --check js/fishing-data.js && node --check js/forests.js && node --check js/image-utils.js && node --check js/hunting.js && node --check js/fishing-guide.js && node --check js/map.js && node --check js/place-details.js"
+    "check": "node --check server.js && node --check js/admin.js && node --check js/analytics-feedback.js && node --check js/api-config.js && node --check js/site.js && node --check js/donate.js && node --check js/donate-config.js && node --check js/fishing-data.js && node --check js/forests.js && node --check js/image-utils.js && node --check js/hunting.js && node --check js/fishing-guide.js && node --check js/map.js && node --check js/place-details.js && node --check js/geo-extras.js && node --check js/home-dashboard.js && node --check js/geonature-plus.js && node --check js/auth.js && node --check js/push-notifications.js && node --check push-sw.js"
   }
 }
