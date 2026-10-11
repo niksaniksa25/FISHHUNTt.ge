@@ -325,4 +325,4 @@ window.GeoWildlifeChance=function(x,context={}){
   // This is a comparative activity index, not a guaranteed real-world sighting probability.
   const score=season*.28+activity*.35+speciesBase*.20+locationFit*.11+weatherFit*.06-weatherPenalty;
   return Math.max(12,Math.min(88,Math.round(score)));
-}
+};
