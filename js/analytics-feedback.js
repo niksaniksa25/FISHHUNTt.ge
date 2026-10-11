@@ -16,6 +16,9 @@
   }
   const visitorId = getVisitorId();
   const currentPath = location.pathname || '/';
+  const queryParams = new URLSearchParams(location.search || '');
+  const referralCode = String(queryParams.get('ref') || queryParams.get('invite') || '').trim().slice(0,140);
+  if (referralCode) { try { localStorage.setItem('gn_referral_code', referralCode); } catch (_) {} }
   const apiConfigReady = new Promise(resolve => {
     if (window.__GN_API_CONFIG_LOADED) { resolve(); return; }
     const script = document.createElement('script');
@@ -39,7 +42,7 @@
       return fetch(endpoint, {
         method: 'POST', credentials: apiBase() ? 'include' : 'same-origin',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ visitorId, path: currentPath, title: document.title || 'GeoNature' }), keepalive: true
+        body: JSON.stringify({ visitorId, path: currentPath, title: document.title || 'GeoNature', referralCode }), keepalive: true
       });
     }).catch(() => {});
   }
