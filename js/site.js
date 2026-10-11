@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
   // Secondary destinations live in the expandable "მეტი" menu on every page.
   ensureMoreLink('fishing-guide.html','🎯','სად წავიდეთ','TOP თევზები • ადგილები • შანსი','🧭 ინსტრუმენტები');
-  ensureMoreLink('ai.html','🤖','AI ასისტენტი','Premium AI გეგმები','💎 Premium');
+  addTopLink('ai.html','🤖 AI','hunting.html');
   ensureMoreLink('dashboard.html','📊','ჩემი GeoNature','XP • სტატისტიკა • გეგმები','🧭 ინსტრუმენტები');
   ensureMoreLink('forests.html','🌲','ტყეების Explorer','ტყე → ბინადრები','📚 ცოდნა');
   ensureMoreLink('red-book.html','📕','წითელი წიგნი','დაცული სახეობების ცნობარი','📚 ცოდნა');
