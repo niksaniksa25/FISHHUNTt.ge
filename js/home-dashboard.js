@@ -12,13 +12,25 @@
   const dateRows=date=>allRows().filter(r=>r.iso.slice(0,10)===date);
   const currentDate=()=>state.data?.current?.time?.slice(0,10) || (window.GeoNatureCommon?.localDateISO?.()||new Date().toLocaleDateString('sv-SE'));
   const todayHour=()=>state.data?.current?.time?.slice(11,16) || `${String(new Date().getHours()).padStart(2,'0')}:00`;
+  function outdoorRowScore(r){
+    const weather={temperature_2m:r.temperature,apparent_temperature:r.apparent_temperature??r.temperature,pressure_msl:r.pressure,
+      wind_speed_10m:r.wind,wind_gusts_10m:r.gust,precipitation:r.precip,precipitation_probability:r.rainProb,
+      relative_humidity_2m:r.humidity,cloud_cover:r.cloud,visibility:r.visibility,weather_code:r.code,local_hour:r.local_hour};
+    if(typeof window.GeoNatureCommon?.outdoorScore==='function')return clamp(window.GeoNatureCommon.outdoorScore(weather));
+    if(typeof window.outdoorScore==='function')return clamp(window.outdoorScore(weather));
+    return 0;
+  }
+  function rowsForBest(d){
+    const rows=dateRows(d),currentIso=String(state.data?.current?.time||'');
+    return d===currentDate()&&currentIso?rows.filter(r=>r.iso>=currentIso):rows;
+  }
   function fishingScore(r){
     if(typeof window.fishingEnvironmentScore==='function') return clamp(window.fishingEnvironmentScore({temperature_2m:r.temperature,pressure_msl:r.pressure,wind_speed_10m:r.wind,precipitation:r.precip,precipitation_probability:r.rainProb,weather_code:r.code,relative_humidity_2m:r.humidity,local_hour:r.local_hour},undefined));
-    return clamp(outdoorScore(r)*0.92);
+    return clamp(outdoorRowScore(r)*0.92);
   }
   function huntingScore(r){
     const activity=(r.local_hour>=5&&r.local_hour<=9)||(r.local_hour>=17&&r.local_hour<=20)?100:72;
-    return Math.round(clamp(outdoorScore(r)*0.82+activity*0.18));
+    return Math.round(clamp(outdoorRowScore(r)*0.82+activity*0.18));
   }
   function setText(id,v){const e=$(id);if(e)e.textContent=v}
   function setScoreCard(prefix,score){
@@ -38,17 +50,17 @@
     if(!rows.some(r=>r.time===state.hour)) state.hour=defaultHour;
     sel.innerHTML=rows.map(r=>`<option value="${r.time}">${r.time}</option>`).join(''); sel.value=state.hour;
     sel.onchange=()=>{state.hour=sel.value;renderSelected();};
-    strip.innerHTML=rows.map(r=>{const o=outdoorScore(r),f=fishingScore(r),h=huntingScore(r),[_,key]=scoreBand(o),mm=codeMeta(r.code);return `<button type="button" class="home-hour ${r.time===state.hour?'active':''}" data-time="${r.time}"><small>${r.time}</small><span>${mm[0]}</span><b>${Math.round(r.temperature)}°</b><strong class="score-pill ${key}">${o}</strong><em>F ${f} • H ${h}</em></button>`}).join('');
+    strip.innerHTML=rows.map(r=>{const o=outdoorRowScore(r),f=fishingScore(r),h=huntingScore(r),[_,key]=scoreBand(o),mm=codeMeta(r.code);return `<button type="button" class="home-hour ${r.time===state.hour?'active':''}" data-time="${r.time}"><small>${r.time}</small><span>${mm[0]}</span><b>${Math.round(r.temperature)}°</b><strong class="score-pill ${key}">${o}</strong><em>F ${f} • H ${h}</em></button>`}).join('');
     strip.querySelectorAll('.home-hour').forEach(b=>b.onclick=()=>{state.hour=b.dataset.time;sel.value=state.hour;renderSelected();});
   }
   function renderSelected(){
     const r=dateRows(state.date).find(x=>x.time===state.hour) || dateRows(state.date)[0]; if(!r)return; state.hour=r.time;
-    const o=outdoorScore(r), f=fishingScore(r), h=huntingScore(r), mm=codeMeta(r.code), [oband,okey]=scoreBand(o), [fband,fkey]=scoreBand(f), [hband,hkey]=scoreBand(h);
+    const o=outdoorRowScore(r), f=fishingScore(r), h=huntingScore(r), mm=codeMeta(r.code), [oband,okey]=scoreBand(o), [fband,fkey]=scoreBand(f), [hband,hkey]=scoreBand(h);
     setText('homeLiveTitle',state.city); setText('homeCity',state.city); setText('homeSelectedTime',`${state.date} • ${r.time}`); setText('homeMainTemp',`${r.temperature.toFixed(1)}°C`); setText('homeMainDesc',mm[1]); setText('homeMainIcon',mm[0]); setText('homeTemp',`${Math.round(r.temperature)}°`); setText('homeDesc',mm[1]); setText('homeIcon',mm[0]); setText('homePressure',`${Math.round(r.pressure)} hPa`); setText('homeWind',`${Math.round(r.wind)} კმ/სთ`); setText('homeHumidity',`${Math.round(r.humidity)}%`); setText('homeRain',`${r.precip.toFixed(1)} მმ`);
     setScoreCard('outdoor',o);setScoreCard('fishing',f);setScoreCard('hunting',h); const go=$('homeGo'); if(go)go.dataset.level=okey; const outValue=$('outdoorScore'); if(outValue)outValue.textContent=o;
     const summary=o>=80?'კარგი დროა გარეთ გასასვლელად':o>=50?'საშუალო პირობებია — გადაამოწმე საათი':'ცუდი პირობებია — ჯობს სხვა საათი აირჩიო'; setText('homeGoSummary',summary); setText('homeGoScore',o+'/100');
     setText('homeFactorTemp',`${r.temperature.toFixed(1)}°C`);setText('homeFactorPressure',`${r.pressure.toFixed(1)} hPa`);setText('homeFactorWind',`${r.wind.toFixed(1)} კმ/სთ`);setText('homeFactorRain',`${r.precip.toFixed(1)} მმ`);setText('homeFactorCloud',`${Math.round(r.cloud)}%`);setText('homeFactorHumidity',`${Math.round(r.humidity)}%`);setText('homeFactorGust',`${r.gust.toFixed(1)} კმ/სთ`);setText('homeFactorRainProb',`${Math.round(r.rainProb)}%`);
-    const drows=dateRows(state.date); const best=drows.map(x=>({r:x,s:outdoorScore(x)})).sort((a,b)=>b.s-a.s)[0]; setText('homeBestHour',best?`${best.r.time} • ${best.s}/100`:'—');
+    const drows=rowsForBest(state.date); const best=drows.map(x=>({r:x,s:outdoorRowScore(x)})).sort((a,b)=>b.s-a.s||a.r.iso.localeCompare(b.r.iso))[0]; setText('homeBestHour',best?`${best.r.time} • ${best.s}/100`:'—');
     document.querySelectorAll('#homeHourlyStrip .home-hour').forEach(el=>el.classList.toggle('active',el.dataset.time===r.time));
     if(window.GNLiveFactors) window.GNLiveFactors.render({data:state.data,row:r,subject:null,type:'weather',locationName:state.city,live:state.live}); if(window.GeoNatureExtras?.renderHome) window.GeoNatureExtras.renderHome(state.data,r);
   }
@@ -59,7 +71,7 @@
   function renderWeek(){
     const box=$('homeWeekStrip'); if(!box)return;
     const dates=[...new Set(allRows().map(r=>r.iso.slice(0,10)))].slice(0,window.GNPremium?.maxForecastDays?.()||1);
-    box.innerHTML=dates.map(d=>{const rows=dateRows(d);const best=rows.map(r=>({r,s:outdoorScore(r)})).sort((a,b)=>b.s-a.s)[0];if(!best)return '';const [label,key]=scoreBand(best.s);return `<button class="home-day ${key}" data-date="${d}"><small>${new Date(`${d}T12:00:00`).toLocaleDateString('ka-GE',{weekday:'short'})}</small><b>${new Date(`${d}T12:00:00`).getDate()}</b><span>${best.s}</span><em>${label} • ${best.r.time}</em></button>`}).join('');
+    box.innerHTML=dates.map(d=>{const rows=rowsForBest(d);const best=rows.map(r=>({r,s:outdoorRowScore(r)})).sort((a,b)=>b.s-a.s||a.r.iso.localeCompare(b.r.iso))[0];if(!best)return '';const [label,key]=scoreBand(best.s);return `<button class="home-day ${key}" data-date="${d}"><small>${new Date(`${d}T12:00:00`).toLocaleDateString('ka-GE',{weekday:'short'})}</small><b>${new Date(`${d}T12:00:00`).getDate()}</b><span>${best.s}</span><em>${label} • ${best.r.time}</em></button>`}).join('');
     box.querySelectorAll('.home-day').forEach(b=>b.onclick=()=>{state.date=b.dataset.date;renderDates();renderHours();renderSelected();});
   }
   async function load(){
