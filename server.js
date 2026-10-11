@@ -429,7 +429,9 @@ const server=http.createServer(async(req,res)=>{
       donationCors(req,res);
       if(req.method==='OPTIONS'){res.writeHead(204);return res.end();}
       if(u.pathname==='/api/donations/leaderboard'&&req.method==='GET'){
-        return json(res,200,{ok:true,donations:donationLeaderboard()});
+        const paid=donations.filter(d=>d?.verified===true&&d?.status==='paid'&&Number.isFinite(Number(d.amount))&&Number(d.amount)>0);
+        const totalAmount=Math.round(paid.reduce((sum,d)=>sum+Number(d.amount),0)*100)/100;
+        return json(res,200,{ok:true,donations:donationLeaderboard(),donationCount:paid.length,totalAmount});
       }
       if(u.pathname==='/api/donations/create-order'&&req.method==='POST'){
         const b=await body(req);
@@ -596,7 +598,7 @@ const server=http.createServer(async(req,res)=>{
             }
           }else if(['rejected','expired','refunded','partially_refunded','cancelled','failed'].includes(status)){
             o.status=status;
-            if(status==='refunded') {
+            if(status==='refunded'||status==='partially_refunded') {
               donations=donations.filter(d=>d.orderId!==orderId);
               persistDonations();
             }
