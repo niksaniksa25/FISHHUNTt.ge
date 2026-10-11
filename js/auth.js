@@ -123,17 +123,19 @@
     if(isFileMode)return localRequest(path,options);
     await ensureApiConfig();
     const remote=Boolean(String(window.GN_API_BASE_URL||'').trim());
+    const fallbackPaths=['/signup','/signin','/signout','/me'];
+    const canFallback=!remote&&fallbackPaths.includes(path);
     const url=apiUrl(path);
     try{
       const r=await fetch(url,{credentials:'include',headers:{'Content-Type':'application/json',...(options.headers||{})},...options});
       let data={};try{data=await r.json();}catch{}
       if(!r.ok){
-        if(!remote&&[404,405,501].includes(r.status)&&/^\\/(?:signup|signin|signout|me)$/.test(path))return localRequest(path,options);
+        if(canFallback&&[404,405,501].includes(r.status))return localRequest(path,options);
         throw new Error(data.message||`Request failed (${r.status})`);
       }
       return data;
     }catch(err){
-      if(!remote&&/^\\/(?:signup|signin|signout|me)$/.test(path)&&err instanceof TypeError)return localRequest(path,options);
+      if(canFallback&&err instanceof TypeError)return localRequest(path,options);
       throw new Error(err?.message||'ანგარიშის სერვერთან დაკავშირება ვერ მოხერხდა. შეამოწმე js/api-config.js და Node API.');
     }
   }
