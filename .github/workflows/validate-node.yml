@@ -6,6 +6,9 @@ on:
     branches: [main]
     paths:
       - "server.js"
+      - "package.json"
+      - "render.yaml"
+      - "DEPLOYMENT-FEEDBACK.md"
       - "js/admin.js"
       - "js/analytics-feedback.js"
       - "js/api-config.js"
@@ -24,11 +27,4 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v7.0.1
       - name: Check JavaScript syntax
-        run: |
-          node --check server.js
-          node --check js/admin.js
-          node --check js/analytics-feedback.js
-          node --check js/api-config.js
-          node --check js/site.js
-          node --check js/donate.js
-          node --check js/donate-config.js
+        run: npm run check
