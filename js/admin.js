@@ -66,6 +66,6 @@
     try{await req('/feedback/status',{method:'PATCH',body:JSON.stringify({id:btn.dataset.feedbackId,status:btn.dataset.feedbackStatus})});await reloadFeedback();}
     catch(err){alert(err.message||'სტატუსის შეცვლა ვერ მოხერხდა.');btn.disabled=false;}
   });
-  checkAdmin().then(ok=>{if(!ok){try{if(localStorage.getItem('gn_admin_local')==='1')showPanel(true);}catch{}}});
+  checkAdmin().then(ok=>{if(!ok&&!String(location.hostname||'').toLowerCase().endsWith('.github.io')){try{if(localStorage.getItem('gn_admin_local')==='1')showPanel(true);}catch{}}});
   setInterval(()=>{if(!$('adminPanel').classList.contains('hidden')&&serverAvailable)reloadAll();},45000);
 })();
