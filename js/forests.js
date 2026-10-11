@@ -121,8 +121,13 @@
     profile.innerHTML=profileMarkup(z);
     loadForestImage(z,profile.querySelector('#forestProfileImg'));
     profile.querySelector('#forestBack')?.addEventListener('click',()=>{
-      syncUrl(null);
-      showList();
+      if(updateUrl&&history.state?.forestZone===z[0]){
+        history.back();
+        showList();
+      }else{
+        syncUrl(null);
+        showList();
+      }
       document.getElementById('forestExplorerSection')?.scrollIntoView({behavior:'smooth',block:'start'});
     });
     profile.scrollIntoView({behavior:'smooth',block:'start'});
