@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: fishhunt-geonature-api
+    runtime: node
+    plan: starter
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    disk:
+      name: fishhunt-geonature-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: GEONATURE_DATA_DIR
+        value: /var/data
+      - key: GN_FRONTEND_ORIGIN
+        value: https://niksaniksa25.github.io
+      - key: DONATION_FRONTEND_ORIGIN
+        value: https://niksaniksa25.github.io
+      - key: GEONATURE_SESSION_SECRET
+        generateValue: true
+      - key: GEONATURE_ADMIN_PANEL_PASSWORD
+        sync: false
+      - key: BOG_CLIENT_ID
+        sync: false
+      - key: BOG_CLIENT_SECRET
+        sync: false
