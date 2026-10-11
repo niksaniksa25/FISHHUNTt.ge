@@ -45,38 +45,49 @@
     return '';
   }
 
+  function normalizeImageTitle(value){
+    return String(value||'').toLowerCase()
+      .replace(/[_-]+/g,' ')
+      .replace(/[^\p{L}\p{N}\s]/gu,' ')
+      .replace(/\s+/g,' ').trim();
+  }
+
   function scoreCommonsTitle(title, terms){
-    const normalized = String(title || '').toLowerCase();
-    let score = 0;
-    for(const term of terms){
-      const t = String(term || '').toLowerCase().trim();
-      if(!t) continue;
-      if(normalized.includes(t)) score += t.length >= 6 ? 8 : 3;
+    const normalized=normalizeImageTitle(title);
+    let score=0;
+    for(const term of terms||[]){
+      const t=normalizeImageTitle(term);
+      if(t.length<3) continue;
+      if(normalized.includes(t)) score+=t.includes(' ')?12:(t.length>=6?8:3);
     }
-    if(/\.svg$/i.test(normalized)) score -= 20;
-    if(/map|logo|icon|flag|diagram/i.test(normalized)) score -= 15;
+    if(/\.svg$/i.test(String(title||''))) score-=20;
+    if(/map|logo|icon|flag|diagram|coat of arms|crest/i.test(String(title||''))) score-=25;
     return score;
   }
 
   async function commonsImage(queries, terms){
-    const queryList = Array.isArray(queries) ? queries : [queries];
-    let best = null;
+    const queryList=Array.isArray(queries)?queries:[queries];
+    let best=null;
     for(const q of queryList){
-      if(!q) continue;
+      if(!q)continue;
       try{
-        const url = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(q)}&gsrnamespace=6&gsrlimit=12&prop=imageinfo&iiprop=url&iiurlwidth=1000&format=json&origin=*`;
-        const data = await json(url);
-        const pages = Object.values(data?.query?.pages || {});
+        const url='https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch='+encodeURIComponent(q)+'&gsrnamespace=6&gsrlimit=12&prop=imageinfo&iiprop=url&iiurlwidth=1000&format=json&origin=*';
+        const data=await json(url);
+        const pages=Object.values(data?.query?.pages||{});
         for(const page of pages){
-          const src = page?.imageinfo?.[0]?.thumburl || page?.imageinfo?.[0]?.url || '';
-          if(!validImage(src)) continue;
-          const score = scoreCommonsTitle(page?.title, terms) + (page?.index ? Math.max(0, 12 - page.index) : 0);
-          if(!best || score > best.score) best = {src, score};
+          const src=page?.imageinfo?.[0]?.thumburl||page?.imageinfo?.[0]?.url||'';
+          if(!validImage(src))continue;
+          const relevance=scoreCommonsTitle(page?.title,terms);
+          // Search order is not proof that an image depicts the requested place/species.
+          // Discard items whose actual file title has no meaningful match.
+          if(relevance<3)continue;
+          const score=relevance+(page?.index?Math.max(0,4-page.index)*0.25:0);
+          if(!best||score>best.score)best={src,score,relevance};
         }
-        if(best && best.score >= 12) return best.src;
-      }catch(_){ /* next query */ }
+        if(best&&best.relevance>=12) return best.src;
+      }catch(_){ /* try next query */ }
     }
-    return best && best.score >= 6 ? best.src : '';
+    return best&&best.relevance>=3?best.src:'';
   }
 
   async function resolveSpeciesImage(name, scientific, english){
@@ -164,16 +175,20 @@
   }
 
   async function resolveNatureImage(name, english){
-    const key=`nature:${name}:${english||''}`;
+    const key='nature:'+name+':'+(english||'');
     if(memory.has(key)) return memory.get(key);
+    const title=String(english||name||'').trim();
     let src='';
-    const title=english||name;
+    // Prefer the exact English Wikipedia page for the named habitat/park.
     try{src=await wikipediaImage(title)}catch(_){}
-    if(!src){
-      try{
-        const terms=[english,name].filter(Boolean);
-        src=await commonsImage([english||name,`${english||name} Georgia`],terms);
-      }catch(_){}
+    if(!src&&title){
+      const stop=new Set(['national','park','parks','protected','areas','managed','reserve','reserves','forest','forests','zone','belt','mountain','mountains','valley','valleys','rainy','rainforest','state','the','and','of','georgia','nature','woodland']);
+      const distinctive=title.split(/[^A-Za-z0-9]+/).filter(w=>w.length>=5&&!stop.has(w.toLowerCase()));
+      // Commons must match the location name in the actual image title; first search
+      // result alone is not enough, which was causing forests to show mixed-up photos.
+      const terms=[title,...distinctive];
+      const queries=[title,title+' Georgia',...distinctive.map(w=>w+' forest Georgia')];
+      try{src=await commonsImage(queries,terms)}catch(_){}
     }
     if(!src)src=placeholder(name,'nature');
     memory.set(key,src);
