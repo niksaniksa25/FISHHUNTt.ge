@@ -14,7 +14,7 @@ function initGeoMap(){
   const CACHE_TTL=10*60*1000;
 
   function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
-  function displaySuitabilityScore(raw){const n=Number(raw);return Number.isFinite(n)?Math.max(12,Math.min(72,Math.round(10+n*.62))):42;}
+  function displaySuitabilityScore(raw){const n=Number(raw);return Number.isFinite(n)?Math.max(10,Math.min(88,Math.round(8+n*.80))):42;}
   function scoreClass(score){const n=Number(score);if(!Number.isFinite(n))return 'score-bad';if(n>=68)return 'score-good';if(n>=56)return 'score-mid';if(n>=42)return 'score-low';if(n>=25)return 'score-bad';return 'score-critical'}
   function scoreIcon(score){
     const s=Number.isFinite(Number(score))?Math.round(Number(score)):'—';
