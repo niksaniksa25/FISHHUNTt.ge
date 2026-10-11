@@ -394,10 +394,10 @@ function donationCors(req,res){
   res.setHeader('Access-Control-Allow-Methods','GET,POST,OPTIONS');
 }
 function pushCors(req,res){const origin=String(req.headers.origin||'');if(origin&&originIsAllowed(origin)){res.setHeader('Access-Control-Allow-Origin',origin);res.setHeader('Vary','Origin')}else if(!origin){res.setHeader('Access-Control-Allow-Origin','*')}res.setHeader('Access-Control-Allow-Headers','Content-Type');res.setHeader('Access-Control-Allow-Methods','GET,POST,OPTIONS');}
-function pushPrefsValid(p){return Boolean(p&&Array.isArray(p.fish)&&p.fish.length>0&&Array.isArray(p.places)&&p.places.length>0&&(p.hour===undefined||p.hour==='any'||/^(?:[01]\\d|2[0-3])$/.test(String(p.hour)))&&(p.threshold===undefined||(Number.isFinite(Number(p.threshold))&&Number(p.threshold)>=40&&Number(p.threshold)<=95)))}
+function pushPrefsValid(p){const hour=String(p?.hour??'any');const validHour=hour==='any'||(hour.length===2&&Number.isInteger(Number(hour))&&Number(hour)>=0&&Number(hour)<=23);return Boolean(p&&Array.isArray(p.fish)&&p.fish.length>0&&Array.isArray(p.places)&&p.places.length>0&&validHour&&(p.threshold===undefined||(Number.isFinite(Number(p.threshold))&&Number(p.threshold)>=40&&Number(p.threshold)<=95)))}
 function normalizePushSub(sub){return {endpoint:String(sub?.endpoint||''),keys:{p256dh:String(sub?.keys?.p256dh||''),auth:String(sub?.keys?.auth||'')}}}
 function calcPushScore(weather,fish){
-  const cur=weather?.current||{}; let score=48; const temp=Number(cur.temperature_2m), wind=Number(cur.wind_speed_10m), precip=Number(cur.precipitation||0), pressure=Number(cur.pressure_msl||cur.surface_pressure||1015), hour=(/^\\d{2}:/.test(String(cur.time||''))?Number(String(cur.time).slice(11,13)):new Date().getUTCHours());
+  const cur=weather?.current||{}; let score=48; const temp=Number(cur.temperature_2m), wind=Number(cur.wind_speed_10m), precip=Number(cur.precipitation||0), pressure=Number(cur.pressure_msl||cur.surface_pressure||1015), hour=(String(cur.time||'').length>=13&&Number.isFinite(Number(String(cur.time).slice(11,13)))?Number(String(cur.time).slice(11,13)):new Date().getUTCHours());
   const tmin=Number(fish?.temp?.min),tmax=Number(fish?.temp?.max); if(Number.isFinite(temp)&&Number.isFinite(tmin)&&Number.isFinite(tmax)){const mid=(tmin+tmax)/2,span=Math.max(2,(tmax-tmin)/2);score+=Math.max(-18,18-Math.abs(temp-mid)/span*18)}
   const tags=new Set(fish?.tags||[]); const good=(tags.has('morning')&&hour>=5&&hour<=10)||(tags.has('day')&&hour>=9&&hour<=17)||(tags.has('evening')&&hour>=17&&hour<=21)||(tags.has('night')&&(hour>=21||hour<=3)); if(good)score+=18; else score-=3;
   if(Number.isFinite(wind))score+=wind<=8?10:wind<=15?5:wind<=22?0:-8; if(precip<=0.3)score+=7; else if(precip<=2)score+=2; else score-=7; if(pressure>=1005&&pressure<=1027)score+=5; return Math.max(0,Math.min(98,Math.round(score)));
@@ -419,7 +419,7 @@ async function runPushChecks(){
         try{
           const w=await getWeatherData(Number(place.lat),Number(place.lon));
           const localTime=String(w?.current?.time||'');
-          const localHour=/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:/.test(localTime)?Number(localTime.slice(11,13)):new Date().getUTCHours();
+          const localHour=localTime.length>=13&&Number.isFinite(Number(localTime.slice(11,13)))?Number(localTime.slice(11,13)):new Date().getUTCHours();
           if(sub.preferences.hour&&sub.preferences.hour!=='any'&&Number(sub.preferences.hour)!==localHour)continue;
           const score=calcPushScore(w,fish); const key=`${fish.id}|${place.id}`; const last=Number(sub.lastSent[key]||0);
           const threshold=Math.max(40,Math.min(95,Number(sub.preferences.threshold)||72));
