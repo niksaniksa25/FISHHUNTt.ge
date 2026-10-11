@@ -1,0 +1,24 @@
+name: Validate donation code
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "server.js"
+      - "js/donate.js"
+      - ".github/workflows/validate-node.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7.0.1
+      - name: Check JavaScript syntax
+        run: |
+          node --check server.js
+          node --check js/donate.js
