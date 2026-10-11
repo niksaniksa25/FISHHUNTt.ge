@@ -63,7 +63,7 @@
     <section class="gn-feedback-dialog" role="dialog" aria-modal="true" aria-labelledby="gnFeedbackTitle">
       <div class="gn-feedback-head"><div><h2 id="gnFeedbackTitle">შეტყობინება GeoNature-ს</h2><p>იპოვე შეცდომა ან გაქვს იდეა? მომწერე აქ — შეტყობინება ადმინ პანელში გამოჩნდება.</p></div><button type="button" class="gn-feedback-close" aria-label="დახურვა">×</button></div>
       <form id="gnFeedbackForm"><label for="gnFeedbackCategory">ტიპი</label><select id="gnFeedbackCategory" name="category"><option value="bug">🐛 შეცდომა / არ მუშაობს</option><option value="idea">💡 ახალი იდეა</option><option value="question">❓ კითხვა</option><option value="other">💬 სხვა</option></select>
-      <label for="gnFeedbackMessage">რა მოხდა? / რას შევცვლიდი?</label><textarea id="gnFeedbackMessage" name="message" minlength="8" maxlength="4000" required placeholder="აღწერე ნაბიჯები, გვერდი ან შეცდომა…"></textarea>
+      <label for="gnFeedbackMessage">რა მოხდა? / რას შევცვლიდი?</label><textarea id="gnFeedbackMessage" name="message" minlength="1" maxlength="4000" required placeholder="აღწერე ნაბიჯები, გვერდი ან შეცდომა…"></textarea>
       <label for="gnFeedbackEmail">ელფოსტა პასუხისთვის (არასავალდებულო)</label><input id="gnFeedbackEmail" name="email" type="email" maxlength="160" placeholder="name@example.com">
       <p class="gn-feedback-note">გვერდი ავტომატურად მიეთითება. შეტყობინება ადმინ პანელში ჩაიწერება; ვიზიტები ითვლება ანონიმური ბრაუზერის ID-ით. პაროლი ან ბარათის მონაცემები არ ჩაწერო.</p>
       <button type="submit" class="gn-feedback-submit">შეტყობინების გაგზავნა</button><div class="gn-feedback-status" role="status" aria-live="polite"></div></form>
@@ -80,7 +80,14 @@
   form.addEventListener('submit', async e => {
     e.preventDefault();
     const submit = form.querySelector('button[type="submit"]'); submit.disabled = true; status.textContent = 'იგზავნება…'; status.className = 'gn-feedback-status';
-    const message = form.message.value.trim();
+    const message = String(form.message.value||'').trim();
+    if (!message) {
+      status.textContent = 'ერთი ასოც საკმარისია — ჩაწერე მინიმუმ ერთი სიმბოლო.';
+      status.className = 'gn-feedback-status error';
+      submit.disabled = false;
+      form.message.focus();
+      return;
+    }
     try {
       await apiConfigReady;
       const endpoint = apiEndpoint('/api/feedback');
@@ -100,9 +107,9 @@
       setTimeout(() => { if (!overlay.hidden) close(); }, 1800);
     } catch (err) {
       if (err && err.code === 'API_NOT_CONFIGURED') {
-        status.textContent = 'Feedback ვერ შეინახება: GitHub Pages-ზე API სერვერი არ მუშაობს. js/api-config.js-ში ჩაწერე Node სერვერის HTTPS მისამართი და განათავსე server.js.';
+        status.textContent = 'გაგზავნა ვერ მოხერხდა: GitHub Pages-ს სერვერი არ აქვს. API სერვერი უნდა იყოს გაშვებული და js/api-config.js-ში HTTPS მისამართი ეწეროს.';
       } else if (err && err.message && err.message.includes('Failed to fetch')) {
-        status.textContent = 'სერვერთან კავშირი ვერ შედგა. გადაამოწმე js/api-config.js-ში API მისამართი, სერვერის გაშვება და CORS-ის პარამეტრები.';
+        status.textContent = 'სერვერთან კავშირი ვერ შედგა. გადაამოწმე API მისამართი და Node სერვერის სტატუსი; შეტყობინება არ არის გაგზავნილი.';
       } else {
         status.textContent = (err && err.message) || 'შეტყობინება ვერ გაიგზავნა.';
       }
