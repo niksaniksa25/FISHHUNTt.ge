@@ -132,6 +132,11 @@ function requestIsSecure(req){
   const forwarded=String(req?.headers?.['x-forwarded-proto']||'').split(',')[0].trim().toLowerCase();
   return process.env.COOKIE_SECURE==='true' || forwarded==='https' || Boolean(req?.socket?.encrypted);
 }
+function cookieSameSite(req){
+  const origin=String(req?.headers?.origin||'').replace(/\/+$/,'');
+  if(originIsAllowed(origin) && requestIsSecure(req)) return 'SameSite=None; Secure';
+  return 'SameSite=Lax'+(requestIsSecure(req)?'; Secure':'');
+}
 function setSessionCookie(res,userId,req,remember=true){
   const token=crypto.randomBytes(32).toString('base64url');
   const ttl=remember?SESSION_TTL:24*60*60*1000;
@@ -139,13 +144,13 @@ function setSessionCookie(res,userId,req,remember=true){
   writeJsonFile(SESSIONS_FILE,sessions);
   const secure=requestIsSecure(req);
   const maxAge=remember?`; Max-Age=${Math.floor(ttl/1000)}`:'';
-  res.setHeader('Set-Cookie',`gn_session=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax${maxAge}${secure?'; Secure':''}`);
+  res.setHeader('Set-Cookie',`gn_session=${encodeURIComponent(token)}; Path=/; HttpOnly; ${cookieSameSite(req)}${maxAge}`);
 }
 function clearSessionCookie(res,req){
   const token=cookieToken(req);
   if(token){delete sessions[token];writeJsonFile(SESSIONS_FILE,sessions)}
   const secure=requestIsSecure(req);
-  res.setHeader('Set-Cookie',`gn_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${secure?'; Secure':''}`);
+  res.setHeader('Set-Cookie',`gn_session=; Path=/; HttpOnly; ${cookieSameSite(req)}; Max-Age=0`);
 }
 
 // Server-side promo validation. Never trust discount calculations from the browser.
@@ -174,8 +179,8 @@ function verifyAdminPanelPassword(value){
 }
 function cookieValue(req,name){ const re=new RegExp('(?:^|;\\s*)'+name+'=([^;]+)'); const m=String(req.headers.cookie||'').match(re); return m?decodeURIComponent(m[1]):''; }
 function currentAdmin(req){ const token=cookieValue(req,'gn_admin'); const rec=token? sessions['__admin__:'+token]:null; if(!rec)return null; if(Date.now()>rec.expiresAt){ delete sessions['__admin__:'+token]; writeJsonFile(SESSIONS_FILE,sessions); return null; } return {role:'admin'}; }
-function setAdminCookie(res,req,remember=true){ const token=crypto.randomBytes(32).toString('base64url'); const ttl=remember?SESSION_TTL:8*60*60*1000; sessions['__admin__:'+token]={userId:'ADMIN',createdAt:Date.now(),expiresAt:Date.now()+ttl}; writeJsonFile(SESSIONS_FILE,sessions); const secure=requestIsSecure(req); res.setHeader('Set-Cookie',`gn_admin=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${Math.floor(ttl/1000)}${secure?'; Secure':''}`); }
-function clearAdminCookie(res,req){ const token=cookieValue(req,'gn_admin'); if(token){delete sessions['__admin__:'+token];writeJsonFile(SESSIONS_FILE,sessions)} const secure=requestIsSecure(req); res.setHeader('Set-Cookie',`gn_admin=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${secure?'; Secure':''}`); }
+function setAdminCookie(res,req,remember=true){ const token=crypto.randomBytes(32).toString('base64url'); const ttl=remember?SESSION_TTL:8*60*60*1000; sessions['__admin__:'+token]={userId:'ADMIN',createdAt:Date.now(),expiresAt:Date.now()+ttl}; writeJsonFile(SESSIONS_FILE,sessions); res.setHeader('Set-Cookie',`gn_admin=${encodeURIComponent(token)}; Path=/; HttpOnly; ${cookieSameSite(req)}; Max-Age=${Math.floor(ttl/1000)}`); }
+function clearAdminCookie(res,req){ const token=cookieValue(req,'gn_admin'); if(token){delete sessions['__admin__:'+token];writeJsonFile(SESSIONS_FILE,sessions)} res.setHeader('Set-Cookie',`gn_admin=; Path=/; HttpOnly; ${cookieSameSite(req)}; Max-Age=0`); }
 function resolvePromo(code,plan,term=1){
   const clean=String(code||'').trim();
   const pricing=planPricing(plan); const p=plans[plan]; const tp=termPricing(plan,term);
@@ -359,11 +364,27 @@ async function sendPush(subscription,payload){
   if(r.status===404||r.status===410)throw Object.assign(new Error('Push subscription expired'),{code:'GONE'}); if(!r.ok)throw new Error(`Push provider HTTP ${r.status}`); return true;
 }
 
+function configuredFrontendOrigin(){
+  return String(process.env.GN_FRONTEND_ORIGIN||process.env.DONATION_FRONTEND_ORIGIN||'https://niksaniksa25.github.io').trim().replace(/\/+$/,'');
+}
+function originIsAllowed(origin){
+  const configured=configuredFrontendOrigin();
+  const local=/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+  return Boolean(origin && (origin.replace(/\/+$/,'')===configured || local));
+}
+function appCors(req,res){
+  const origin=String(req.headers.origin||'');
+  if(originIsAllowed(origin)){
+    res.setHeader('Access-Control-Allow-Origin',origin);
+    res.setHeader('Vary','Origin');
+    res.setHeader('Access-Control-Allow-Credentials','true');
+  }
+  res.setHeader('Access-Control-Allow-Headers','Content-Type');
+  res.setHeader('Access-Control-Allow-Methods','GET,POST,PATCH,OPTIONS');
+}
 function donationCors(req,res){
   const origin=String(req.headers.origin||'');
-  const configured=String(process.env.DONATION_FRONTEND_ORIGIN||'https://niksaniksa25.github.io').replace(/\/+$/,'');
-  const local=/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
-  if(origin && (origin.replace(/\/+$/,'')===configured || local)){
+  if(originIsAllowed(origin)){
     res.setHeader('Access-Control-Allow-Origin',origin);
     res.setHeader('Vary','Origin');
   }
@@ -402,6 +423,12 @@ setTimeout(()=>{runPushChecks().catch(()=>{})},20*1000);
 const server=http.createServer(async(req,res)=>{
   try{
     const u=new URL(req.url,`http://${req.headers.host}`);
+
+    const usesAppCors=u.pathname==='/api/feedback'||u.pathname.startsWith('/api/analytics/')||u.pathname.startsWith('/api/admin/');
+    if(usesAppCors){
+      appCors(req,res);
+      if(req.method==='OPTIONS'){res.writeHead(204);return res.end();}
+    }
 
     if(u.pathname.startsWith('/api/push/')){
       pushCors(req,res);
