@@ -10,3 +10,4 @@ feedback.json
 push-state.json
 *.log
 .DS_Store
+donations.json
