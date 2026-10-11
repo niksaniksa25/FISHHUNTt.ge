@@ -55,5 +55,10 @@ The account profile now supports photo backgrounds (fishing lake, fishing rod, f
 - The BOG callback does **not** add a leaderboard entry on its own. The server looks up the payment with BOG's receipt endpoint and checks the external order ID, completed status, GEL currency, and exact amount before recording it.
 - No sample or seeded supporters are included. If there are no confirmed payments, the leaderboard remains empty.
 - The real checkout requires BOG Merchant/API credentials in the private server environment and a public HTTPS server URL in `PUBLIC_BASE_URL`. GitHub Pages alone cannot run `server.js`.
-- If the website remains on GitHub Pages and the backend is on a separate host, set `window.GN_API_BASE_URL` in `js/donate-config.js` to the backend's HTTPS origin. Allow the exact GitHub Pages origin using `DONATION_FRONTEND_ORIGIN`.
+- If the website remains on GitHub Pages and the backend is on a separate host, set `window.GN_API_BASE_URL` in `js/api-config.js` to the backend's HTTPS origin. Allow the exact frontend origin using `GN_FRONTEND_ORIGIN` (and keep `DONATION_FRONTEND_ORIGIN` aligned for checkout). The same API setting is used by feedback and the admin feedback inbox.
 - Keep the server's JSON runtime files (`orders.json`, `donations.json`, `users.json`, `sessions.json`, `analytics.json`, `feedback.json`, and `push-state.json`) on persistent private storage; never commit live user, order, or session records.
+
+
+## Feedback on GitHub Pages
+
+GitHub Pages only serves static files; it cannot receive feedback or save it to the admin inbox by itself. Deploy `server.js` as a public HTTPS Node service with persistent private storage, then set `window.GN_API_BASE_URL` in `js/api-config.js` to that service's origin (for example, `https://your-service.onrender.com`, with no trailing slash). Set `GN_FRONTEND_ORIGIN` in the server environment to the exact frontend origin, such as `https://niksaniksa25.github.io`. The feedback widget and admin inbox use that configuration. If the API origin is missing on GitHub Pages, the widget now displays a specific setup message rather than silently sending to a nonexistent `/api/feedback` route.
