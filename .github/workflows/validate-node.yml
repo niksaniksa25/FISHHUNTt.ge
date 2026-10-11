@@ -1,4 +1,4 @@
-name: Validate donation code
+name: Validate site and API code
 
 on:
   workflow_dispatch:
@@ -6,6 +6,10 @@ on:
     branches: [main]
     paths:
       - "server.js"
+      - "js/admin.js"
+      - "js/analytics-feedback.js"
+      - "js/api-config.js"
+      - "js/site.js"
       - "js/donate.js"
       - "js/donate-config.js"
       - ".github/workflows/validate-node.yml"
@@ -22,5 +26,9 @@ jobs:
       - name: Check JavaScript syntax
         run: |
           node --check server.js
+          node --check js/admin.js
+          node --check js/analytics-feedback.js
+          node --check js/api-config.js
+          node --check js/site.js
           node --check js/donate.js
           node --check js/donate-config.js
