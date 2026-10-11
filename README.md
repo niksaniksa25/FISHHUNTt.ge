@@ -62,3 +62,10 @@ The account profile now supports photo backgrounds (fishing lake, fishing rod, f
 ## Feedback on GitHub Pages
 
 GitHub Pages only serves static files; it cannot receive feedback or save it to the admin inbox by itself. Deploy `server.js` as a public HTTPS Node service with persistent private storage, then set `window.GN_API_BASE_URL` in `js/api-config.js` to that service's origin (for example, `https://your-service.onrender.com`, with no trailing slash). Set `GN_FRONTEND_ORIGIN` in the server environment to the exact frontend origin, such as `https://niksaniksa25.github.io`. The feedback widget and admin inbox use that configuration. If the API origin is missing on GitHub Pages, the widget now displays a specific setup message rather than silently sending to a nonexistent `/api/feedback` route.
+
+
+## Feedback API deployment
+- `render.yaml` and `package.json` now define the Node API service and persistent private storage.
+- The server uses `GEONATURE_DATA_DIR` for feedback, sessions, users, orders, donation ledger, analytics, and push state. On Render, the Blueprint mounts a persistent disk at `/var/data`.
+- Complete the hosting setup and set the actual Node service's HTTPS origin in `js/api-config.js`; GitHub Pages cannot run API routes itself.
+- Follow [DEPLOYMENT-FEEDBACK.md](DEPLOYMENT-FEEDBACK.md) for the exact deployment and verification steps. Review Render's Starter service and persistent-disk pricing before creating it.
