@@ -4,6 +4,8 @@ The static GitHub Pages frontend cannot run `server.js`. A persistent Node servi
 
 ## Render Blueprint
 
+[Open the Render deployment setup for this repository](https://render.com/deploy?repo=https%3A%2F%2Fgithub.com%2Fniksaniksa25%2FFISHHUNTt.ge). Sign in to Render, review the Starter service and persistent-disk cost, then confirm the Blueprint deployment.
+
 1. In Render, choose **New → Blueprint** and connect this GitHub repository. Render reads `render.yaml`.
 2. Review the service and persistent-disk pricing before confirming. This Blueprint uses a Starter web service and a 1 GB persistent disk because feedback, sessions, and orders are written to JSON files.
 3. The Blueprint generates a private random `GEONATURE_ADMIN_PANEL_PASSWORD` and session secret automatically. After deployment, open the service's Environment page in Render and copy the generated admin password for your private use; do not commit it or share it. BOG credentials can remain empty while testing Feedback; payments will remain disabled until Merchant credentials are added.
