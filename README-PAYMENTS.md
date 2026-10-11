@@ -32,3 +32,12 @@
 - Promo input automatically converts letters to lowercase; `andro 20` is normalized to `andro20`.
 - To apply a promo for actual payment or Plus activation, start the Node backend with `START_GeoNature.bat`. VS Code Live Server can show a local-only price preview, but it cannot create a verified order or activate a paid plan.
 - When the Node API is available, the server is authoritative for validation, price calculation, and free-code activation.
+
+
+## Donations and leaderboard
+- The donation form lives at `donate.html` with buttons for 1, 2, 5, 10 and 25 GEL plus a custom amount below them.
+- The leaderboard is empty until the first real donation is confirmed by BOG.
+- The server verifies completed status, GEL currency, exact amount and the external order ID via BOG's receipt API before adding a supporter.
+- The donor name is optional. Empty name is displayed as “ანონიმური მხარდამჭერი”.
+- No test or fake supporters are inserted.
+- Real checkout is not active until `BOG_CLIENT_ID`, `BOG_CLIENT_SECRET`, `PUBLIC_BASE_URL` (public HTTPS Node server) and the deployed API origin in `js/donate-config.js` are configured.
