@@ -24,15 +24,15 @@
     script.onerror = resolve;
     document.head.appendChild(script);
   });
-  function apiBase() { return String(window.GN_API_BASE_URL || '').trim().replace(/\\/+$/, ''); }
+  function apiBase() { let base = String(window.GN_API_BASE_URL || '').trim(); while (base.endsWith('/')) base = base.slice(0, -1); return base; }
   function apiEndpoint(route) {
     const base = apiBase();
     if (base) return base + route;
     // GitHub Pages serves only static files: /api/* exists only on the Node backend.
-    if (/\\.github\\.io$/i.test(location.hostname)) return '';
+    if (String(location.hostname || '').toLowerCase().endsWith('.github.io')) return '';
     return route;
   }
-  if (!/\\/admin\\.html$/i.test(currentPath)) {
+  if (!String(currentPath).toLowerCase().endsWith('/admin.html')) {
     apiConfigReady.then(() => {
       const endpoint = apiEndpoint('/api/analytics/visit');
       if (!endpoint) return;
