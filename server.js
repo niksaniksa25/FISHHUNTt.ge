@@ -15,7 +15,9 @@ const PORT=Number(process.env.PORT||8787);
 const HOST=process.env.HOST||'0.0.0.0';
 const BOG_TOKEN_URL=process.env.BOG_TOKEN_URL||'https://oauth2.bog.ge/auth/realms/bog/protocol/openid-connect/token';
 const BOG_ORDER_URL=process.env.BOG_ORDER_URL||'https://api.bog.ge/payments/v1/ecommerce/orders';
-const PUBLIC_BASE_URL=process.env.PUBLIC_BASE_URL||`http://localhost:${PORT}`;
+const PUBLIC_BASE_URL=process.env.PUBLIC_BASE_URL||process.env.RENDER_EXTERNAL_URL||`http://localhost:${PORT}`;
+const DATA_DIR=process.env.GEONATURE_DATA_DIR||__dirname;
+fs.mkdirSync(DATA_DIR,{recursive:true});
 const CLIENT_ID=process.env.BOG_CLIENT_ID||'';
 const CLIENT_SECRET=process.env.BOG_CLIENT_SECRET||'';
 const SALE_END=Date.parse(process.env.GEONATURE_PLUS_SALE_END||'2026-11-01T00:00:00+04:00');
@@ -70,19 +72,19 @@ async function getWeatherData(lat,lon){
 // Simple production-friendly account layer using Node's built-in crypto.
 // Passwords are never stored as plain text. Accounts persist in users.json;
 // sessions are random HttpOnly cookies persisted in sessions.json.
-const USERS_FILE=path.join(__dirname,'users.json');
-const SESSIONS_FILE=path.join(__dirname,'sessions.json');
+const USERS_FILE=path.join(DATA_DIR,'users.json');
+const SESSIONS_FILE=path.join(DATA_DIR,'sessions.json');
 const SESSION_TTL=30*24*60*60*1000;
 const SESSION_SECRET=process.env.GEONATURE_SESSION_SECRET||'change-this-in-production';
 function readJsonFile(file,fallback){try{return JSON.parse(fs.readFileSync(file,'utf8'))}catch{return fallback}}
 function writeJsonFile(file,data){fs.writeFileSync(file,JSON.stringify(data,null,2),'utf8')}
 let users=readJsonFile(USERS_FILE,[]);
 let sessions=readJsonFile(SESSIONS_FILE,{});
-const ORDERS_FILE=path.join(__dirname,'orders.json');
+const ORDERS_FILE=path.join(DATA_DIR,'orders.json');
 for(const [savedId,savedOrder] of Object.entries(readJsonFile(ORDERS_FILE,{}))) orders.set(savedId,savedOrder);
 function persistOrders(){ writeJsonFile(ORDERS_FILE,Object.fromEntries(orders.entries())); }
 
-const DONATIONS_FILE=path.join(__dirname,'donations.json');
+const DONATIONS_FILE=path.join(DATA_DIR,'donations.json');
 let donations=readJsonFile(DONATIONS_FILE,[]);
 if(!Array.isArray(donations)) donations=[];
 function persistDonations(){ writeJsonFile(DONATIONS_FILE,donations); }
@@ -105,8 +107,8 @@ function donationLeaderboard(){
     .map((d,index)=>({rank:index+1,name:d.name,totalAmount:d.totalAmount,donationCount:d.donationCount,lastDonatedAt:d.lastDonatedAt}));
 }
 
-const ANALYTICS_FILE=path.join(__dirname,'analytics.json');
-const FEEDBACK_FILE=path.join(__dirname,'feedback.json');
+const ANALYTICS_FILE=path.join(DATA_DIR,'analytics.json');
+const FEEDBACK_FILE=path.join(DATA_DIR,'feedback.json');
 let analytics=readJsonFile(ANALYTICS_FILE,{visitors:{},pageViews:[],pageViewsTotal:0,logins:[],loginsTotal:0,registrations:[],purchases:[],purchasesTotal:0,purchaseRevenueTotal:0});
 analytics.visitors=analytics.visitors&&typeof analytics.visitors==='object'?analytics.visitors:{};
 for(const k of ['pageViews','logins','registrations','purchases']) if(!Array.isArray(analytics[k])) analytics[k]=[];
@@ -325,7 +327,7 @@ function serveStatic(req,res){
 }
 
 // ---------------- Web Push notifications ----------------
-const PUSH_STATE_FILE=path.join(__dirname,'push-state.json');
+const PUSH_STATE_FILE=path.join(DATA_DIR,'push-state.json');
 let pushState=readJsonFile(PUSH_STATE_FILE,{vapid:null,subscriptions:[]});
 function b64u(buf){return Buffer.from(buf).toString('base64').replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_')}
 function fromB64u(s){const str=String(s||'').replace(/-/g,'+').replace(/_/g,'/');return Buffer.from(str+'='.repeat((4-str.length%4)%4),'base64')}
