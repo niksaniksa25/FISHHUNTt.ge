@@ -40,4 +40,12 @@
 - The server verifies completed status, GEL currency, exact amount and the external order ID via BOG's receipt API before adding a supporter.
 - The donor name is optional. Empty name is displayed as “ანონიმური მხარდამჭერი”.
 - No test or fake supporters are inserted.
-- Real checkout is not active until `BOG_CLIENT_ID`, `BOG_CLIENT_SECRET`, `PUBLIC_BASE_URL` (public HTTPS Node server) and the deployed API origin in `js/donate-config.js` are configured.
+- Real checkout is not active until `BOG_CLIENT_ID`, `BOG_CLIENT_SECRET`, `PUBLIC_BASE_URL` (public HTTPS Node server) and the deployed API origin in `js/api-config.js` are configured.
+
+
+## Feedback and Admin inbox
+
+- The site-wide feedback form posts to `/api/feedback` and stores messages in `feedback.json` on the Node server; the admin inbox reads them from `/api/admin/feedback`.
+- GitHub Pages cannot execute the Node API. If the frontend is on GitHub Pages, deploy `server.js` as a public HTTPS Node service with persistent storage, then set the service origin in `js/api-config.js` as `window.GN_API_BASE_URL = 'https://your-service.example'` (no trailing slash).
+- Set `GN_FRONTEND_ORIGIN` on the Node service to the exact site origin. For this repository's default GitHub Pages origin, use `https://niksaniksa25.github.io`; keep `DONATION_FRONTEND_ORIGIN` aligned if using donations.
+- Keep `feedback.json` and the other JSON runtime files on persistent private storage. They contain site activity and user-submitted data and must not be committed.
