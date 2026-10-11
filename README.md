@@ -45,3 +45,15 @@ The account profile now supports photo backgrounds (fishing lake, fishing rod, f
 
 ## Local launch
 - Run `START_GeoNature.bat`. It chooses a free local port if an older server is already running, then opens that exact URL so a stale GeoNature process does not keep serving old code.
+
+
+## One-time donations and live leaderboard
+
+- Open `donate.html` to donate 1, 2, 5, 10, 25 GEL, or enter another amount of at least 1 GEL.
+- `js/donate.js` submits the amount to the Node API and refreshes the live leaderboard every 20 seconds.
+- `/api/donations/leaderboard` returns only entries with server-side `verified: true` and `status: paid`.
+- The BOG callback does **not** add a leaderboard entry on its own. The server looks up the payment with BOG's receipt endpoint and checks the external order ID, completed status, GEL currency, and exact amount before recording it.
+- No sample or seeded supporters are included. If there are no confirmed payments, the leaderboard remains empty.
+- The real checkout requires BOG Merchant/API credentials in the private server environment and a public HTTPS server URL in `PUBLIC_BASE_URL`. GitHub Pages alone cannot run `server.js`.
+- If the website remains on GitHub Pages and the backend is on a separate host, set `window.GN_API_BASE_URL` in `js/donate-config.js` to the backend's HTTPS origin. Allow the exact GitHub Pages origin using `DONATION_FRONTEND_ORIGIN`.
+- Keep the server's JSON runtime files (`orders.json`, `donations.json`, `users.json`, `sessions.json`, `analytics.json`, `feedback.json`, and `push-state.json`) on persistent private storage; never commit live user, order, or session records.
