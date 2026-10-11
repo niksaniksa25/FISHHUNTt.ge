@@ -339,3 +339,11 @@ input:focus,select:focus,textarea:focus{
     box-shadow:0 20px 42px rgba(0,0,0,.28),0 0 0 1px rgba(197,255,115,.06)!important;
   }
 }
+
+
+/* Global minimum type scale: fewer tiny labels on both desktop and mobile. */
+p,li{font-size:max(14px,.92em)!important}
+small,.small,.caption,.helper,.meta,.text-xs{font-size:max(12px,.82em)!important;line-height:1.5!important}
+label,.form-label,.input-label{font-size:max(14px,.9em)!important}
+.muted,.muted-text,.subtitle,.description,.helper,.caption,.field-note{font-size:max(13px,.86em)!important}
+.home-live-meta,.factor-updated,.factor-detail,.form-hint,.promo-hint{font-size:max(12px,.82em)!important;line-height:1.5!important}
