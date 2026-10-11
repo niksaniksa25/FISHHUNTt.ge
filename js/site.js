@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', function(){
   const menu=document.getElementById('menuBtn');
   const nav=document.getElementById('nav');
-  if(menu && nav) menu.addEventListener('click',()=>nav.classList.toggle('open'));
+  if(menu && nav && typeof menu.onclick!=='function') menu.addEventListener('click',()=>nav.classList.toggle('open'));
 
   function directLink(href){
     if(!nav) return null;
