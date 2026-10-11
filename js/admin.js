@@ -17,13 +17,36 @@
   function statusLabel(s){return s==='resolved'?'გასწორებული':s==='read'?'წაკითხული':'ახალი'}
   function showPanel(local=false){$('adminLogin').classList.add('hidden');$('adminPanel').classList.remove('hidden');$('adminSystemNotice').hidden=!local;if(local){$('adminSystemNotice').classList.add('admin-local-warning');$('adminSystemNotice').textContent='LOCAL PREVIEW: სერვერი მიუწვდომელია. Feedback-ის შენახვა, რეალური ვიზიტების სტატისტიკა და გაყიდვების მონაცემები გამოჩნდება მხოლოდ START_GeoNature.bat-ით გაშვებული Node სერვერისას.';$('adminStats').innerHTML=['ვიზიტორები','გვერდის ნახვები','რეგისტრაციები','შესვლები','შესყიდვები','შემოსავალი','Premium','შეკვეთები'].map(x=>`<div><b>—</b><span>${x}</span></div>`).join('');$('adminFeedback').innerHTML='<div class="admin-empty">სერვერთან დაკავშირება ვერ მოხერხდა — შენახული შეტყობინებები ხელმისაწვდომი არ არის.</div>';$('adminPurchaseSummary').innerHTML='';$('adminPurchases').innerHTML='';$('adminUsers').innerHTML='<div class="mini-row"><b>Local preview</b><span>სტატისტიკა მიუწვდომელია</span><span>ADMIN</span></div>';}}
   function renderStats(s){
-    const cards=[['ვიზიტორები',s.uniqueVisitors??0,'ბრაუზერის ანონიმური ID'],['გვერდის ნახვები',s.pageViews??0,'ყველა აღრიცხული გვერდი'],['რეგისტრაციები',s.registrations??s.users??0,'ანგარიშები'],['შესვლები',s.logins??0,'წარმატებული ავტორიზაციები'],['შესყიდვები',s.purchases??0,'დადასტურებული გადახდები'],['შემოსავალი',`${Number(s.revenue||0).toFixed(2)} ₾`,'დადასტურებული BOG გადახდები'],['Premium მომხმარებლები',s.activePlans??0,'აქტიური ფასიანი გეგმა'],['შეკვეთის მცდელობები',s.orders??0,'შექმნილი შეკვეთები']];
+    const cards=[['ვიზიტორები',s.uniqueVisitors??0,'ბრაუზერის ანონიმური ID'],['გვერდის ნახვები',s.pageViews??0,'ყველა აღრიცხული გვერდი'],['მოწვევის ბმულის გახსნა',s.inviteOpensTotal??0,'გაზიარებული ?ref= ბმულები'],['რეგისტრაციები',s.registrations??s.users??0,'ანგარიშები'],['შესვლები',s.logins??0,'წარმატებული ავტორიზაციები'],['შესყიდვები',s.purchases??0,'დადასტურებული გადახდები'],['შემოსავალი',`${Number(s.revenue||0).toFixed(2)} ₾`,'დადასტურებული BOG გადახდები'],['Premium მომხმარებლები',s.activePlans??0,'აქტიური ფასიანი გეგმა'],['შეკვეთის მცდელობები',s.orders??0,'შექმნილი შეკვეთები']];
     $('adminStats').innerHTML=cards.map(([label,value,note])=>`<div><b>${esc(value)}</b><span>${esc(label)}</span><small>${esc(note)}</small></div>`).join('');
     const pp=s.purchasesByPlan||{};
     $('adminPurchaseSummary').innerHTML=`<div><b>${esc(pp.plus||0)}</b><span>GeoNature Plus</span></div><div><b>${esc(pp.pro||0)}</b><span>AI Pro</span></div><div><b>${Number(s.revenue||0).toFixed(2)} ₾</b><span>ჯამური დადასტურებული თანხა</span></div>`;
     const purchases=s.recentPurchases||[];
     $('adminPurchases').innerHTML=purchases.map(p=>`<div class="mini-row"><b>${esc(p.plan==='pro'?'AI Pro':'Plus')} • ${esc(p.termMonths||1)} თვე</b><span>${Number(p.amount||0).toFixed(2)} ₾</span><span>${esc(date(p.at))}</span></div>`).join('')||'<div class="admin-empty">ჯერ დადასტურებული შესყიდვები არ არის.</div>';
     $('adminUsers').innerHTML=(s.recent||[]).map(u=>`<div class="mini-row"><b>${esc(u.email)}</b><span>${esc(u.plan||'free')}</span><span>${esc(u.role||'user')}</span></div>`).join('')||'<div class="admin-empty">ჯერ ანგარიშები არ არის.</div>';
+    renderRecentActivity(s.recentPageViews||[],s.recentInviteOpens||[]);
+  }
+  const adminAvatars={
+    'free-fish':'assets/avatars/photo/fish.jpg','free-leaf':'assets/avatars/photo/forest.jpg','free-camp':'assets/avatars/photo/sunset.jpg',
+    'free-fox':'assets/avatars/photo/fox.jpg','free-wave':'assets/avatars/photo/lake.jpg','free-ranger':'assets/avatars/photo/rod-close.jpg',
+    'plus-eagle':'assets/avatars/photo/eagle.jpg','plus-wolf':'assets/avatars/photo/wolf.jpg','plus-bear':'assets/avatars/photo/bear.jpg',
+    'plus-deer':'assets/avatars/photo/deer.jpg','plus-fishing':'assets/avatars/photo/fish-plus.jpg','plus-compass':'assets/avatars/photo/mountains.jpg',
+    'plus-canyon':'assets/avatars/photo/mountain-plus.jpg','plus-svaneti':'assets/avatars/photo/adventure-plus.jpg','plus-ranger':'assets/avatars/photo/ranger-plus.jpg',
+    'plus-nocturne':'assets/avatars/photo/camp.jpg','plus-fish-photo':'assets/avatars/photo/trout-plus.jpg','plus-reel-photo':'assets/avatars/photo/reel-plus.jpg',
+    'plus-hunt-photo':'assets/avatars/photo/adventure-plus.jpg','plus-football':'assets/profile-bg/football-star.svg'
+  };
+  function renderRecentActivity(pageViews,invites){
+    const avatar=id=>new URL(adminAvatars[id]||adminAvatars['free-fish'],document.baseURI).href;
+    const viewBox=$('adminPageViews'),inviteBox=$('adminReferrals');
+    if(viewBox)viewBox.innerHTML=pageViews.length?pageViews.map(v=>{
+      const name=v.displayName|| (v.userId?'მომხმარებელი':'სტუმარი');
+      return `<article class="admin-activity-row"><img src="${esc(avatar(v.avatarId))}" alt=""><div><b>${esc(name)}</b><small>${esc(v.path||'/')} • ${esc(date(v.at))}</small></div><span>${v.userId?'ანგარიშით':'ანონიმური'}</span><code>${esc(String(v.visitorId||'').slice(0,12))}</code></article>`;
+    }).join(''):'<div class="admin-empty">ჯერ ჩაწერილი ვიზიტი არ არის. API სერვერი უნდა იყოს ჩართული.</div>';
+    if(inviteBox)inviteBox.innerHTML=invites.length?invites.map(v=>{
+      const inviterAvatar=avatar(v.inviterAvatarId),opener=v.openerName||'სტუმარი';
+      const state=v.status==='registered'?'რეგისტრაციაც დასრულდა':'ბმული გაიხსნა';
+      return `<article class="admin-activity-row"><img src="${esc(inviterAvatar)}" alt=""><div><b>${esc(v.inviterName||'უცნობი გამზიარებელი')} — ${esc(state)}</b><small>გახსნა: ${esc(opener)} • ${esc(v.openedPath||'/')} • ${esc(date(v.at))}</small></div><span>${esc(v.status||'opened')}</span><code>${esc(String(v.referralCode||'').slice(0,18))}</code></article>`;
+    }).join(''):'<div class="admin-empty">მოწვევის ბმული ჯერ არ გახსნილა. შექმენი ბმული Dashboard-ში და გაუზიარე მეგობარს.</div>';
   }
   const categories={bug:'🐛 შეცდომა',idea:'💡 იდეა',question:'❓ კითხვა',other:'💬 სხვა'};
   function renderFeedback(items,counts){
