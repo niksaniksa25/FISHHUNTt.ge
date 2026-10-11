@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', function(){
   addTopLink('hunting.html','🦌 ნადირობა','fishing.html');
   addTopLink('forests.html','🌲 ტყეები','hunting.html');
   addTopLink('red-book.html','📕 წითელი წიგნი','forests.html');
+  addTopLink('donate.html','❤️ დონაცია','red-book.html');
   if(nav && !nav.querySelector('a[href="dashboard.html"]')){
     const link=document.createElement('a'); link.href='dashboard.html'; link.textContent='👤 ჩემი GeoNature';
     if(location.pathname.endsWith('dashboard.html')) link.className='active';
