@@ -2,13 +2,13 @@
   'use strict';
   function closeMenu(){
     document.querySelectorAll('.more-menu.open').forEach(m=>m.classList.remove('open'));
-    document.querySelectorAll('.more-trigger.open').forEach(b=>b.classList.remove('open'));
+    document.querySelectorAll('.more-trigger.open').forEach(b=>{b.classList.remove('open');b.setAttribute('aria-expanded','false')});
   }
   function setupMoreMenu(){
     const trigger=document.getElementById('moreTrigger');
     const menu=document.getElementById('moreMenu');
     if(!trigger||!menu)return;
-    trigger.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();const open=menu.classList.toggle('open');trigger.classList.toggle('open',open)});
+    trigger.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();const open=menu.classList.toggle('open');trigger.classList.toggle('open',open);trigger.setAttribute('aria-expanded',open?'true':'false')});
     menu.addEventListener('click',e=>e.stopPropagation());
     document.addEventListener('click',closeMenu);
     document.addEventListener('keydown',e=>{if(e.key==='Escape')closeMenu()});
