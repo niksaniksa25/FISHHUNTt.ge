@@ -1,6 +1,21 @@
 let selectedHunt=null;
 let selectedHuntChance=null;
 let huntWeather=null;
+let selectedHuntRuleArea='unknown';
+
+function updateHuntRules(){
+  const profile=document.getElementById('huntProfile'),rules=window.GeoWildlifeRules;
+  if(!profile||!selectedHunt||!rules)return;
+  let host=document.getElementById('huntLegalRules');
+  if(!host){
+    host=document.createElement('div');host.id='huntLegalRules';host.className='planner-rules';
+    host.innerHTML='<div class="season-rules-date"><label for="huntRuleArea">მუნიციპალიტეტის ჯგუფი<select id="huntRuleArea"><option value="unknown">ჯერ არ არის დაზუსტებული</option><option value="standard">სხვა მუნიციპალიტეტები</option><option value="highland">ახალქალაქი / ნინოწმინდა / წალკა / დმანისი</option></select></label><small>ამინდის ქალაქი ნადირობის ზუსტი ადგილი არ არის. ქალაქის ადმინისტრაციულ საზღვრებში ნადირობა აკრძალულია.</small></div><div id="huntLegalStatus" aria-live="polite"></div>';
+    profile.appendChild(host);
+    document.getElementById('huntRuleArea').value=selectedHuntRuleArea;
+    document.getElementById('huntRuleArea').onchange=e=>{selectedHuntRuleArea=e.target.value;updateHuntRules();};
+  }
+  rules.mount(document.getElementById('huntLegalStatus'),selectedHunt,{date:document.getElementById('huntStartDate')?.value||rules.today(),area:selectedHuntRuleArea,location:document.getElementById('huntRegion')?.value||''});
+}
 
 const HUNT_REGIONS=[
   ['თბილისი',41.7151,44.8271],['თელავი',41.9198,45.4732],['ბორჯომი',41.8410,43.3790],['ახალციხე',41.6390,42.9826],['ქუთაისი',42.2679,42.6946],['ამბროლაური',42.5211,43.1459],['მესტია',43.0458,42.7294],['ბათუმი',41.6168,41.6367],['ფოთი',42.1462,41.6719],['რუსთავი',41.5495,44.9932]
@@ -41,6 +56,7 @@ function renderHuntProfile(){
   const p=document.getElementById('huntProfile');if(!selectedHunt)return;
   const chance=Number.isFinite(selectedHuntChance)?selectedHuntChance:(window.GeoWildlifeChance?window.GeoWildlifeChance(selectedHunt):42);const chanceHtml=window.GeoChanceUI?.markup?window.GeoChanceUI.markup(chance,'დანახვის შანსი'):'';const forestNames=(window.FOREST_HABITATS?.[selectedHunt[1]]||[]);p.innerHTML=`<div class="fish-profile-grid"><div><img id="huntProfileImg" class="fish-profile-img" alt="${hs(selectedHunt[1])}"><div><span class="tag">${hs(selectedHunt[4])}</span><span class="tag">${hs(selectedHunt[7])}</span></div></div><div><div class="hunt-profile-topline"><span class="eyebrow">SELECTED WILDLIFE</span>${chanceHtml}</div><h2>${hs(selectedHunt[1])}</h2><p class="muted">${hs(selectedHunt[2])} • ${hs(selectedHunt[3])}</p><div class="hunt-fact-grid"><div class="hunt-fact"><small>ჰაბიტატი</small><b>${hs(selectedHunt[5])}</b></div><div class="hunt-fact"><small>გავრცელება</small><b>${hs(selectedHunt[6])}</b></div><div class="hunt-fact"><small>სეზონი</small><b>${hs(selectedHunt[7])}</b></div></div><p><b>აქტიურობის დრო:</b> ${hs(selectedHunt[8])}</p><div class="hunt-profile-actions"><a class="btn ghost" href="species.html?id=${encodeURIComponent(selectedHunt[1])}&chance=${encodeURIComponent(chance)}">სრული პროფილი →</a><a class="btn primary" href="#huntPlanner">Outdoor Planner</a></div></div></div>`;const forestBox=document.getElementById('huntForestLinks');if(forestBox)forestBox.innerHTML=forestNames.length?forestNames.map(n=>`<button class="forest-wild" type="button" data-forest-name="${hs(n)}"><strong>🌲 ${hs(n)}</strong><small>ტყის ჰაბიტატი → ნახვა</small></button>`).join(''):'<div class="empty">ამ სახეობისთვის კონკრეტული ტყის რუკა ჯერ არ არის დამატებული.</div>';forestBox?.querySelectorAll('[data-forest-name]').forEach(b=>b.onclick=()=>location.href=`forests.html?name=${encodeURIComponent(b.dataset.forestName)}`);
   huntImage(selectedHunt,src=>{const img=document.getElementById('huntProfileImg');if(img)img.src=src});
+  updateHuntRules();
 }
 async function loadHuntLive(){
   try{const region=HUNT_REGIONS.find(r=>r[0]===document.getElementById('huntRegion')?.value)||HUNT_REGIONS[0];const d=await openMeteo(region[1],region[2]),c=d.current,m=codeMeta(c.weather_code),s=outdoorScore(c);const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v};set('huntLiveCity',region[0]);set('huntLiveTime','ახლა');set('huntLiveIcon',m[0]);set('huntLiveTemp',Math.round(c.temperature_2m)+'°');set('huntLiveDesc',`${m[1]} • ${s}/100`);set('huntLiveScore',s);set('huntLivePressure',Math.round(c.pressure_msl)+' hPa');set('huntLiveWind',Math.round(c.wind_speed_10m)+' კმ/სთ');set('huntLiveHumidity',Math.round(c.relative_humidity_2m)+'%');set('huntLiveRain',Number(c.precipitation).toFixed(1)+' მმ');setPressureGauge(c.pressure_msl,'huntPressureNeedle','huntPressureValue','huntPressureStatus','huntPressureAdvice');}catch(e){console.error(e)}
@@ -55,12 +71,13 @@ function renderHuntDays(data,start,days){
 }
 async function runHuntPlanner(){
   window.GNPremium?.applyDayLimit(document.getElementById('huntDays'));
+  updateHuntRules();
   if(!selectedHunt)return;const region=HUNT_REGIONS.find(r=>r[0]===document.getElementById('huntRegion').value)||HUNT_REGIONS[0];const start=document.getElementById('huntStartDate').value||(window.GeoNatureCommon?.localDateISO?.()||new Date().toLocaleDateString('sv-SE'));const days=Math.min(Number(document.getElementById('huntDays').value||1), window.GNPremium?.maxForecastDays?.()||1);
   try{huntWeather=await openMeteo(region[1],region[2]);renderHuntDays(huntWeather,start,days);renderHuntHourly(huntWeather,start)}catch(e){console.error(e);document.getElementById('huntDayCards').innerHTML='<div class="empty">პროგნოზის ჩატვირთვა ვერ მოხერხდა. შეამოწმე ინტერნეტი.</div>'}
 }
 async function initHuntingPage(){
   const region=document.getElementById('huntRegion');region.innerHTML=HUNT_REGIONS.map(x=>`<option>${hs(x[0])}</option>`).join('');const requestedRegion=new URLSearchParams(location.search).get('region')||'';region.value=HUNT_REGIONS.some(r=>r[0]===requestedRegion)?requestedRegion:'თბილისი';syncHuntRegions(false);
-  const d=document.getElementById('huntStartDate'),today=new Date();const todayIso=window.GeoNatureCommon?.localDateISO?.(today)||today.toLocaleDateString('sv-SE');d.value=todayIso;d.min=d.value;const maxD=new Date(today.getTime()+15*86400000);d.max=window.GeoNatureCommon?.localDateISO?.(maxD)||maxD.toLocaleDateString('sv-SE');
+  const d=document.getElementById('huntStartDate'),today=new Date();const todayIso=window.GeoWildlifeRules?.today(today)||window.GeoNatureCommon?.localDateISO?.(today)||today.toLocaleDateString('sv-SE');d.value=todayIso;d.min=d.value;const maxD=new Date(today.getTime()+15*86400000);d.max=window.GeoWildlifeRules?.today(maxD)||window.GeoNatureCommon?.localDateISO?.(maxD)||maxD.toLocaleDateString('sv-SE');
   document.getElementById('huntSearchInput').oninput=renderHuntSearch;document.getElementById('huntType').onchange=renderHuntSearch;document.getElementById('huntClear').onclick=()=>{document.getElementById('huntSearchInput').value='';document.getElementById('huntType').value='all';renderHuntSearch()};document.getElementById('huntPlanBtn').onclick=runHuntPlanner;region.onchange=()=>{loadHuntLive();runHuntPlanner()};d.onchange=runHuntPlanner;document.getElementById('huntDays').onchange=runHuntPlanner;document.getElementById('huntTomorrow').onclick=()=>{const x=new Date((d.value||window.GeoNatureCommon?.localDateISO?.()||new Date().toLocaleDateString('sv-SE'))+'T12:00:00');x.setDate(x.getDate()+1);d.value=window.GeoNatureCommon?.localDateISO?.(x)||x.toLocaleDateString('sv-SE');document.getElementById('huntDays').value='1';runHuntPlanner()};
   renderHuntSearch();await loadHuntLive();
   if(window.GNLiveFactors)window.GNLiveFactors.bind({liveDefault:true,refresh:async()=>{await loadHuntLive();if(selectedHunt)await runHuntPlanner();}});

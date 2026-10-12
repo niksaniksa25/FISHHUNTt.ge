@@ -1,5 +1,17 @@
 # GeoNature
 
+## Development and current behavior
+
+Use Node.js 20 or newer (`npm start`); cloud development uses Node.js 24 with `NODE_USE_ENV_PROXY=1`. No third-party package installation is required. Keep private runtime records outside the static checkout using `GEONATURE_DATA_DIR`.
+
+Run `npm run check` to check every active JavaScript file and `npm test` for API persistence, private-file protection, fishing exceptions and hunting date boundaries. The GitHub validation workflow runs both commands.
+
+Shared responsive layouts are in `css/responsive.css`, with separate `css/responsive-ios.css` and `css/responsive-android.css` platform adjustments. `js/device-responsive.js` applies device classes and visible-viewport sizing; `css/nature-theme.css` supplies the shared forest/river palette.
+
+The season calendar, species profiles and planning tools show restrictions separately from activity forecasts. See [the source versions and legal coverage](docs/WILDLIFE-RULES.md); an activity score does not establish permission to catch or hunt.
+
+Feedback saves to the Node API and appears in the administrator inbox when the API is hosted. On GitHub Pages without a backend, the widget prepares a public GitHub issue that the visitor must submit on GitHub. Drafts remain available until API storage is acknowledged. See [feedback deployment](DEPLOYMENT-FEEDBACK.md) to configure private in-page delivery on a separate backend.
+
 This build keeps the existing site and adds:
 - Bank of Georgia payment integration scaffold for Plus (2.99 GEL/month) and AI Pro (7.99 GEL/month).
 - Responsive CSS for iPhone and Samsung/Android screen sizes.

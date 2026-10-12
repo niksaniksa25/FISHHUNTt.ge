@@ -2,14 +2,17 @@
 <html lang="ka">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
 <meta name="theme-color" content="#07100c">
 <title>GeoNature • სეზონური კალენდარი</title>
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/nav-dropdown.css">
 
 <link rel="stylesheet" href="css/seasons.css?v=20261012a">
-<link rel="stylesheet" href="css/responsive.css?v=20261012a"></head>
+<link rel="stylesheet" href="css/wildlife-rules.css?v=20261012b">
+<link rel="stylesheet" href="css/responsive.css?v=20261012b">
+<link rel="stylesheet" href="css/nature-theme.css?v=20261012b"><link rel="icon" type="image/png" href="assets/icons/icon-192.png">
+</head>
 <body>
 <header class="header">
   <div class="container header-inner">
@@ -26,20 +29,25 @@
 <section class="season-hero">
   <div class="container season-hero-inner">
     <span class="eyebrow">GEONATURE FIELD GUIDE</span>
-    <h1>სეზონური კალენდარი</h1>
-    <p>ნახე, რომელ თვეებშია თევზების სეზონური აქტივობა და როდის ჯობს ველურ ბუნებაში სახეობებზე დაკვირვება.</p>
-    <div class="season-hero-meta"><span>📅 <b id="seasonToday">დღევანდელი თვე</b></span><span>🎣 თევზაობის ზოგადი აქტივობა</span><span>🦌 ველური ბუნების სეზონურობა</span></div>
+    <h1>სეზონები და მოპოვების წესები</h1>
+    <p>აირჩიე გასვლის დღე და გადაამოწმე სახეობის შეზღუდვა, სანადირო ვადა, დღიური ლიმიტი და ოფიციალური წყარო.</p>
+    <div class="season-hero-meta"><span>📅 <b id="seasonToday">დღევანდელი თვე</b></span><span>🎣 თევზჭერის წესები</span><span>🦌 ნადირობის ვადები და ლიმიტები</span></div>
   </div>
 </section>
 <main class="container season-main">
   <section class="season-legal-note" role="note">
-    <strong>მნიშვნელოვანი — კანონიერ სეზონს გადაამოწმე</strong>
-    <p>თევზის აქტიურობის თვე არ ნიშნავს, რომ თევზჭერა იმ პერიოდში ყველგან ნებადართულია. ნადირობისთვის ეს გვერდი არ ადასტურებს კანონიერ სეზონს ან ნებართვას. აკრძალვები, ქვირითობის შეზღუდვები, დაცული სახეობები, ტერიტორიული წესები და წლიური დადგენილებები ოფიციალურად გადაამოწმე გასვლამდე. დაცული სახეობა არ მოიპოვო.</p>
+    <strong>აქტივობა და მოპოვების წესი ცალკე შეამოწმე</strong>
+    <p>ბარათებში მოცემულია ოფიციალური წყაროებით დადასტურებული შეზღუდვები და 2026 წლის სანადირო ვადები. თარიღის ვადაში მოხვედრა პირად ნებართვას არ ადასტურებს: ადგილი, მეთოდი და დოკუმენტები გადაამოწმე. თევზის აქტივობის თვე კანონიერ ჭერას არ ნიშნავს; სამოყვარულო ჭერის გამონაკლისი ყველა აკრძალვას არ აუქმებს.</p>
   </section>
   <section class="season-controls panel">
     <div class="season-mode" role="tablist" aria-label="კალენდრის ტიპი">
       <button type="button" class="season-mode-btn active" data-mode="fish" role="tab" aria-selected="true">🎣 თევზაობა</button>
       <button type="button" class="season-mode-btn" data-mode="wildlife" role="tab" aria-selected="false">🦌 ცხოველები და ფრინველები</button>
+    </div>
+    <div class="season-rules-date">
+      <label for="seasonRuleDate">გასვლის ზუსტი თარიღი<input id="seasonRuleDate" type="date"></label>
+      <label for="seasonRuleContext" id="seasonRuleContextLabel">ჭერის მეთოდი<select id="seasonRuleContext"></select></label>
+      <small>თვეები აჩვენებს ბუნებრივ აქტივობას. წესის სტატუსი მოწმდება გასვლის ზუსტი თარიღით, საქართველოს დროით. შეზღუდული სახეობები ყველა თვეში ჩანს.</small>
     </div>
     <div class="season-filter-grid">
       <label for="seasonMonth">თვე
@@ -63,16 +71,18 @@
     <div class="season-footer-grid">
       <div><b>01 • აირჩიე თვე</b><p>ნახავ შესაბამის სეზონურ პერიოდს და სახეობებს, რომელთა აქტივობაც ამ დროს ხშირად მატულობს.</p></div>
       <div><b>02 • შეამოწმე ადგილი</b><p>ერთი და იგივე სახეობის აქტივობა მდინარეში, ტბაში, წყალსაცავსა და შავ ზღვაში განსხვავდება.</p></div>
-      <div><b>03 • გადაამოწმე წესი</b><p>კალენდარი ბუნების ზოგადი გზამკვლევია და არ ცვლის მოქმედ წესებს, ლიცენზიას ან დაცული სახეობის სტატუსს.</p></div>
+      <div><b>03 • გადაამოწმე წესი</b><p>ბარათის ოფიციალურ ბმულში ნახე სრული პირობები და მოქმედი რედაქცია. ტერიტორიის ან ნებართვის დასაზუსტებლად გამოიყენე გარემოსდაცვითი ცხელი ხაზი 153.</p></div>
     </div>
   </section>
 </main>
 <footer class="footer"><div class="container">© 2026 GeoNature Georgia</div></footer>
 <script src="js/fishing-data.js?v=20261011b"></script>
-<script src="js/hunting-data.js"></script>
-<script src="js/site.js?v=20261012a"></script>
+<script src="js/hunting-data.js?v=20261012b"></script>
+<script src="js/wildlife-rules.js?v=20261012b"></script>
+<script src="js/site.js?v=20261012b"></script>
 <script src="js/nav-dropdown.js?v=20261012a"></script>
-<script src="js/seasons.js?v=20261012a"></script>
-<script src="js/analytics-feedback.js?v=20261012a" defer></script>
+<script src="js/seasons.js?v=20261012b"></script>
+<script src="js/device-responsive.js?v=20261012b"></script>
+<script src="js/analytics-feedback.js?v=20261012b" defer></script>
 </body>
 </html>

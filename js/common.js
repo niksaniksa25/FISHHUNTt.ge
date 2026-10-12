@@ -1,5 +1,22 @@
 function localDateISO(d=new Date()){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
-function setupMenu(){const b=document.getElementById('menuBtn'),n=document.getElementById('nav');if(b&&n)b.onclick=()=>n.classList.toggle('open')}
+function setupMenu(){
+  const button=document.getElementById('menuBtn'),nav=document.getElementById('nav');
+  if(!button||!nav||button.dataset.gnMenuBound)return;
+  button.dataset.gnMenuBound='true';
+  button.type='button';
+  button.setAttribute('aria-controls',nav.id);
+  const setOpen=open=>{
+    nav.classList.toggle('open',Boolean(open));
+    button.setAttribute('aria-expanded',String(Boolean(open)));
+    button.setAttribute('aria-label',open?'მენიუს დახურვა':'მენიუს გახსნა');
+  };
+  setOpen(nav.classList.contains('open'));
+  button.addEventListener('click',event=>{event.preventDefault();setOpen(!nav.classList.contains('open'));});
+  nav.addEventListener('click',event=>{if(event.target.closest('a'))setOpen(false);});
+  document.addEventListener('click',event=>{if(!nav.contains(event.target)&&!button.contains(event.target))setOpen(false);});
+  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&nav.classList.contains('open')){setOpen(false);button.focus();}});
+  window.addEventListener('resize',()=>{if(window.innerWidth>=1025)setOpen(false);},{passive:true});
+}
 function codeMeta(code){const m={0:['☀️','მოწმენდილი'],1:['🌤️','უმეტესად მოწმენდილი'],2:['⛅','ნაწილობრივ ღრუბლიანი'],3:['☁️','ღრუბლიანი'],45:['🌫️','ნისლი'],48:['🌫️','ნისლი'],51:['🌦️','ჟინჟღლი'],53:['🌦️','ჟინჟღლი'],55:['🌧️','ძლიერი ჟინჟღლი'],61:['🌧️','წვიმა'],63:['🌧️','წვიმა'],65:['🌧️','ძლიერი წვიმა'],71:['🌨️','თოვა'],73:['🌨️','თოვა'],75:['❄️','ძლიერი თოვა'],80:['🌦️','წვიმის შხეფები'],81:['🌧️','წვიმის შხეფები'],82:['⛈️','ძლიერი შხეფები'],95:['⛈️','ჭექა-ქუხილი'],96:['⛈️','ჭექა-ქუხილი'],99:['⛈️','ძლიერი ჭექა-ქუხილი']};return m[code]||['🌥️','ცვალებადი']}
 function scoreWeather(c){
   const t=Number(c?.temperature_2m);
@@ -120,7 +137,8 @@ async function initWeatherPage(lat,lon,city){
   }
   function renderWeatherHours(d){
     const rows=weatherRows(d),strip=document.getElementById('weatherHourlyStrip'),sel=document.getElementById('weatherHourSelect');if(!strip||!rows.length)return;
-    const now=new Date();const current=rows.find(r=>r.time===`${String(now.getHours()).padStart(2,'0')}:00`)||rows[0];
+    const forecastHour=String(d.current?.time||'').slice(11,13)+':00';
+    const current=rows.find(r=>r.time===forecastHour)||rows[0];
     if(sel){sel.innerHTML=rows.map(r=>`<option value="${r.time}">${r.time}</option>`).join('');const keep=rows.some(r=>r.time===selectedWeatherHour)?selectedWeatherHour:current.time;sel.value=keep;sel.onchange=()=>{const r=rows.find(x=>x.time===sel.value);if(r)selectWeatherRow(d,r)};}
     strip.innerHTML=rows.map(r=>{const mm=codeMeta(r.code);return`<button type="button" class="weather-hour-card${(r.time===(sel?.value||current.time))?' active':''}" data-iso="${r.iso}"><small>${r.time}</small><span>${mm[0]}</span><b>${r.temperature.toFixed(1)}°</b><em>${Math.round(r.cloud)}% ☁</em><strong>${Math.round(outdoorScore({temperature_2m:r.temperature,pressure_msl:r.pressure,wind_speed_10m:r.wind,precipitation:r.precip,precipitation_probability:r.rainProb,weather_code:r.code,relative_humidity_2m:r.humidity,cloud_cover:r.cloud,wind_gusts_10m:r.gust}))}</strong></button>`}).join('');
     strip.querySelectorAll('.weather-hour-card').forEach(b=>b.onclick=()=>{const r=rows.find(x=>x.iso===b.dataset.iso);if(r)selectWeatherRow(d,r)});

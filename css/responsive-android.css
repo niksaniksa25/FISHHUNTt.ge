@@ -1,0 +1,14 @@
+/* Android Chrome/WebView fixes; imported by responsive.css on every page. */
+html.device-android { text-size-adjust: 100%; }
+html.device-android body { -webkit-tap-highlight-color: rgba(111, 220, 175, .18); }
+html.device-android input, html.device-android select, html.device-android textarea { font-size: 16px !important; }
+html.device-android .gn-feedback-fab { left: max(14px, env(safe-area-inset-left, 0px)) !important; bottom: calc(14px + env(safe-area-inset-bottom, 0px)) !important; }
+html.device-android .gn-feedback-overlay { top: var(--gn-visual-top, 0px); bottom: auto; height: var(--gn-visible-height); padding: max(12px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px)); }
+html.device-android .gn-feedback-dialog { max-height: calc(var(--gn-visible-height) - 32px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); overscroll-behavior: contain; }
+@media (max-width: 1024px) {
+  html.device-android .btn, html.device-android button { min-height: 48px; }
+  html.device-android #menuBtn.menu { width: 48px; height: 48px; flex-basis: 48px; }
+  html.device-android #nav > a, html.device-android #nav .more-trigger, html.device-android .gn-auth-btn { min-height: 48px !important; }
+  html.device-android .gn-feedback-close { width: 48px; height: 48px; flex: 0 0 48px; }
+  html.device-android .auth-page { min-height: calc(var(--gn-viewport-height) - 76px - env(safe-area-inset-top, 0px)); }
+}

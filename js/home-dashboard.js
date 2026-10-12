@@ -11,7 +11,7 @@
   const allRows=()=> (state.data?.hourly?.time||[]).map(x=>rowAt(state.data,x)).filter(Boolean);
   const dateRows=date=>allRows().filter(r=>r.iso.slice(0,10)===date);
   const currentDate=()=>state.data?.current?.time?.slice(0,10) || (window.GeoNatureCommon?.localDateISO?.()||new Date().toLocaleDateString('sv-SE'));
-  const todayHour=()=>state.data?.current?.time?.slice(11,16) || `${String(new Date().getHours()).padStart(2,'0')}:00`;
+  const todayHour=()=>`${state.data?.current?.time?.slice(11,13) || String(new Date().getHours()).padStart(2,'0')}:00`;
   function outdoorRowScore(r){
     const weather={temperature_2m:r.temperature,apparent_temperature:r.apparent_temperature??r.temperature,pressure_msl:r.pressure,
       wind_speed_10m:r.wind,wind_gusts_10m:r.gust,precipitation:r.precip,precipitation_probability:r.rainProb,
@@ -21,7 +21,7 @@
     return 0;
   }
   function rowsForBest(d){
-    const rows=dateRows(d),currentIso=String(state.data?.current?.time||'');
+    const rows=dateRows(d),currentIso=String(state.data?.current?.time||'').slice(0,13)+':00';
     return d===currentDate()&&currentIso?rows.filter(r=>r.iso>=currentIso):rows;
   }
   function fishingScore(r){
@@ -58,6 +58,7 @@
     const o=outdoorRowScore(r), f=fishingScore(r), h=huntingScore(r), mm=codeMeta(r.code), [oband,okey]=scoreBand(o), [fband,fkey]=scoreBand(f), [hband,hkey]=scoreBand(h);
     setText('homeLiveTitle',state.city); setText('homeCity',state.city); setText('homeSelectedTime',`${state.date} • ${r.time}`); setText('homeMainTemp',`${r.temperature.toFixed(1)}°C`); setText('homeMainDesc',mm[1]); setText('homeMainIcon',mm[0]); setText('homeTemp',`${Math.round(r.temperature)}°`); setText('homeDesc',mm[1]); setText('homeIcon',mm[0]); setText('homePressure',`${Math.round(r.pressure)} hPa`); setText('homeWind',`${Math.round(r.wind)} კმ/სთ`); setText('homeHumidity',`${Math.round(r.humidity)}%`); setText('homeRain',`${r.precip.toFixed(1)} მმ`);
     setScoreCard('outdoor',o);setScoreCard('fishing',f);setScoreCard('hunting',h); const go=$('homeGo'); if(go)go.dataset.level=okey; const outValue=$('outdoorScore'); if(outValue)outValue.textContent=o;
+    setText('homeScore',o);
     const summary=o>=80?'კარგი დროა გარეთ გასასვლელად':o>=50?'საშუალო პირობებია — გადაამოწმე საათი':'ცუდი პირობებია — ჯობს სხვა საათი აირჩიო'; setText('homeGoSummary',summary); setText('homeGoScore',o+'/100');
     setText('homeFactorTemp',`${r.temperature.toFixed(1)}°C`);setText('homeFactorPressure',`${r.pressure.toFixed(1)} hPa`);setText('homeFactorWind',`${r.wind.toFixed(1)} კმ/სთ`);setText('homeFactorRain',`${r.precip.toFixed(1)} მმ`);setText('homeFactorCloud',`${Math.round(r.cloud)}%`);setText('homeFactorHumidity',`${Math.round(r.humidity)}%`);setText('homeFactorGust',`${r.gust.toFixed(1)} კმ/სთ`);setText('homeFactorRainProb',`${Math.round(r.rainProb)}%`);
     const drows=rowsForBest(state.date); const best=drows.map(x=>({r:x,s:outdoorRowScore(x)})).sort((a,b)=>b.s-a.s||a.r.iso.localeCompare(b.r.iso))[0]; setText('homeBestHour',best?`${best.r.time} • ${best.s}/100`:'—');

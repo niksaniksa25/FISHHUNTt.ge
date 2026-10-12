@@ -14,23 +14,26 @@ document.addEventListener('DOMContentLoaded', function(){
       menu.setAttribute('aria-expanded',open?'true':'false');
       menu.setAttribute('aria-label',open?'მენიუს დახურვა':'მენიუს გახსნა');
     }
-    menu.addEventListener('click',event=>{
-      event.preventDefault();
-      setNavOpen(!nav.classList.contains('open'));
-    });
-    nav.addEventListener('click',event=>{
-      const link=event.target.closest('a');
-      if(link) setNavOpen(false);
-    });
-    document.addEventListener('click',event=>{
-      if(nav.classList.contains('open')&&!nav.contains(event.target)&&!menu.contains(event.target)) setNavOpen(false);
-    });
-    document.addEventListener('keydown',event=>{
-      if(event.key==='Escape') setNavOpen(false);
-    });
-    window.addEventListener('resize',()=>{
-      if(window.innerWidth>=1025) setNavOpen(false);
-    });
+    if(!menu.dataset.gnMenuBound){
+      menu.dataset.gnMenuBound='true';
+      menu.addEventListener('click',event=>{
+        event.preventDefault();
+        setNavOpen(!nav.classList.contains('open'));
+      });
+      nav.addEventListener('click',event=>{
+        const link=event.target.closest('a');
+        if(link) setNavOpen(false);
+      });
+      document.addEventListener('click',event=>{
+        if(nav.classList.contains('open')&&!nav.contains(event.target)&&!menu.contains(event.target)) setNavOpen(false);
+      });
+      document.addEventListener('keydown',event=>{
+        if(event.key==='Escape'&&nav.classList.contains('open')){setNavOpen(false);menu.focus();}
+      });
+      window.addEventListener('resize',()=>{
+        if(window.innerWidth>=1025) setNavOpen(false);
+      });
+    }
   }
 
   function directLink(href){

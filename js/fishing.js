@@ -6,6 +6,21 @@ let selectedHourlyRow=null;
 let hourlyToken=0;
 let plannerRequestToken=0;
 let liveFishingRequestToken=0;
+let selectedFishingRuleMethod='rod';
+
+function updateFishingRules(){
+  const profile=document.getElementById('fishProfile'),rules=window.GeoWildlifeRules;
+  if(!profile||!selectedFish||!rules)return;
+  let host=document.getElementById('fishLegalRules');
+  if(!host){
+    host=document.createElement('div');host.id='fishLegalRules';host.className='planner-rules';
+    host.innerHTML='<div class="season-rules-date"><label for="fishRuleMethod">ჭერის მეთოდი<select id="fishRuleMethod"><option value="rod">სამოყვარულო ჭერა</option><option value="release">გაშვებით რეკრეაციული ჭერა</option><option value="commercial">სარეწაო ჭერა (ლიცენზიით)</option><option value="other">სხვა მეთოდი — გადაამოწმე</option></select></label></div><div id="fishLegalStatus" aria-live="polite"></div>';
+    profile.appendChild(host);
+    document.getElementById('fishRuleMethod').value=selectedFishingRuleMethod;
+    document.getElementById('fishRuleMethod').onchange=e=>{selectedFishingRuleMethod=e.target.value;updateFishingRules();};
+  }
+  rules.mount(document.getElementById('fishLegalStatus'),selectedFish,{kind:'fish',date:document.getElementById('startDate')?.value||rules.today(),method:selectedFishingRuleMethod,location:selectedWater?.[1]||'',waterId:selectedWater?.[0]||''});
+}
 
 function safeText(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
 function parseRange(v){return (String(v||'').match(/-?\d+(?:\.\d+)?/g)||[]).map(Number).filter(Number.isFinite);}
@@ -160,6 +175,7 @@ function renderFishProfileShell(){
   profile.innerHTML=`<div class="fish-profile-grid" data-fish-id="${safeText(selectedFish[0])}"><div><img id="profileFishImage" class="fish-profile-img" alt="${safeText(selectedFish[1])}"><div><span class="tag">${safeText(selectedFish[3])}</span><span class="tag">${safeText(selectedFish[4])}</span></div></div><div><span class="eyebrow">SELECTED FISH</span><h2>${safeText(selectedFish[1])}</h2><p class="muted">${safeText(selectedFish[2])} • ${safeText(selectedFish[11])}</p><div class="fish-stat-grid"><div class="fish-stat"><small>ინფორმაციული წონა</small><b>${safeText(selectedFish[6])}</b></div><div class="fish-stat"><small>სასურველი ტემპერატურა</small><b>${safeText(selectedFish[7])}</b></div><div class="fish-stat"><small>სასურველი წნევა</small><b>${safeText(selectedFish[8])}</b></div><div class="fish-stat"><small>სასურველი ქარი</small><b>${safeText(selectedFish[9])}</b></div></div><p><b>აქტივობის ტიპური დრო:</b> ${safeText(selectedFish[10])}</p><div id="fishProfileChance" class="fish-profile-chance">${window.GeoChanceUI?.markup?window.GeoChanceUI.markup(chanceForFish(selectedFish,currentFishingCondition(),selectedWater),'არჩეული საათის დაჭერის შანსი'): ''}</div><p class="muted">ლოკაცია: ${selectedWater ? safeText(selectedWater[1])+' • '+safeText(selectedWater[3]) : 'აირჩიე წყალსატევი ქვემოთ'}</p></div></div><div class="profile-forecast"><div class="eyebrow">7 DAY VIEW</div><div id="profileDays" class="profile-days"><div class="empty">ამინდის მონაცემები იტვირთება…</div></div></div>`;
   fishImage(selectedFish,src=>{const img=document.getElementById('profileFishImage');if(img)img.src=src;});
   updateSelectedFishChance();
+  updateFishingRules();
 }
 
 function renderProfileForecast(){
@@ -350,6 +366,7 @@ function updateWaterMeta(){
 
 async function runPlanner(profileRefresh=false){
   const requestId=++plannerRequestToken;
+  updateFishingRules();
   if(!selectedFish||!selectedWater){
     if(selectedFish&&!compatibleWaterIndexes(selectedFish).length){showNoFishLocations();return;}
     const callout=document.getElementById('bestCallout');if(callout)callout.innerHTML='აირჩიე თევზი და მხოლოდ მისთვის ჩამონათვალში ნაჩვენები სათევზაო ადგილი.';return;
@@ -409,7 +426,7 @@ function renderFishSearch(){
 
 async function initFishingPage(){
   const water=document.getElementById('waterSelect'),dateInput=document.getElementById('startDate'),today=new Date();
-  const todayIso=window.GeoNatureCommon?.localDateISO?.(today)||today.toLocaleDateString('sv-SE'); const maxD=new Date(today.getTime()+15*86400000); dateInput.min=todayIso;dateInput.max=window.GeoNatureCommon?.localDateISO?.(maxD)||maxD.toLocaleDateString('sv-SE');dateInput.value=todayIso;
+  const todayIso=window.GeoWildlifeRules?.today(today)||window.GeoNatureCommon?.localDateISO?.(today)||today.toLocaleDateString('sv-SE'); const maxD=new Date(today.getTime()+15*86400000); dateInput.min=todayIso;dateInput.max=window.GeoWildlifeRules?.today(maxD)||window.GeoNatureCommon?.localDateISO?.(maxD)||maxD.toLocaleDateString('sv-SE');dateInput.value=todayIso;
   water.innerHTML='';
   WATERS.forEach((w,i)=>{const o=document.createElement('option');o.value=i;o.textContent=`${w[1]} • ${w[3]} • ${w[2]}`;water.appendChild(o)});
   const fishSelect=document.getElementById('fishSelect');

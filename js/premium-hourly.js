@@ -18,7 +18,11 @@
   function accessBar(id,host,mode='forecast'){
     if(!host)return null;
     let bar=$(id);
-    if(!bar){bar=document.createElement('div');bar.id=id;bar.className='gn-hourly-access';const head=host.querySelector('.section-head');if(head?.nextSibling)host.insertBefore(bar,head.nextSibling);else host.prepend(bar);}
+    if(!bar){
+      bar=document.createElement('div');bar.id=id;bar.className='gn-hourly-access';
+      const head=host.querySelector('.section-head');
+      if(head)head.insertAdjacentElement('afterend',bar);else host.prepend(bar);
+    }
     const p=plan();
     if(p==='free'){
       bar.className='gn-hourly-access free';
@@ -49,7 +53,7 @@
   }
   function huntAverage(){const rows=huntRows(); if(!rows.length||!window.selectedHunt||typeof window.huntScoreForHour!=='function')return null; const region=(window.HUNT_REGIONS||[]).find(r=>r[0]===$('huntRegion')?.value)||(window.HUNT_REGIONS||[])[0]; if(!region)return null; const vals=rows.map(r=>window.huntScoreForHour(window.selectedHunt,{temperature_2m:r.temperature,apparent_temperature:r.apparent,pressure_msl:r.pressure,wind_speed_10m:r.wind,precipitation:r.precip,precipitation_probability:r.rainProb,weather_code:r.code,relative_humidity_2m:r.humidity,cloud_cover:r.cloud,wind_gusts_10m:r.gust,visibility:r.visibility,local_hour:Number(r.time.slice(0,2))},region,Number(r.time.slice(0,2))));return Math.round(vals.reduce((a,b)=>a+b,0)/vals.length);}
   function addAverageCard(host,score,label='დღის საშუალო'){
-    if(!host)return; let c=host.querySelector('.gn-hourly-average'); if(!c){c=document.createElement('div');c.className='gn-hourly-average';const anchor=host.querySelector('#fishingHourlyStrip,#huntHourlyStrip,#weatherHourlyStrip');if(anchor)host.insertBefore(c,anchor);else host.appendChild(c);}
+    if(!host)return; let c=host.querySelector('.gn-hourly-average'); if(!c){c=document.createElement('div');c.className='gn-hourly-average';const anchor=host.querySelector('#fishingHourlyStrip,#huntHourlyStrip,#weatherHourlyStrip');if(anchor)anchor.insertAdjacentElement('beforebegin',c);else host.appendChild(c);}
     c.innerHTML=score==null?`<span class="gn-average-muted">საათობრივი მონაცემის ჩატვირთვის შემდეგ საშუალო აქ გამოჩნდება.</span>`:`<div class="gn-average-ring" style="--avg:${score}"><b>${score}%</b></div><div><span class="eyebrow">FREE VIEW</span><h3>${label}: ${score}%</h3><p>ეს არის არჩეული დღის ყველა საათის საშუალო საორიენტაციო შანსი. ზუსტი საათები Premium-ში იხსნება.</p></div>`;
   }
   function gateFishing(){
@@ -81,7 +85,7 @@
   }
   function gateHome(){
     const date=$('homeDateSelect'),hour=$('homeHourSelect'),strip=$('homeHourlyStrip'); if(!date)return;
-    const p=plan(); date.disabled=p==='free'; hour.disabled=p==='free'; date.classList.toggle('gn-locked-control',p==='free');hour.classList.toggle('gn-locked-control',p==='free');
+    const p=plan(); date.disabled=p==='free'; date.classList.toggle('gn-locked-control',p==='free');if(hour){hour.disabled=p==='free';hour.classList.toggle('gn-locked-control',p==='free');}
     const homeSection=strip?.closest('.home-hour-section, .home-hourly-section, .section'); if(homeSection)accessBar('gnHomeAccess',homeSection);
     if(p==='free'&&strip){strip.style.pointerEvents='none';strip.classList.add('gn-free-hours');}else if(strip){strip.style.pointerEvents='';strip.classList.remove('gn-free-hours');}
   }
@@ -102,7 +106,7 @@
     document.addEventListener('change',guardChange,true);
     document.addEventListener('click',e=>{if(plan()!=='free')return;const h=e.target.closest?.('#fishingHourlyStrip .hour-card,#huntHourlyStrip .hour-card,#homeHourlyStrip .home-hour,#weatherHourlyStrip .weather-hour-card');if(h){e.preventDefault();e.stopImmediatePropagation();window.GNPremium?.showToast?.('ზუსტი საათის არჩევა გახსნილია Plus-ში — 2.99 ₾.','plus');}},true);
     const run=()=>{gateFishing();gateHunting();gateHome();gateWeather();};
-    document.addEventListener('gn:premium-ready',run);
+    window.addEventListener('gn:premium-ready',run);
     document.addEventListener('gn:fishingUpdated',run);
     window.addEventListener('load',run);
     let n=0;const timer=setInterval(()=>{run();if(++n>18)clearInterval(timer)},800);

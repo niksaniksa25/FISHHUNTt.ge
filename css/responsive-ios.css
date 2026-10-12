@@ -1,0 +1,13 @@
+/* iPhone/iPad Safari fixes; imported by responsive.css on every page. */
+html.device-ios { -webkit-text-size-adjust: 100%; }
+html.device-ios body { -webkit-tap-highlight-color: rgba(111, 220, 175, .18); }
+html.device-ios input, html.device-ios select, html.device-ios textarea { font-size: 16px !important; }
+html.device-ios .gn-feedback-fab { left: max(14px, env(safe-area-inset-left, 0px)) !important; bottom: calc(14px + env(safe-area-inset-bottom, 0px)) !important; }
+html.device-ios .gn-feedback-overlay { top: var(--gn-visual-top, 0px); bottom: auto; height: var(--gn-visible-height); padding: max(12px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px)); }
+html.device-ios .gn-feedback-dialog { max-height: calc(var(--gn-visible-height) - 32px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+html.device-ios #nav, html.device-ios .table-wrap, html.device-ios .table-scroll, html.device-ios .daily-grid, html.device-ios .home-hour-strip { -webkit-overflow-scrolling: touch; }
+@media (max-width: 1024px) {
+  html.device-ios .btn, html.device-ios button { min-height: 44px; }
+  html.device-ios .gn-feedback-close { width: 44px; height: 44px; flex: 0 0 44px; }
+  html.device-ios .auth-page { min-height: calc(var(--gn-viewport-height) - 76px - env(safe-area-inset-top, 0px)); }
+}

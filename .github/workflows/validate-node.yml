@@ -2,6 +2,8 @@ name: Validate site and API code
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [main]
   push:
     branches: [main]
     paths:
@@ -9,17 +11,11 @@ on:
       - "package.json"
       - "render.yaml"
       - "DEPLOYMENT-FEEDBACK.md"
-      - "js/admin.js"
-      - "js/analytics-feedback.js"
-      - "js/api-config.js"
-      - "js/site.js"
-      - "js/nav-dropdown.js"
-      - "js/seasons.js"
-      - "css/responsive.css"
-      - "css/seasons.css"
-      - "seasons.html"
-      - "js/donate.js"
-      - "js/donate-config.js"
+      - "js/**"
+      - "css/**"
+      - "*.html"
+      - "scripts/**"
+      - "tests/**"
       - ".github/workflows/validate-node.yml"
 
 permissions:
@@ -31,5 +27,11 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v7.0.1
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "24"
       - name: Check JavaScript syntax
         run: npm run check
+      - name: Check API persistence and wildlife date boundaries
+        run: npm test

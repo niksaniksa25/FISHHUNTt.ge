@@ -120,7 +120,14 @@ if(analytics.purchaseRevenueTotal===0&&analytics.purchases.length) analytics.pur
 let feedbackItems=readJsonFile(FEEDBACK_FILE,[]); if(!Array.isArray(feedbackItems)) feedbackItems=[];
 const feedbackRate=new Map();
 function persistAnalytics(){ writeJsonFile(ANALYTICS_FILE,analytics); }
-function persistFeedback(){ writeJsonFile(FEEDBACK_FILE,feedbackItems); }
+function persistFeedback(items=feedbackItems){
+  // A confirmed report must survive a restart, including a failed write.
+  const temporary=FEEDBACK_FILE+'.'+crypto.randomBytes(6).toString('hex')+'.tmp';
+  try{
+    fs.writeFileSync(temporary,JSON.stringify(items,null,2),{encoding:'utf8',mode:0o600});
+    fs.renameSync(temporary,FEEDBACK_FILE);
+  }finally{try{fs.unlinkSync(temporary)}catch{}}
+}
 function keepRecent(arr,item,max=20000){ arr.push(item); if(arr.length>max) arr.splice(0,arr.length-max); }
 function normalizeEmail(email){return String(email||'').trim().toLowerCase()}
 function validEmail(email){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)}
@@ -319,11 +326,28 @@ async function createBogDonationOrder(amount,displayName){
 }
 
 function serveStatic(req,res){
-  let p=new URL(req.url,`http://${req.headers.host}`).pathname; if(p==='/')p='/index.html';
-  const safe=path.normalize(p).replace(/^\/+/, ''); const fp=path.join(__dirname,safe);
-  if(!fp.startsWith(__dirname)||!fs.existsSync(fp)||fs.statSync(fp).isDirectory()){res.writeHead(404);return res.end('Not found')}
-  const ext=path.extname(fp).toLowerCase();const types={'.html':'text/html; charset=utf-8','.js':'application/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json; charset=utf-8','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.svg':'image/svg+xml'};
-  const headers={'Content-Type':types[ext]||'application/octet-stream'}; if(['.html','.js','.css'].includes(ext)) headers['Cache-Control']='no-store, max-age=0'; res.writeHead(200,headers);fs.createReadStream(fp).pipe(res);
+  const notFound=()=>{res.writeHead(404,{'Content-Type':'text/plain; charset=utf-8'});res.end('Not found');};
+  if(req.method!=='GET'&&req.method!=='HEAD')return notFound();
+  let requested;
+  try{requested=decodeURIComponent(new URL(req.url,`http://${req.headers.host}`).pathname);}
+  catch{return notFound();}
+  const relative=requested==='/'?'index.html':requested.replace(/^\/+/, '');
+  if(relative.split(/[\\/]/).some(part=>part.startsWith('.')))return notFound();
+  const privateFiles=new Set(['server.js','package.json','package-lock.json','users.json','sessions.json','orders.json','donations.json','analytics.json','feedback.json','push-state.json']);
+  if(privateFiles.has(path.basename(relative)))return notFound();
+  const types={'.html':'text/html; charset=utf-8','.js':'application/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.svg':'image/svg+xml','.ico':'image/x-icon','.webmanifest':'application/manifest+json','.woff':'font/woff','.woff2':'font/woff2','.ttf':'font/ttf'};
+  const fp=path.resolve(__dirname,relative),ext=path.extname(fp).toLowerCase();
+  if(!types[ext])return notFound();
+  try{
+    const real=fs.realpathSync(fp),inside=path.relative(__dirname,real);
+    if(inside.startsWith('..'+path.sep)||path.isAbsolute(inside)||!fs.statSync(real).isFile())return notFound();
+    const headers={'Content-Type':types[ext],'X-Content-Type-Options':'nosniff'};
+    if(['.html','.js','.css'].includes(ext))headers['Cache-Control']='no-store, max-age=0';
+    if(req.method==='HEAD'){res.writeHead(200,headers);return res.end();}
+    const stream=fs.createReadStream(real);
+    stream.once('error',()=>{if(res.headersSent)res.destroy();else notFound();});
+    stream.once('open',()=>{res.writeHead(200,headers);stream.pipe(res);});
+  }catch{return notFound();}
 }
 
 // ---------------- Web Push notifications ----------------
@@ -383,6 +407,7 @@ function appCors(req,res){
   }
   res.setHeader('Access-Control-Allow-Headers','Content-Type');
   res.setHeader('Access-Control-Allow-Methods','GET,POST,PATCH,OPTIONS');
+  res.setHeader('Access-Control-Expose-Headers','Retry-After');
 }
 function donationCors(req,res){
   const origin=String(req.headers.origin||'');
@@ -517,18 +542,22 @@ const server=http.createServer(async(req,res)=>{
       return json(res,200,{ok:true});
     }
     if(u.pathname==='/api/feedback'&&req.method==='POST'){
-      const b=await body(req); const visitorId=String(b.visitorId||'').trim();
+      let b; try{b=await body(req)}catch{return json(res,400,{ok:false,message:'შეტყობინების მონაცემები არასწორია.'})}
+      if(!b||typeof b!=='object'||Array.isArray(b)) return json(res,400,{ok:false,message:'შეტყობინების მონაცემები არასწორია.'});
+      const visitorId=String(b.visitorId||'').trim();
       const message=String(b.message||'').replace(/\u0000/g,'').trim();
       const category=['bug','idea','question','other'].includes(String(b.category||''))?String(b.category):'bug';
       const contactEmail=normalizeEmail(b.email||''); const page=String(b.page||'/').split('?')[0].slice(0,180);
       if(message.length<1) return json(res,400,{ok:false,message:'შეტყობინებაში მინიმუმ ერთი სიმბოლო ჩაწერე.'});
       if(message.length>4000) return json(res,400,{ok:false,message:'შეტყობინება 4000 სიმბოლოზე მოკლე უნდა იყოს.'});
-      if(contactEmail && !validEmail(contactEmail)) return json(res,400,{ok:false,message:'ელფოსტის ფორმატი არასწორია.'});
+      if(contactEmail && (contactEmail.length>160||!validEmail(contactEmail))) return json(res,400,{ok:false,message:'ელფოსტის ფორმატი არასწორია.'});
       const rateKey=/^[A-Za-z0-9_-]{16,80}$/.test(visitorId)?visitorId:'anonymous'; const now=Date.now(); const recent=(feedbackRate.get(rateKey)||[]).filter(t=>now-t<15*60*1000);
-      if(recent.length>=5) return json(res,429,{ok:false,message:'ძალიან ბევრი შეტყობინება გაიგზავნა. სცადე 15 წუთში.'});
-      recent.push(now); feedbackRate.set(rateKey,recent);
+      if(recent.length>=5){res.setHeader('Retry-After',String(Math.max(1,Math.ceil((recent[0]+15*60*1000-now)/1000))));return json(res,429,{ok:false,message:'ძალიან ბევრი შეტყობინება გაიგზავნა. სცადე 15 წუთში.'});}
       const user=currentUser(req); const item={id:`fb_${now}_${crypto.randomBytes(5).toString('hex')}`,category,message,email:contactEmail||null,page:page.startsWith('/')?page:'/'+page,visitorId:/^[A-Za-z0-9_-]{16,80}$/.test(visitorId)?visitorId:null,userId:user?.id||null,accountEmail:user?.email||null,createdAt:now,status:'new'};
-      feedbackItems.push(item); if(feedbackItems.length>5000) feedbackItems=feedbackItems.slice(-5000); persistFeedback();
+      const nextItems=feedbackItems.concat(item).slice(-5000);
+      try{persistFeedback(nextItems)}catch(err){console.error('Feedback persistence failed:',err.code||'unknown');return json(res,503,{ok:false,message:'შეტყობინება ვერ შეინახა. მოგვიანებით სცადე.'})}
+      feedbackItems=nextItems;
+      recent.push(now); feedbackRate.set(rateKey,recent);
       return json(res,201,{ok:true,message:'მადლობა! შეტყობინება ადმინისტრატორს გაეგზავნა.',id:item.id});
     }
     if(u.pathname==='/api/auth/me'&&req.method==='GET'){
@@ -569,7 +598,10 @@ const server=http.createServer(async(req,res)=>{
       const b=await body(req); const id=String(b.id||''); const status=String(b.status||'');
       if(!['new','read','resolved'].includes(status)) return json(res,400,{ok:false,message:'სტატუსი არასწორია.'});
       const item=feedbackItems.find(x=>x.id===id); if(!item) return json(res,404,{ok:false,message:'შეტყობინება ვერ მოიძებნა.'});
-      item.status=status; item.updatedAt=Date.now(); persistFeedback(); return json(res,200,{ok:true,item});
+      const updated={...item,status,updatedAt:Date.now()};
+      const nextItems=feedbackItems.map(x=>x.id===id?updated:x);
+      try{persistFeedback(nextItems)}catch(err){console.error('Feedback status persistence failed:',err.code||'unknown');return json(res,503,{ok:false,message:'სტატუსი ვერ შეინახა. მოგვიანებით სცადე.'})}
+      feedbackItems=nextItems; return json(res,200,{ok:true,item:updated});
     }
     if(u.pathname==='/api/leaderboard/xp'&&req.method==='GET'){
       const leaderboard=users.filter(x=>(x.role||'user')!=='admin'&&Number(x.xp)>0)
@@ -693,4 +725,4 @@ const server=http.createServer(async(req,res)=>{
     serveStatic(req,res);
   }catch(e){console.error(e);json(res,500,{ok:false,message:e.message})}
 });
-server.listen(PORT,HOST,()=>console.log(`GeoNature server listening on http://${HOST}:${PORT}`));
+server.listen(PORT,HOST,()=>console.log(`GeoNature server listening on http://${HOST}:${server.address().port}`));
