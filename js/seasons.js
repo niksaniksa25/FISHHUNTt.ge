@@ -56,7 +56,7 @@
     const active=selectedMonth==='all'?f.months.includes(currentMonth):f.months.includes(Number(selectedMonth));
     const headline=f.caution?'შეზღუდვის განსაკუთრებული გადამოწმება':(selectedMonth==='all'?(f.months.includes(currentMonth)?'მიმდინარე თვეში აქტიურობა მოსალოდნელია':'აქტივობა სეზონზეა დამოკიდებული'):(f.months.includes(Number(selectedMonth))?'ამ თვეში სეზონური აქტივობა მოსალოდნელია':'ამ თვეში აქტივობა შედარებით დაბალია'));
     const legal=f.caution
-      ?'<div class="season-status danger"><strong>ნუ განიხილავ ჩვეულებრივ სანადირო/სათევზაო ობიექტად</strong>'+esc(f.note)+'</div>'
+      ?''
       :'<div class="season-status caution"><strong>კანონიერი თევზჭერა ცალკე გადაამოწმე</strong>ეს თვეები აღწერს ზოგად სეზონურ აქტივობას და არა მოპოვების ნებართვას. გაითვალისწინე ქვირითობის აკრძალვები, ზომის ლიმიტი და წყალსატევის ადგილობრივი წესი.</div>';
     return '<article class="season-card"><div class="season-card-top"><div><h3>'+esc(f.name)+'</h3><div class="season-latin">'+esc(f.group)+'</div></div><span class="season-type-badge">🎣 თევზი</span></div><div class="season-status'+(f.caution?' danger':'')+'"><strong>'+esc(headline)+'</strong>'+esc(f.caution?f.note:(active?'მიმდინარე სეზონში ზოგადი აქტივობა შეიძლება კარგი იყოს; ამინდი და ადგილი გადამწყვეტია.':'სეზონური აქტივობა, როგორც წესი, ნაკლებია ამ თვეში.'))+'</div><div><div class="season-card-label">ზოგადი აქტივობის თვეები</div><div class="season-months">'+monthTags(f.months,f.peak)+'</div></div><p class="season-card-note">'+esc(f.note)+'</p>'+legal+'</article>';
   }
