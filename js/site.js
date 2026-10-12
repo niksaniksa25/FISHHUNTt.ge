@@ -1,7 +1,37 @@
 document.addEventListener('DOMContentLoaded', function(){
   const menu=document.getElementById('menuBtn');
   const nav=document.getElementById('nav');
-  if(menu && nav && typeof menu.onclick!=='function') menu.addEventListener('click',()=>nav.classList.toggle('open'));
+  if(menu && nav){
+    if(!menu.querySelector('.menu-lines')){
+      menu.innerHTML='<span class="menu-lines" aria-hidden="true"><i></i><i></i><i></i></span>';
+    }
+    menu.type='button';
+    menu.setAttribute('aria-controls','nav');
+    menu.setAttribute('aria-expanded',nav.classList.contains('open')?'true':'false');
+    menu.setAttribute('aria-label',nav.classList.contains('open')?'მენიუს დახურვა':'მენიუს გახსნა');
+    function setNavOpen(open){
+      nav.classList.toggle('open',Boolean(open));
+      menu.setAttribute('aria-expanded',open?'true':'false');
+      menu.setAttribute('aria-label',open?'მენიუს დახურვა':'მენიუს გახსნა');
+    }
+    menu.addEventListener('click',event=>{
+      event.preventDefault();
+      setNavOpen(!nav.classList.contains('open'));
+    });
+    nav.addEventListener('click',event=>{
+      const link=event.target.closest('a');
+      if(link) setNavOpen(false);
+    });
+    document.addEventListener('click',event=>{
+      if(nav.classList.contains('open')&&!nav.contains(event.target)&&!menu.contains(event.target)) setNavOpen(false);
+    });
+    document.addEventListener('keydown',event=>{
+      if(event.key==='Escape') setNavOpen(false);
+    });
+    window.addEventListener('resize',()=>{
+      if(window.innerWidth>=1025) setNavOpen(false);
+    });
+  }
 
   function directLink(href){
     if(!nav) return null;
@@ -59,4 +89,5 @@ document.addEventListener('DOMContentLoaded', function(){
   ensureMoreLink('forests.html','🌲','ტყეების Explorer','ტყე → ბინადრები','📚 ცოდნა');
   ensureMoreLink('red-book.html','📕','წითელი წიგნი','დაცული სახეობების ცნობარი','📚 ცოდნა');
   ensureMoreLink('donate.html','❤️','მხარდაჭერა / დონაცია','დაეხმარე GeoNature-ის განვითარებას','📚 ცოდნა');
+  ensureMoreLink('seasons.html','🗓️','სეზონური კალენდარი','თევზაობის თვეები • ველური ბუნების სეზონურობა','🧭 ინსტრუმენტები');
 });
