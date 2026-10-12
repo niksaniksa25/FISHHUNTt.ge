@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ka">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#07100c">
+<title>GeoNature • სეზონური კალენდარი</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/nav-dropdown.css">
+<link rel="stylesheet" href="css/responsive.css?v=20261012a">
+<link rel="stylesheet" href="css/seasons.css?v=20261012a">
+</head>
+<body>
+<header class="header">
+  <div class="container header-inner">
+    <a class="logo" href="index.html"><span class="logo-mark">G</span><span><b>GEONATURE</b><small>SMART NATURE GEORGIA</small></span></a>
+    <button class="menu" id="menuBtn" type="button" aria-label="მენიუს გახსნა" aria-controls="nav" aria-expanded="false"><span class="menu-lines" aria-hidden="true"><i></i><i></i><i></i></span></button>
+    <nav id="nav" aria-label="მთავარი მენიუ">
+      <a href="index.html">მთავარი</a><a href="weather.html">ამინდი</a><a href="catalog.html">კატალოგი</a><a href="map.html">რუკა</a>
+      <a href="fishing.html">🎣 თევზაობა</a><a href="hunting.html">🦌 ნადირობა</a><a href="ai.html">🤖 AI</a>
+      <div class="more-wrap"><button class="more-trigger" id="moreTrigger" type="button" aria-expanded="false">მეტი <span class="more-chevron">⌄</span></button><div class="more-menu" id="moreMenu"></div></div>
+      <a class="admin-nav-link" href="admin.html">🛡️ Admin</a>
+    </nav>
+  </div>
+</header>
+<section class="season-hero">
+  <div class="container season-hero-inner">
+    <span class="eyebrow">GEONATURE FIELD GUIDE</span>
+    <h1>სეზონური კალენდარი</h1>
+    <p>ნახე, რომელ თვეებშია თევზების სეზონური აქტივობა და როდის ჯობს ველურ ბუნებაში სახეობებზე დაკვირვება.</p>
+    <div class="season-hero-meta"><span>📅 <b id="seasonToday">დღევანდელი თვე</b></span><span>🎣 თევზაობის ზოგადი აქტივობა</span><span>🦌 ველური ბუნების სეზონურობა</span></div>
+  </div>
+</section>
+<main class="container season-main">
+  <section class="season-legal-note" role="note">
+    <strong>მნიშვნელოვანი — კანონიერ სეზონს გადაამოწმე</strong>
+    <p>თევზის აქტიურობის თვე არ ნიშნავს, რომ თევზჭერა იმ პერიოდში ყველგან ნებადართულია. ნადირობისთვის ეს გვერდი არ ადასტურებს კანონიერ სეზონს ან ნებართვას. აკრძალვები, ქვირითობის შეზღუდვები, დაცული სახეობები, ტერიტორიული წესები და წლიური დადგენილებები ოფიციალურად გადაამოწმე გასვლამდე. დაცული სახეობა არ მოიპოვო.</p>
+  </section>
+  <section class="season-controls panel">
+    <div class="season-mode" role="tablist" aria-label="კალენდრის ტიპი">
+      <button type="button" class="season-mode-btn active" data-mode="fish" role="tab" aria-selected="true">🎣 თევზაობა</button>
+      <button type="button" class="season-mode-btn" data-mode="wildlife" role="tab" aria-selected="false">🦌 ცხოველები და ფრინველები</button>
+    </div>
+    <div class="season-filter-grid">
+      <label for="seasonMonth">თვე
+        <select id="seasonMonth"><option value="all">ყველა თვე</option></select>
+      </label>
+      <label for="seasonSearch">სახეობის ძიება
+        <input id="seasonSearch" type="search" placeholder="მაგ. კობრი, კალმახი, მწყერი..." autocomplete="off">
+      </label>
+      <button id="seasonReset" type="button" class="btn ghost">გასუფთავება</button>
+    </div>
+    <div class="season-result-line"><span id="seasonResultCount">იტვირთება…</span><span id="seasonActiveMonth" class="season-current-chip"></span></div>
+  </section>
+  <section class="season-month-strip" aria-label="თვეები" id="seasonMonthStrip"></section>
+  <section class="season-list-head">
+    <div><span class="eyebrow" id="seasonEyebrow">FISHING WINDOWS</span><h2 id="seasonHeading">თევზების სეზონური აქტივობა</h2><p id="seasonSubheading">ზოგადი ორიენტირი — რეალური აქტივობა დამოკიდებულია წყალზე, ტემპერატურასა და ამინდზე.</p></div>
+  </section>
+  <section id="seasonResults" class="season-results" aria-live="polite"></section>
+  <p class="season-empty" id="seasonEmpty" hidden>ამ ფილტრით ჩანაწერი ვერ მოიძებნა. სცადე სხვა თვე ან საძიებო სიტყვა.</p>
+  <section class="season-footer-note panel">
+    <h2>როგორ გამოიყენო კალენდარი</h2>
+    <div class="season-footer-grid">
+      <div><b>01 • აირჩიე თვე</b><p>ნახავ შესაბამის სეზონურ პერიოდს და სახეობებს, რომელთა აქტივობაც ამ დროს ხშირად მატულობს.</p></div>
+      <div><b>02 • შეამოწმე ადგილი</b><p>ერთი და იგივე სახეობის აქტივობა მდინარეში, ტბაში, წყალსაცავსა და შავ ზღვაში განსხვავდება.</p></div>
+      <div><b>03 • გადაამოწმე წესი</b><p>კალენდარი ბუნების ზოგადი გზამკვლევია და არ ცვლის მოქმედ წესებს, ლიცენზიას ან დაცული სახეობის სტატუსს.</p></div>
+    </div>
+  </section>
+</main>
+<footer class="footer"><div class="container">© 2026 GeoNature Georgia</div></footer>
+<script src="js/fishing-data.js?v=20261011b"></script>
+<script src="js/hunting-data.js"></script>
+<script src="js/site.js?v=20261012a"></script>
+<script src="js/nav-dropdown.js"></script>
+<script src="js/seasons.js?v=20261012a"></script>
+<script src="js/analytics-feedback.js?v=20261012a" defer></script>
+</body>
+</html>
