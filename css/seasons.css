@@ -1,0 +1,80 @@
+/* Seasonal calendar — responsive, card-based field guide */
+.season-hero{padding:56px 0 38px;background:radial-gradient(circle at 78% 15%,rgba(180,238,114,.13),transparent 35%),linear-gradient(135deg,#0b1d13,#0a1510);border-bottom:1px solid var(--line)}
+.season-hero-inner{display:grid;gap:12px}
+.season-hero h1{margin:0;font-size:clamp(34px,5vw,56px);line-height:1.12!important;letter-spacing:-.035em!important}
+.season-hero p{max-width:760px;color:#c2d4c8;margin:0;font-size:17px}
+.season-hero-meta{display:flex;gap:9px;flex-wrap:wrap;margin-top:5px}
+.season-hero-meta span,.season-current-chip{display:inline-flex;align-items:center;gap:6px;padding:8px 11px;border:1px solid rgba(180,238,114,.2);border-radius:999px;background:#102218;color:#cce6d3;font-size:12px}
+.season-main{padding-top:22px;padding-bottom:56px}
+.season-legal-note{padding:17px 19px;border:1px solid rgba(255,195,92,.32);border-left:4px solid #f2bd59;border-radius:15px;background:rgba(83,57,17,.22);margin-bottom:18px}
+.season-legal-note strong{display:block;color:#ffdc94;font-size:16px;margin-bottom:5px}
+.season-legal-note p{margin:0;color:#e3d9bf;font-size:13px;line-height:1.7}
+.season-controls{padding:18px;margin-bottom:15px;border:1px solid rgba(180,238,114,.16)}
+.season-mode{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.season-mode-btn{border:1px solid rgba(180,238,114,.22);border-radius:12px;background:#0a1910;color:#d2e4d7;padding:11px 15px;min-height:46px;cursor:pointer;font-weight:800}
+.season-mode-btn.active{background:linear-gradient(135deg,#d0ff82,#8af0a5);border-color:#baff7d;color:#092116}
+.season-filter-grid{display:grid;grid-template-columns:minmax(180px,.65fr) minmax(250px,1.5fr) auto;gap:12px;align-items:end}
+.season-filter-grid label{display:grid;gap:6px;color:#d5e8da;font-weight:700;font-size:13px}
+.season-filter-grid select,.season-filter-grid input{width:100%;min-width:0;height:48px;border:1px solid rgba(151,255,194,.25);border-radius:11px;padding:0 12px;background:#07140d;color:#f3fff7}
+.season-result-line{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;color:#a6bdad;font-size:13px;margin-top:15px}
+.season-current-chip{border-color:rgba(180,238,114,.27);font-weight:800}
+.season-month-strip{display:flex;gap:7px;overflow-x:auto;padding:5px 1px 16px;margin:0 0 10px;scrollbar-width:thin;overscroll-behavior-x:contain}
+.season-month-pill{flex:0 0 auto;border:1px solid rgba(255,255,255,.12);border-radius:999px;background:#0b1910;color:#bed0c3;padding:8px 13px;font-size:12px;cursor:pointer;min-height:39px}
+.season-month-pill.active{background:#b8f074;border-color:#b8f074;color:#102113;font-weight:900}
+.season-list-head{display:flex;align-items:end;justify-content:space-between;gap:16px;margin:10px 0 16px}
+.season-list-head h2{font-size:clamp(23px,3vw,32px);margin:5px 0}
+.season-list-head p{margin:0;color:#9eb7a7;font-size:13px;max-width:760px}
+.season-results{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
+.season-card{min-width:0;padding:16px;border:1px solid rgba(150,255,190,.16);border-radius:17px;background:linear-gradient(160deg,rgba(18,39,25,.96),rgba(8,20,13,.98));display:flex;flex-direction:column;gap:10px}
+.season-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.season-card h3{margin:0;font-size:18px;letter-spacing:0!important;line-height:1.35!important}
+.season-card .season-latin{color:#8fa998;font-size:11px;margin-top:3px}
+.season-type-badge{flex:0 0 auto;max-width:44%;border:1px solid rgba(180,238,114,.19);border-radius:999px;padding:5px 8px;font-size:10px;color:#c7e8ce;background:#102619}
+.season-status{border-radius:11px;padding:10px 11px;border:1px solid rgba(180,238,114,.17);background:rgba(180,238,114,.055);color:#c9e7ce;font-size:12px;line-height:1.55}
+.season-status strong{display:block;color:#eaffd1;margin-bottom:3px}
+.season-status.caution{border-color:rgba(255,194,86,.25);background:rgba(110,73,17,.18);color:#e9d8ae}
+.season-status.caution strong{color:#ffdc94}
+.season-status.danger{border-color:rgba(255,120,120,.3);background:rgba(99,25,25,.22);color:#ffd1d1}
+.season-status.danger strong{color:#ffadad}
+.season-card-label{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#91ad99;font-weight:900}
+.season-months{display:flex;flex-wrap:wrap;gap:5px}
+.season-month-tag{font-size:11px;color:#b8cec0;padding:5px 7px;border-radius:7px;border:1px solid rgba(255,255,255,.08);background:#0a180f}
+.season-month-tag.peak{border-color:rgba(180,238,114,.38);background:rgba(180,238,114,.14);color:#d9ff9e;font-weight:900}
+.season-card-note{font-size:12px;color:#afc4b5;line-height:1.6;margin:0}
+.season-empty{padding:28px;text-align:center;color:#adc2b2;border:1px dashed rgba(180,238,114,.22);border-radius:15px}
+.season-footer-note{margin-top:25px;padding:20px;border:1px solid rgba(150,255,190,.14)}
+.season-footer-note h2{font-size:20px;margin:0 0 14px}
+.season-footer-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.season-footer-grid>div{padding:12px;border-radius:12px;background:rgba(255,255,255,.025)}
+.season-footer-grid b{color:#d4f2c6;font-size:13px}
+.season-footer-grid p{color:#a7bdae;font-size:12px;line-height:1.65;margin:7px 0 0}
+.season-empty[hidden]{display:none!important}
+@media(max-width:1024px){.season-results{grid-template-columns:repeat(2,minmax(0,1fr))}.season-filter-grid{grid-template-columns:1fr 1.5fr}.season-filter-grid #seasonReset{grid-column:1/-1}.season-footer-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:768px){
+  .season-hero{padding:33px 0 26px}
+  .season-hero h1{font-size:clamp(31px,8.7vw,42px)!important;letter-spacing:-.035em!important}
+  .season-hero p{font-size:15px!important}
+  .season-hero-meta{gap:6px}
+  .season-hero-meta span{font-size:11px;padding:7px 9px}
+  .season-main{padding-top:14px;padding-bottom:36px}
+  .season-legal-note{padding:14px}
+  .season-legal-note strong{font-size:15px}
+  .season-legal-note p{font-size:13px!important}
+  .season-controls{padding:13px!important}
+  .season-mode{display:grid;grid-template-columns:1fr 1fr}
+  .season-mode-btn{padding:10px 8px;font-size:13px}
+  .season-filter-grid{grid-template-columns:1fr;gap:10px}
+  .season-filter-grid #seasonReset{grid-column:auto;width:100%}
+  .season-filter-grid select,.season-filter-grid input{height:48px}
+  .season-result-line{align-items:flex-start;font-size:12px}
+  .season-month-strip{margin-inline:-3px}
+  .season-list-head{margin-bottom:12px}
+  .season-list-head h2{font-size:24px!important}
+  .season-results{grid-template-columns:1fr;gap:10px}
+  .season-card{padding:14px;border-radius:14px}
+  .season-card h3{font-size:17px!important}
+  .season-card-note{font-size:13px!important}
+  .season-footer-note{padding:14px!important}
+  .season-footer-grid{grid-template-columns:1fr;gap:8px}
+}
+@media(max-width:380px){.season-mode{grid-template-columns:1fr}.season-hero-meta span{width:100%}.season-card-top{display:block}.season-type-badge{display:inline-flex;max-width:100%;margin-top:8px}}
