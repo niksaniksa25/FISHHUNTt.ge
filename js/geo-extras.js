@@ -1,47 +1,49 @@
 (function(){
   'use strict';
   const esc=v=>String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const clamp=(n,a=0,b=100)=>Math.max(a,Math.min(b,Number(n)||0));
+  const number=value=>value===null||value===undefined||typeof value==='boolean'||(typeof value==='string'&&!value.trim())?null:Number.isFinite(Number(value))?Number(value):null;
+  const clamp=(n,a=0,b=100)=>number(n)===null?null:Math.max(a,Math.min(b,Number(n)));
   const band=s=>Number(s)>=80?'good':Number(s)>=50?'mid':'bad';
   const bandText=s=>Number(s)>=80?'კარგი':Number(s)>=50?'საშუალო':'ცუდი';
   function plan(){return window.GNPremium?.currentPlan?.()||'free'}
   function maxDays(){return window.GNPremium?.maxForecastDays?.()||1}
   function rowsFrom(data){
     const h=data?.hourly; if(!h?.time)return [];
-    return h.time.map((iso,i)=>({iso,date:iso.slice(0,10),time:iso.slice(11,16),hour:Number(iso.slice(11,13)),temperature:Number(h.temperature_2m?.[i]??20),pressure:Number(h.pressure_msl?.[i]??1013),wind:Number(h.wind_speed_10m?.[i]??0),gust:Number(h.wind_gusts_10m?.[i]??0),rain:Number(h.precipitation?.[i]??0),rainProb:Number(h.precipitation_probability?.[i]??0),humidity:Number(h.relative_humidity_2m?.[i]??60),cloud:Number(h.cloud_cover?.[i]??50),visibility:Number(h.visibility?.[i]??0),code:Number(h.weather_code?.[i]??0)}));
+    return h.time.filter(iso=>typeof iso==='string').map(iso=>{
+      const i=h.time.indexOf(iso),shared=window.GeoNatureCommon?.weatherRowAt?.(data,iso);
+      if(shared)return {...shared,date:iso.slice(0,10),hour:shared.local_hour,rain:shared.precip,apparent:shared.apparent_temperature};
+      return {iso,date:iso.slice(0,10),time:iso.slice(11,16),hour:Number(iso.slice(11,13)),temperature:number(h.temperature_2m?.[i]),apparent:number(h.apparent_temperature?.[i]),pressure:number(h.pressure_msl?.[i]),wind:number(h.wind_speed_10m?.[i]),gust:number(h.wind_gusts_10m?.[i]),rain:number(h.precipitation?.[i]),rainProb:number(h.precipitation_probability?.[i]),humidity:number(h.relative_humidity_2m?.[i]),cloud:number(h.cloud_cover?.[i]),visibility:number(h.visibility?.[i]),code:number(h.weather_code?.[i]),is_day:number(h.is_day?.[i])};
+    });
   }
   function weatherShape(r){
+    if(window.GeoNatureCommon?.conditionsFromRow)return window.GeoNatureCommon.conditionsFromRow({...r,local_hour:r.hour,precip:r.rain,apparent_temperature:r.apparent});
     return {
       temperature_2m:r.temperature, apparent_temperature:r.apparent??r.temperature,
-      pressure_msl:r.pressure, wind_speed_10m:r.wind, wind_gusts_10m:r.gust??r.wind,
+      pressure_msl:r.pressure, wind_speed_10m:r.wind, wind_gusts_10m:r.gust,
       precipitation:r.rain, precipitation_probability:r.rainProb,
-      relative_humidity_2m:r.humidity, cloud_cover:r.cloud??50,
-      visibility:r.visibility??10000, weather_code:r.code, local_hour:r.hour
+      relative_humidity_2m:r.humidity, cloud_cover:r.cloud,
+      visibility:r.visibility, weather_code:r.code, local_hour:r.hour,is_day:r.is_day
     };
   }
   function score(r,type){
+    if(!['temperature','wind','rain','code'].every(key=>number(r[key])!==null))return null;
     const weather=weatherShape(r);
     if(type==='fishing'&&typeof window.fishingEnvironmentScore==='function') return clamp(window.fishingEnvironmentScore(weather,undefined));
     if(typeof window.GeoNatureCommon?.outdoorScore==='function') return clamp(window.GeoNatureCommon.outdoorScore(weather));
     if(typeof window.outdoorScore==='function') return clamp(window.outdoorScore(weather));
-    let s=75;
-    s-=Math.min(25,Math.abs(r.temperature-18)*1.2);
-    s-=Math.min(20,r.wind*0.8);
-    s-=Math.min(18,r.rain*5);
-    s-=r.rainProb*0.18;
-    s-=Math.max(0,(r.gust??r.wind)-25)*0.5;
-    return Math.round(clamp(s));
+    return null;
   }
   function bestByDate(data,type,days){
     const all=rowsFrom(data);
-    const currentIso=String(data?.current?.time||'');
+    const currentIso=String(window.GeoNatureCommon?.zonedDateTime?.(data)?.iso||data?.current?.time||'').slice(0,13)+':00';
     const currentDate=currentIso.slice(0,10);
-    const dates=[...new Set(all.map(r=>r.date))].slice(0,Math.max(1,days));
+    const dates=[...new Set(all.map(r=>r.date))].filter(date=>!currentDate||date>=currentDate).slice(0,Math.max(1,days));
     return dates.map(d=>{
       let rr=all.filter(r=>r.date===d);
       if(d===currentDate&&currentIso)rr=rr.filter(r=>r.iso>=currentIso);
       if(!rr.length)return null;
-      const best=rr.map(r=>({r,s:Math.round(score(r,type))})).sort((a,b)=>b.s-a.s||a.r.iso.localeCompare(b.r.iso))[0];
+      const best=rr.map(r=>({r,s:score(r,type)})).filter(item=>item.s!==null).sort((a,b)=>b.s-a.s||a.r.iso.localeCompare(b.r.iso))[0];
+      if(!best)return null;
       return {date:d,...best};
     }).filter(Boolean);
   }
@@ -59,15 +61,15 @@
     const anchor=document.getElementById('homePremiumOffer')||document.getElementById('quickExplorer')||document.querySelector('.hero');
     insertAfter(anchor,host);insertAfter(host,notify);
   }
-  function renderHome(data,row){
+  function renderHome(data,row,options={}){
     const card=document.getElementById('gnBestMomentCard');if(!card)return;
-    const currentIso=String(data?.current?.time||row?.iso||'');
+    const currentIso=String(window.GeoNatureCommon?.zonedDateTime?.(data)?.iso||data?.current?.time||row?.iso||'').slice(0,13)+':00';
     const today=currentIso.slice(0,10)||(window.GeoNatureCommon?.localDateISO?.()||new Date().toLocaleDateString('sv-SE'));
     const candidates=rowsFrom(data).filter(r=>r.date===today&&(!currentIso||r.iso>=currentIso));
-    const best=candidates.map(r=>({r,s:Math.round(score(r,'outdoor'))})).sort((a,b)=>b.s-a.s||a.r.iso.localeCompare(b.r.iso))[0];
+    const best=candidates.map(r=>({r,s:score(r,'outdoor')})).filter(item=>item.s!==null).sort((a,b)=>b.s-a.s||a.r.iso.localeCompare(b.r.iso))[0];
     const box=document.getElementById('gnBestMomentToday');
     if(box&&best){
-      box.innerHTML=`<div class="gn-best-score ${band(best.s)}"><b>${best.s}</b><span>/100</span></div><div><strong>${best.r.time}</strong><small>${best.r.temperature.toFixed(1)}°C • ${best.r.wind.toFixed(0)} კმ/სთ ქარი • ${Math.round(best.r.rainProb)}% წვიმა</small><em>${bandText(best.s)} პირობებია — დღევანდელ დარჩენილ საათებში საუკეთესო დრო</em></div>`;
+      box.innerHTML=`<div class="gn-best-score ${band(best.s)}"><b>${best.s}</b><span>/100</span></div><div><strong>${best.r.time}</strong><small>${best.r.temperature.toFixed(1)}°C • ${best.r.wind.toFixed(0)} კმ/სთ ქარი • ${best.r.rainProb===null?'—':Math.round(best.r.rainProb)+'%'} წვიმა</small><em>${options.stale||options.error||data?.__meta?.stale?'ბოლო ხელმისაწვდომი პროგნოზი':bandText(best.s)+' პირობებია — დღევანდელ დარჩენილ საათებში საუკეთესო დრო'}</em></div>`;
     }else if(box){
       box.innerHTML='<span class="muted">დღევანდელი საათობრივი მონაცემები ჯერ არ არის ხელმისაწვდომი.</span>';
     }
@@ -76,11 +78,7 @@
     const daysBox=document.getElementById('gnBestMomentDays');
     if(daysBox)daysBox.innerHTML=days.map((d,i)=>{const locked=(i>=n);return `<div class="gn-best-day ${band(d.s)} ${locked?'locked':''}"><small>${fmtDate(d.date)}</small><b>${locked?'🔒':d.r.time}</b><span>${d.s}</span><em>${locked?'AI Pro':'საუკეთესო საათი'}</em></div>`}).join('');
     const pp=document.getElementById('gnBestMomentPlan');if(pp)pp.textContent=plan()==='pro'?'AI PRO':plan()==='plus'?'PLUS':'FREE';
-    if(window.GeoNaturePush?.checkCurrentConditions)window.GeoNaturePush.checkCurrentConditions(data,row);
-  }
-  function fireAlert(scoreValue){
-    const msg=`GeoNature: Outdoor Score არის ${Math.round(scoreValue)}/100 — კარგი პირობებია.`;
-    if('Notification' in window&&Notification.permission==='granted'){try{new Notification('GeoNature • კარგი პირობებია',{body:msg})}catch(_){}}
+    if(options.current&&!options.stale&&!options.error&&!options.missing&&options.live!==false&&window.GeoNaturePush?.checkCurrentConditions)window.GeoNaturePush.checkCurrentConditions(data,row);
   }
   function addDashboardExtras(){
     const root=document.getElementById('gnDashboard');if(!root||document.getElementById('gnPersonalInsights'))return;
@@ -89,13 +87,14 @@
     root.appendChild(host); renderPersonalInsights();
   }
   function renderPersonalInsights(){
-    const box=document.getElementById('gnPersonalInsightsGrid');if(!box)return;let s={};try{s=JSON.parse(localStorage.getItem('geonature_plus_v1')||'{}')}catch(_){s={}};const catches=s.catches||[],plans=s.plans||[],favs=s.favorites||[];
+    const box=document.getElementById('gnPersonalInsightsGrid');if(!box)return;let s={};try{s=JSON.parse(localStorage.getItem('geonature_plus_v1')||'{}')||{}}catch(_){s={}};const catches=Array.isArray(s.catches)?s.catches.filter(c=>c&&typeof c==='object'):[],plans=Array.isArray(s.plans)?s.plans:[],favs=Array.isArray(s.favorites)?s.favorites:[];
     let topFish='ჯერ არ არის',topPlace='ჯერ არ არის',bestWeight=0,bestFish='—';
-    const fishCount={},placeCount={};catches.forEach(c=>{if(c.fish)fishCount[c.fish]=(fishCount[c.fish]||0)+1;if(c.place)placeCount[c.place]=(placeCount[c.place]||0)+1;if(Number(c.weight||0)>bestWeight){bestWeight=Number(c.weight||0);bestFish=c.fish||'—'}});
+    const fishCount=Object.create(null),placeCount=Object.create(null);catches.forEach(c=>{if(typeof c.fish==='string'&&c.fish)fishCount[c.fish]=(fishCount[c.fish]||0)+1;if(typeof c.place==='string'&&c.place)placeCount[c.place]=(placeCount[c.place]||0)+1;const weight=number(c.weight);if(weight!==null&&weight>bestWeight){bestWeight=weight;bestFish=typeof c.fish==='string'?c.fish:'—'}});
     topFish=Object.entries(fishCount).sort((a,b)=>b[1]-a[1])[0]?.[0]||topFish;topPlace=Object.entries(placeCount).sort((a,b)=>b[1]-a[1])[0]?.[0]||topPlace;
-    const xp=Number(s.xp||0),level=Math.max(1,Math.floor(xp/100)+1);const insight=topFish!=='ჯერ არ არის'?`შენ ყველაზე ხშირად ${esc(topFish)}-ს უთითებ Catch Log-ში. შემდეგ გასვლაზე ამ სახეობის საუკეთესო საათი შეამოწმე Planner-ში.`:'Catch Log ჯერ ცარიელია — პირველი ჩანაწერის შემდეგ GeoNature შენს პირად ტენდენციებსაც დაგანახებს.';
+    const xp=Math.max(0,number(s.xp)??0),level=Math.floor(xp/100)+1;const insight=topFish!=='ჯერ არ არის'?`შენ ყველაზე ხშირად ${esc(topFish)}-ს უთითებ Catch Log-ში. შემდეგ გასვლაზე ამ სახეობის საუკეთესო საათი შეამოწმე Planner-ში.`:'Catch Log ჯერ ცარიელია — პირველი ჩანაწერის შემდეგ GeoNature შენს პირად ტენდენციებსაც დაგანახებს.';
     box.innerHTML=[['🎣','საყვარელი თევზი',topFish],['📍','ხშირი ადგილი',topPlace],['🏆','პირადი რეკორდი',bestWeight?bestFish+' • '+bestWeight+' კგ':'ჯერ არ არის'],['⭐','რჩეულები',String(favs.length)],['🗺️','გეგმები',String(plans.length)],['⚡','Level',String(level)+' • '+xp+' XP']].map(x=>`<div class="gn-insight-item"><span>${x[0]}</span><small>${x[1]}</small><b>${esc(x[2])}</b></div>`).join('')+`<div class="gn-insight-wide"><small>💡 პირადი რჩევა</small><p>${insight}</p></div>`;
   }
+  window.GeoNatureExtras={renderHome,renderPersonalInsights};
   document.addEventListener('DOMContentLoaded',()=>{
     if(location.pathname.endsWith('index.html')||location.pathname==='/'||location.pathname===''){addHomeExtras();}
     if(location.pathname.endsWith('dashboard.html')){setTimeout(addDashboardExtras,600);document.addEventListener('geonature:state',()=>{setTimeout(addDashboardExtras,250);setTimeout(renderPersonalInsights,300)})}

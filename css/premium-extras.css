@@ -2,3 +2,18 @@
 @media(max-width:850px){.premium-tool-grid{grid-template-columns:1fr}.tool-card.featured{grid-column:auto}.best-grid{grid-template-columns:1fr 1fr}.report-form,.ai-planner-row{grid-template-columns:1fr}.mini-row{grid-template-columns:1fr}.score-pill{justify-self:start}}
 
 .activity-timeline{height:150px;display:flex;align-items:flex-end;gap:7px;padding:8px 4px}.time-bar{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px;font-size:9px;color:#8da0b6}.time-bar i{display:block;width:100%;max-width:28px;border-radius:8px 8px 3px 3px;background:#35c77a}.time-bar i.mid{background:#f4c438}.time-bar i.bad{background:#ef4b4b}.time-bar b{font-size:10px;color:#dce6ef}.alert-row{display:flex;gap:9px;margin:12px 0}.alert-row select{max-width:130px}.alert-row .btn{flex:1}.admin-access-strip{padding-top:0}.admin-access{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:18px 22px}@media(max-width:700px){.alert-row{flex-direction:column}.alert-row select{max-width:none}.admin-access{flex-direction:column;align-items:stretch}.admin-access .btn{width:100%}}
+
+/* Intrinsic grid sizes must not widen the whole page on narrow phones. */
+.premium-tool-grid,.tool-card,.tool-copy,.best-grid>div,.mini-row>*{min-width:0;max-width:100%}
+.premium-tools .tool-copy{overflow-wrap:anywhere}
+.tools-controls{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:12px;align-items:end;margin-top:20px}
+.tools-controls label{display:block;min-width:0;font-size:13px;color:#b3c5d1}
+.tools-controls select{display:block;margin-top:7px;width:100%;max-width:100%;min-width:0}
+.tools-status{flex-wrap:wrap}
+.tools-status.is-unavailable .live-dot{background:#8da0b6;box-shadow:none}
+.report-form>*{min-width:0;max-width:100%}
+.ai-planner-row{grid-template-columns:minmax(0,1fr) auto}
+.activity-timeline{max-width:100%;min-width:0;overflow-x:auto;overflow-y:hidden;align-items:stretch}
+.time-bar{flex:0 0 36px;min-width:0;height:125px}
+#compareHotspots{margin-bottom:12px}
+@media(max-width:850px){.premium-tool-grid{grid-template-columns:minmax(0,1fr)}.tools-controls,.ai-planner-row{grid-template-columns:minmax(0,1fr)}.tool-card{padding:18px}.report-form{grid-template-columns:minmax(0,1fr)}}

@@ -10,37 +10,28 @@ function initGeoMap(){
   let marker=null,meMarker=null,route=null,userCoords=null,routeMode=false;
   const waterMarkers=new Map();
   const scoreCache=new Map();
-  let mapLive=false,mapRefreshTimer=null,requestSeq=0,lastScores=new Map();
+  let mapLive=true,mapRefreshTimer=null,requestSeq=0,followCurrent=true;
+  let activeScoreControllers=[],routeSeq=0,routeController=null,searchSeq=0;
   const CACHE_TTL=10*60*1000;
 
   function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
-  function displaySuitabilityScore(raw){const n=Number(raw);return Number.isFinite(n)?Math.max(10,Math.min(88,Math.round(8+n*.80))):42;}
-  function scoreClass(score){const n=Number(score);if(!Number.isFinite(n))return 'score-bad';if(n>=68)return 'score-good';if(n>=56)return 'score-mid';if(n>=42)return 'score-low';if(n>=25)return 'score-bad';return 'score-critical'}
+  function displaySuitabilityScore(raw){return Number.isFinite(raw)?Math.max(0,Math.min(100,Math.round(raw))):null;}
+  function scoreClass(score){const n=score;if(!Number.isFinite(n))return 'score-unavailable';if(n>=85)return 'score-excellent';if(n>=70)return 'score-good';if(n>=55)return 'score-mid';if(n>=40)return 'score-low';if(n>=20)return 'score-bad';return 'score-critical'}
   function scoreIcon(score){
-    const s=Number.isFinite(Number(score))?Math.round(Number(score)):'—';
-    return L.divIcon({className:'outdoor-score-marker-wrap',html:`<span class="outdoor-score-marker ${scoreClass(Number(score))}">${s}</span>`,iconSize:[44,44],iconAnchor:[22,22],popupAnchor:[0,-18]});
+    const s=Number.isFinite(score)?Math.round(score):'—';
+    return L.divIcon({className:'outdoor-score-marker-wrap',html:`<span class="outdoor-score-marker ${scoreClass(score)}">${s}</span>`,iconSize:[44,44],iconAnchor:[22,22],popupAnchor:[0,-18]});
   }
   function scorePopup(w,score){
-    const s=Number.isFinite(Number(score))?Math.round(Number(score)):'—';
+    const s=Number.isFinite(score)?Math.round(score):'—';
     const maps=`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(w[4]+','+w[5])}`;
-    return `<div class="map-score-popup"><div class="popup-score ${scoreClass(Number(score))}">${s}</div><div><b>${esc(w[1])}</b><small>${esc(w[2])} • ${esc(w[3])}</small></div><a href="place-details.html?id=${encodeURIComponent(w[0])}&score=${encodeURIComponent(s)}&date=${encodeURIComponent(getMapDate())}&hour=${encodeURIComponent(getMapHour())}">ამ საათის დეტალები →</a><a href="${maps}" target="_blank" rel="noopener">🧭 მარშრუტი Google Maps-ში →</a></div>`;
+    return `<div class="map-score-popup"><div class="popup-score ${scoreClass(score)}">${s}</div><div><b>${esc(w[1])}</b><small>${esc(w[2])} • ${esc(w[3])}</small></div><a href="place-details.html?id=${encodeURIComponent(w[0])}${Number.isFinite(score)?`&score=${encodeURIComponent(s)}`:''}&date=${encodeURIComponent(getMapDate())}&hour=${encodeURIComponent(getMapHour())}">ამ საათის დეტალები →</a><a href="${maps}" target="_blank" rel="noopener">🧭 მარშრუტი Google Maps-ში →</a></div>`;
   }
   function setMapInfo(msg){const el=document.getElementById('mapInfo');if(el)el.textContent=msg}
-  function getMapDate(){return document.getElementById('mapDate')?.value||new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Tbilisi'});}
-  function getMapHour(){const v=document.getElementById('mapHour')?.value;return v!==undefined&&v!==null&&v!==''?Number(v):new Date().getHours();}
-  function todayTbilisi(){return new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Tbilisi'});}
+  function mapClock(){return window.GeoNatureCommon?.zonedDateTime?.('Asia/Tbilisi')||{date:new Date().toLocaleDateString('sv-SE',{timeZone:'Asia/Tbilisi'}),hour:Number(new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Tbilisi',hour:'2-digit',hourCycle:'h23'}).format(new Date()))};}
+  function getMapDate(){return document.getElementById('mapDate')?.value||mapClock().date;}
+  function getMapHour(){const value=document.getElementById('mapHour')?.value;return value!==undefined&&value!==null&&value!==''?Number(value):mapClock().hour;}
+  function todayTbilisi(){return mapClock().date;}
   function isToday(){return getMapDate()===todayTbilisi();}
-
-  function stableFallbackScore(w,date,hour){
-    const seed=String(w[0])+date+String(hour);
-    let h=2166136261;
-    for(let i=0;i<seed.length;i++){h^=seed.charCodeAt(i);h=Math.imul(h,16777619)}
-    let base=56+(Math.abs(h)%29);
-    const delta=Math.max(0,8-Math.abs(hour-7))*2;
-    if(String(w[2]).includes('ზღვა')) base+=3;
-    return Math.max(12,Math.min(72,Math.round(10+Math.min(100,base+delta)*.62)));
-  }
-
   function updateMarker(w,score){
     const id=String(w[0]);
     const lat=Number(w[4]),lon=Number(w[5]);
@@ -62,9 +53,8 @@ function initGeoMap(){
   function drawWaterMarkers(scores){
     if(!window.WATERS?.length){setMapInfo('სათევზაო ადგილების მონაცემები ვერ მოიძებნა.');return;}
     const validIds=new Set();
-    window.WATERS.forEach(w=>{const id=String(w[0]);validIds.add(id);const score=scores.has(id)?scores.get(id):stableFallbackScore(w,getMapDate(),getMapHour());updateMarker(w,score);});
+    window.WATERS.forEach(w=>{const id=String(w[0]);validIds.add(id);const score=scores.has(id)?scores.get(id):null;updateMarker(w,score);});
     for(const [id,item] of waterMarkers){if(!validIds.has(id)){map.removeLayer(item.marker);waterMarkers.delete(id)}}
-    lastScores=new Map(scores);
     setMapInfo(`🗺️ ${waterMarkers.size} სათევზაო ადგილი • ${getMapDate()} • ${String(getMapHour()).padStart(2,'0')}:00`);
   }
 
@@ -73,106 +63,100 @@ function initGeoMap(){
     if(!d||!h)return;
     const today=todayTbilisi();
     d.min=today;
-    d.max=new Date(Date.now()+7*86400000).toLocaleDateString('en-CA',{timeZone:'Asia/Tbilisi'});
+    d.max=new Date(Date.now()+7*86400000).toLocaleDateString('sv-SE',{timeZone:'Asia/Tbilisi'});
     d.value=today;
     h.innerHTML=Array.from({length:24},(_,i)=>`<option value="${i}">${String(i).padStart(2,'0')}:00</option>`).join('');
-    h.value=String(new Date().getHours());
-    d.onchange=loadWaterScores;
-    h.onchange=loadWaterScores;
+    h.value=String(mapClock().hour);
+    d.onchange=()=>{followCurrent=false;loadWaterScores();};
+    h.onchange=()=>{followCurrent=false;loadWaterScores();};
   }
 
   async function fetchScoresChunk(chunk,date,hour,seq){
-    const latitudes=chunk.map(w=>Number(w[4]).toFixed(5)).join(',');
-    const longitudes=chunk.map(w=>Number(w[5]).toFixed(5)).join(',');
+    const controller=new AbortController();activeScoreControllers.push(controller);
+    const timeout=setTimeout(()=>controller.abort(),15000);
+    const latitudes=chunk.map(w=>Number(w[4]).toFixed(5)).join(','),longitudes=chunk.map(w=>Number(w[5]).toFixed(5)).join(',');
     const url=`https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(latitudes)}&longitude=${encodeURIComponent(longitudes)}&timezone=Asia%2FTbilisi&forecast_days=10&hourly=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation_probability,precipitation,weather_code,cloud_cover,pressure_msl,wind_speed_10m,wind_gusts_10m,visibility`;
-    const r=await fetch(url,{cache:'no-store'});
-    if(!r.ok)throw new Error(`Open-Meteo ${r.status}`);
-    const data=await r.json();
-    const rows=Array.isArray(data)?data:[data];
-    const wanted=`${date}T${String(hour).padStart(2,'0')}:00`;
-    rows.forEach((item,i)=>{
-      if(seq!==requestSeq)return;
-      const times=item?.hourly?.time||[];
-      let idx=times.indexOf(wanted);
-      if(idx<0)idx=times.findIndex(t=>t.startsWith(`${date}T${String(hour).padStart(2,'0')}:`));
-      const w=chunk[i];
-      if(!w||idx<0)return;
-      const h=item.hourly;
-      const c={
-        temperature_2m:Number(h.temperature_2m?.[idx]),
-        apparent_temperature:Number(h.apparent_temperature?.[idx]??h.temperature_2m?.[idx]),
-        relative_humidity_2m:Number(h.relative_humidity_2m?.[idx]),
-        precipitation_probability:Number(h.precipitation_probability?.[idx]),
-        precipitation:Number(h.precipitation?.[idx]),
-        weather_code:Number(h.weather_code?.[idx]),
-        cloud_cover:Number(h.cloud_cover?.[idx]),
-        pressure_msl:Number(h.pressure_msl?.[idx]),
-        wind_speed_10m:Number(h.wind_speed_10m?.[idx]),
-        wind_gusts_10m:Number(h.wind_gusts_10m?.[idx]),
-        visibility:Number(h.visibility?.[idx]??10000),
-        local_hour:hour
-      };
-      const rawScore=typeof outdoorScore==='function'?outdoorScore(c):scoreWeather(c);
-      const score=displaySuitabilityScore(rawScore);
-      if(Number.isFinite(score))lastScores.set(String(w[0]),score);
-    });
-  }
-
-  async function loadWaterScores(){
-    if(!window.WATERS?.length)return;
-    const seq=++requestSeq;
-    const date=getMapDate(),hour=getMapHour(),hh=String(hour).padStart(2,'0');
-    const label=document.getElementById('mapLiveLabel');
-    if(label)label.textContent=`${isToday()?'დღეს':'პროგნოზი'} • ${date} • ${hh}:00`;
-    const key=`${date}|${hh}`;
-    const now=Date.now();
-    const cached=scoreCache.get(key);
-    if(cached&&now-cached.time<CACHE_TTL){
-      drawWaterMarkers(new Map(cached.scores));
-      setMapInfo(`🗺️ პროგნოზი განახლებულია • ${date} • ${hh}:00`);
-      return;
-    }
-    const cachedRaw=sessionStorage.getItem(`GN_MAP_SCORE_V2_${key}`);
-    if(cachedRaw){try{const obj=JSON.parse(cachedRaw);if(now-obj.time<CACHE_TTL*3){const cs=new Map(obj.scores);scoreCache.set(key,{time:obj.time,scores:cs});drawWaterMarkers(cs);}}catch{}}
-    setMapInfo(`🌦️ პირობები იტვირთება • ${date} • ${hh}:00`);
-    const chunks=[];for(let i=0;i<window.WATERS.length;i+=12)chunks.push(window.WATERS.slice(i,i+12).filter(w=>Number.isFinite(+w[4])&&Number.isFinite(+w[5])));
-    if(!chunks.length){drawWaterMarkers(new Map());return;}
-    const fresh=new Map();
     try{
-      for(const chunk of chunks){
-        await fetchScoresChunk(chunk,date,hour,seq);
-        if(seq!==requestSeq)return;
-        chunk.forEach(w=>{const v=lastScores.get(String(w[0]));if(Number.isFinite(v))fresh.set(String(w[0]),v);});
-      }
-      // Fill any locations that did not return a forecast, while preserving existing values.
-      window.WATERS.forEach(w=>{const id=String(w[0]);if(!fresh.has(id)){const prev=lastScores.get(id);fresh.set(id,Number.isFinite(prev)?prev:stableFallbackScore(w,date,hour));}});
-      scoreCache.set(key,{time:now,scores:fresh});
-      try{sessionStorage.setItem(`GN_MAP_SCORE_V2_${key}`,JSON.stringify({time:now,scores:[...fresh.entries()]}))}catch{}
-      drawWaterMarkers(fresh);
-      setMapInfo(`🗺️ ${window.WATERS.length} ადგილი • განახლდა ${date} ${hh}:00`);
-    }catch(e){
-      console.warn('Map live data failed; keeping stable fallback/last values.',e);
-      const fallback=new Map();
-      window.WATERS.forEach(w=>{const id=String(w[0]);const prev=lastScores.get(id);fallback.set(id,Number.isFinite(prev)?prev:stableFallbackScore(w,date,hour));});
-      drawWaterMarkers(fallback);
-      setMapInfo(`🗺️ რუკა მუშაობს შენახული პროგნოზით • ${date} • ${hh}:00`);
+      const response=await fetch(url,{cache:'no-store',signal:controller.signal});
+      if(!response.ok)throw new Error(`Open-Meteo ${response.status}`);
+      const data=await response.json(),payloads=Array.isArray(data)?data:[data],scores=new Map();
+      const wanted=`${date}T${String(hour).padStart(2,'0')}:00`;
+      if(seq!==requestSeq)return scores;
+      payloads.forEach((item,index)=>{
+        const water=chunk[index];if(!water)return;
+        const row=window.GeoNatureCommon?.weatherRowAt?.(item,wanted);if(!row)return;
+        const conditions=window.GeoNatureCommon.conditionsFromRow(row),raw=outdoorScore(conditions),score=displaySuitabilityScore(raw);
+        if(Number.isFinite(score))scores.set(String(water[0]),score);
+      });
+      return scores;
+    }finally{clearTimeout(timeout);activeScoreControllers=activeScoreControllers.filter(item=>item!==controller);}
+  }
+  function readScoreCache(key){
+    const cached=scoreCache.get(key);if(cached)return cached;
+    try{
+      const raw=sessionStorage.getItem(`GN_MAP_SCORE_V3_${key}`);if(!raw)return null;
+      const parsed=JSON.parse(raw);if(!Number.isFinite(parsed.time)||parsed.time>Date.now()+300000||Date.now()-parsed.time>6*3600000||!Array.isArray(parsed.scores))return null;
+      const scores=new Map(parsed.scores.filter(entry=>Array.isArray(entry)&&entry.length===2&&typeof entry[0]==='string'&&Number.isFinite(entry[1])&&entry[1]>=0&&entry[1]<=100));
+      return {time:parsed.time,scores};
+    }catch{return null;}
+  }
+  async function loadWaterScores(options={}){
+    if(!window.WATERS?.length)return;
+    const force=options?.force===true,seq=++requestSeq;
+    activeScoreControllers.forEach(controller=>controller.abort());activeScoreControllers=[];
+    const date=getMapDate(),hour=getMapHour(),hh=String(hour).padStart(2,'0'),key=`${date}|${hh}`;
+    const label=document.getElementById('mapLiveLabel'),refreshBtn=document.getElementById('mapRefresh');
+    if(label)label.textContent=`${isToday()?'დღეს':'პროგნოზი'} • ${date} • ${hh}:00`;
+    const cached=readScoreCache(key),now=Date.now();
+    drawWaterMarkers(cached?.scores||new Map());
+    if(cached&&!force&&now-cached.time<CACHE_TTL){
+      setMapInfo(`🗺️ ${cached.scores.size}/${window.WATERS.length} ადგილი • მიღებულია ${new Date(cached.time).toLocaleTimeString('ka-GE',{timeZone:'Asia/Tbilisi',hour:'2-digit',minute:'2-digit'})} • ${date} ${hh}:00`);return;
     }
+    if(refreshBtn)refreshBtn.disabled=true;
+    setMapInfo(`🌦️ პირობები იტვირთება • ${date} • ${hh}:00`);
+    const valid=window.WATERS.filter(water=>Number.isFinite(+water[4])&&Number.isFinite(+water[5])),chunks=[];
+    for(let i=0;i<valid.length;i+=12)chunks.push(valid.slice(i,i+12));
+    const fresh=new Map();let failures=0,nextChunk=0;
+    const worker=async()=>{
+      while(nextChunk<chunks.length&&seq===requestSeq){
+        const chunk=chunks[nextChunk++];
+        try{const result=await fetchScoresChunk(chunk,date,hour,seq);if(seq!==requestSeq)return;for(const [id,score] of result)fresh.set(id,score);}
+        catch(error){if(seq!==requestSeq)return;failures++;}
+      }
+    };
+    try{
+      await Promise.all(Array.from({length:Math.min(3,chunks.length)},worker));if(seq!==requestSeq)return;
+      if(fresh.size){
+        const updatedAt=Date.now();scoreCache.set(key,{time:updatedAt,scores:new Map(fresh)});
+        try{sessionStorage.setItem(`GN_MAP_SCORE_V3_${key}`,JSON.stringify({time:updatedAt,scores:[...fresh]}));}catch{}
+        drawWaterMarkers(fresh);
+        const updateTime=new Date(updatedAt).toLocaleTimeString('ka-GE',{timeZone:'Asia/Tbilisi',hour:'2-digit',minute:'2-digit'});
+        setMapInfo(`🗺️ ${fresh.size}/${valid.length} ადგილი • მიღებულია ${updateTime} • ${date} ${hh}:00${fresh.size<valid.length?' • — მონაცემი მიუწვდომელია':''}`);
+      }else if(cached){
+        drawWaterMarkers(cached.scores);setMapInfo(`🗺️ ბოლო შენახული პროგნოზი • ${date} • ${hh}:00 • განახლება ვერ მოხერხდა`);
+      }else{
+        drawWaterMarkers(new Map());setMapInfo(`🗺️ ${valid.length} ადგილი • ${date} • ${hh}:00 • ამინდის მონაცემი მიუწვდომელია`);
+      }
+      if(label&&(failures||fresh.size<valid.length))label.textContent=`პროგნოზი • ${date} ${hh}:00 • ${fresh.size?'ნაწილობრივი მონაცემი':cached?'ბოლო შენახული მონაცემი':'მონაცემი მიუწვდომელია'}`;
+    }finally{if(seq===requestSeq&&refreshBtn)refreshBtn.disabled=false;}
   }
-
+  function refreshLiveMap(){
+    if(followCurrent){const clock=mapClock(),date=document.getElementById('mapDate'),hour=document.getElementById('mapHour');if(date)date.value=clock.date;if(hour)hour.value=String(clock.hour);}
+    return loadWaterScores({force:true});
+  }
   function syncMapLive(){
-    const liveBtn=document.getElementById('mapLiveToggle');
-    if(liveBtn)liveBtn.textContent=mapLive?'ავტომატური განახლება: ჩართულია':'ავტომატური განახლება: გამორთულია';
-    if(mapRefreshTimer)clearInterval(mapRefreshTimer);
-    if(mapLive)mapRefreshTimer=setInterval(()=>{if(isToday())loadWaterScores()},10*60*1000);
+    const button=document.getElementById('mapLiveToggle');
+    if(button){button.textContent=mapLive?'ავტომატური განახლება: ჩართულია':'ავტომატური განახლება: გამორთულია';button.setAttribute('aria-pressed',String(mapLive));}
+    if(mapRefreshTimer)clearInterval(mapRefreshTimer);mapRefreshTimer=null;
+    if(mapLive)mapRefreshTimer=setInterval(()=>{if(!document.hidden)refreshLiveMap();},5*60*1000);
   }
-
   initMapTimeControls();
   drawWaterMarkers(new Map());
   loadWaterScores();
 
   const refreshBtn=document.getElementById('mapRefresh'),liveBtn=document.getElementById('mapLiveToggle');
-  if(refreshBtn)refreshBtn.onclick=()=>loadWaterScores();
-  if(liveBtn)liveBtn.onclick=()=>{mapLive=!mapLive;syncMapLive()};
+  if(refreshBtn)refreshBtn.onclick=()=>refreshLiveMap();
+  if(liveBtn)liveBtn.onclick=()=>{mapLive=!mapLive;syncMapLive();if(mapLive)refreshLiveMap()};
   syncMapLive();
 
   setTimeout(()=>map.invalidateSize(),200);
@@ -183,30 +167,27 @@ function initGeoMap(){
   function show(lat,lon,name){
     if(!Number.isFinite(lat)||!Number.isFinite(lon))return;
     if(marker)map.removeLayer(marker);
-    marker=L.marker([lat,lon]).addTo(map).bindPopup(name||'არჩეული ადგილი').openPopup();
+    marker=L.marker([lat,lon]).addTo(map).bindPopup(esc(name||'არჩეული ადგილი')).openPopup();
     map.setView([lat,lon],12);
     setMapInfo(`${name||'არჩეული ადგილი'} • ${lat.toFixed(5)}, ${lon.toFixed(5)}`);
     if(routeMode&&userCoords)drawRoute(userCoords,[lat,lon],name);
   }
   async function drawRoute(a,b,name){
-    const [aLat,aLon]=a,[bLat,bLon]=b;
+    const seq=++routeSeq;if(routeController)routeController.abort();routeController=new AbortController();
+    const controller=routeController,timeout=setTimeout(()=>controller.abort(),9000),[aLat,aLon]=a,[bLat,bLon]=b;
     const routeInfo=document.getElementById('routeInfo');
     try{
-      const ctl=new AbortController();const timer=setTimeout(()=>ctl.abort(),9000);
       const url=`https://router.project-osrm.org/route/v1/driving/${aLon},${aLat};${bLon},${bLat}?overview=full&geometries=geojson&steps=false`;
-      const r=await fetch(url,{signal:ctl.signal});clearTimeout(timer);const d=await r.json();
-      if(!r.ok||!d.routes?.[0])throw new Error('route unavailable');
-      if(route)map.removeLayer(route);
-      route=L.geoJSON(d.routes[0].geometry,{style:{color:'#4fd3ff',weight:6,opacity:.9}}).addTo(map);
-      map.fitBounds(route.getBounds(),{padding:[70,70]});
-      if(routeInfo)routeInfo.textContent=`${name||'დანიშნულება'} • ${Math.round(d.routes[0].distance/1000*10)/10} კმ • დაახლოებით ${Math.round(d.routes[0].duration/60)} წთ`;
-    }catch(e){
-      if(route)map.removeLayer(route);
-      route=L.polyline([a,b],{color:'#f6c453',weight:4,dashArray:'8 8',opacity:.95}).addTo(map);
-      const km=haversine(aLat,aLon,bLat,bLon);
-      map.fitBounds(route.getBounds(),{padding:[70,70]});
-      if(routeInfo)routeInfo.textContent=`${name||'დანიშნულება'} • პირდაპირი მანძილი ${km.toFixed(1)} კმ • გზის დეტალური მარშრუტი დროებით მიუწვდომელია`;
-    }
+      const response=await fetch(url,{signal:controller.signal}),data=await response.json();
+      if(seq!==routeSeq||!routeMode)return;
+      const result=data.routes?.[0];if(!response.ok||!result?.geometry||!Number.isFinite(result.distance)||!Number.isFinite(result.duration))throw new Error('route unavailable');
+      if(route)map.removeLayer(route);route=L.geoJSON(result.geometry,{style:{color:'#4fd3ff',weight:6,opacity:.9}}).addTo(map);map.fitBounds(route.getBounds(),{padding:[70,70]});
+      if(routeInfo)routeInfo.textContent=`${name||'დანიშნულება'} • ${(result.distance/1000).toFixed(1)} კმ • დაახლოებით ${Math.round(result.duration/60)} წთ`;
+    }catch(error){
+      if(seq!==routeSeq||!routeMode)return;
+      if(route)map.removeLayer(route);route=L.polyline([a,b],{color:'#f6c453',weight:4,dashArray:'8 8',opacity:.95}).addTo(map);map.fitBounds(route.getBounds(),{padding:[70,70]});
+      if(routeInfo)routeInfo.textContent=`${name||'დანიშნულება'} • პირდაპირი მანძილი ${haversine(aLat,aLon,bLat,bLon).toFixed(1)} კმ • გზის მარშრუტი დროებით მიუწვდომელია`;
+    }finally{clearTimeout(timeout);if(routeController===controller)routeController=null;}
   }
   function showNearby(lat,lon){
     const valid=(window.WATERS||[]).filter(w=>Number.isFinite(+w[4])&&Number.isFinite(+w[5]));
@@ -216,11 +197,11 @@ function initGeoMap(){
     if(list[0])map.setView([+list[0].w[4],+list[0].w[5]],9);
   }
   async function searchMap(q){
-    const query=String(q||'').trim();if(!query)return;
+    const query=String(q||'').trim();if(!query)return;const seq=++searchSeq;
     try{
-      const d=await geocode(query);if(d?.[0]){show(+d[0].lat,+d[0].lon,d[0].display_name);return;}
+      const d=await geocode(query);if(seq!==searchSeq)return;if(d?.[0]){show(+d[0].lat,+d[0].lon,d[0].display_name);return;}
     }catch{}
-    const ql=query.toLowerCase();
+    if(seq!==searchSeq)return;const ql=query.toLowerCase();
     const local=(window.WATERS||[]).find(w=>(`${w[1]} ${w[2]} ${w[3]} ${w[7]||''}`).toLowerCase().includes(ql));
     if(local)show(+local[4],+local[5],local[1]);else setMapInfo('ადგილი ვერ მოიძებნა. სცადე სრული სახელი.');
   }
@@ -235,6 +216,8 @@ function initGeoMap(){
   const routeBtn=document.getElementById('routeMode');
   if(routeBtn)routeBtn.onclick=()=>{routeMode=true;const el=document.getElementById('routeInfo');if(el)el.textContent=userCoords?'მარშრუტის რეჟიმი ჩართულია. რუკაზე ან ძიებით აირჩიე დანიშნულება.':'ჯერ ჩართე „ჩემი მდებარეობა“, შემდეგ აირჩიე დანიშნულება.'};
   const clear=document.getElementById('clearRoute');
-  if(clear)clear.onclick=()=>{if(route)map.removeLayer(route);route=null;routeMode=false;const el=document.getElementById('routeInfo');if(el)el.textContent='მარშრუტი გასუფთავებულია.'};
+  if(clear)clear.onclick=()=>{++routeSeq;if(routeController)routeController.abort();routeController=null;if(route)map.removeLayer(route);route=null;routeMode=false;const el=document.getElementById('routeInfo');if(el)el.textContent='მარშრუტი გასუფთავებულია.'};
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&mapLive)refreshLiveMap();});
+  window.addEventListener('pagehide',()=>{if(mapRefreshTimer)clearInterval(mapRefreshTimer);activeScoreControllers.forEach(controller=>controller.abort());if(routeController)routeController.abort();});
   if(params.get('lat')&&params.get('lon'))show(+params.get('lat'),+params.get('lon'),params.get('name')||'ლოკაცია');
 }

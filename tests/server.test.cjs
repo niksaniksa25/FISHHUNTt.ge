@@ -78,6 +78,21 @@ test('public symlinks cannot expose a file outside the checkout', async () => {
   assert.equal((await fetch(base + prefix + '/public.html')).status, 200);
 });
 
+test('symlinks inside the checkout obey the same private-path rules as direct requests', async () => {
+  const prefix = '/assets/' + path.basename(assets);
+  await fs.symlink(path.join(repo, 'server.js'), path.join(assets, 'internalprivate.html'));
+  await fs.symlink(path.join(repo, '.env.example'), path.join(assets, 'configuration.html'));
+  await fs.symlink(path.join(assets, 'public.html'), path.join(assets, 'alias.html'));
+  await fs.symlink(path.join(repo, 'js', 'common.js'), path.join(assets, 'script-alias.html'));
+  assert.equal((await fetch(base + prefix + '/internalprivate.html')).status, 404);
+  assert.equal((await fetch(base + prefix + '/internalprivate.html', { method: 'HEAD' })).status, 404);
+  assert.equal((await fetch(base + prefix + '/configuration.html')).status, 404);
+  assert.equal((await fetch(base + prefix + '/alias.html')).status, 200);
+  const script = await fetch(base + prefix + '/script-alias.html');
+  assert.equal(script.status, 200);
+  assert.equal(script.headers.get('content-type'), 'application/javascript; charset=utf-8');
+});
+
 test('feedback validates fields and reaches the authenticated admin inbox', async () => {
   await api('/api/feedback', { message: ' ' }, 400);
   await api('/api/feedback', { message: 'test', email: 'invalid-address' }, 400);

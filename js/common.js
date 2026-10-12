@@ -1,4 +1,49 @@
-function localDateISO(d=new Date()){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+function numberOrNull(value){
+  if(value===null||value===undefined||typeof value==='boolean'||(typeof value==='string'&&!value.trim()))return null;
+  const n=Number(value);return Number.isFinite(n)?n:null;
+}
+function zonedDateTime(dataOrTimeZone='Asia/Tbilisi',now=new Date()){
+  const timezone=typeof dataOrTimeZone==='string'?dataOrTimeZone:(dataOrTimeZone?.timezone||'Asia/Tbilisi');
+  const dateValue=now instanceof Date?now:new Date(now);
+  if(!Number.isFinite(dateValue.getTime()))return null;
+  let parts;
+  try{parts=new Intl.DateTimeFormat('en-GB',{timeZone:timezone,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).formatToParts(dateValue);}
+  catch{return zonedDateTime('Asia/Tbilisi',dateValue);}
+  const values=Object.fromEntries(parts.map(p=>[p.type,p.value]));
+  const date=`${values.year}-${values.month}-${values.day}`,time=`${values.hour}:${values.minute}`;
+  return {date,time,hour:Number(values.hour),iso:`${date}T${time}:${values.second}`,timezone};
+}
+function localDateISO(d=new Date(),timeZone='Asia/Tbilisi'){return zonedDateTime(timeZone,d)?.date||'';}
+const WEATHER_ROW_FIELDS={temperature:'temperature_2m',apparent_temperature:'apparent_temperature',pressure:'pressure_msl',wind:'wind_speed_10m',gust:'wind_gusts_10m',precip:'precipitation',rainProb:'precipitation_probability',humidity:'relative_humidity_2m',cloud:'cloud_cover',visibility:'visibility',code:'weather_code',is_day:'is_day'};
+function weatherRowAt(data,iso){
+  const index=data?.hourly?.time?.indexOf(iso)??-1;if(index<0)return null;
+  const row={iso,time:iso.slice(11,16),date:iso.slice(0,10),local_hour:numberOrNull(iso.slice(11,13)),source:'forecast'};
+  for(const [key,field] of Object.entries(WEATHER_ROW_FIELDS))row[key]=numberOrNull(data.hourly[field]?.[index]);
+  if(row.apparent_temperature===null)row.apparent_temperature=row.temperature;
+  row.apparent=row.apparent_temperature;
+  return row;
+}
+function hourlyRows(data,date){return (data?.hourly?.time||[]).filter(iso=>!date||iso.slice(0,10)===date).map(iso=>weatherRowAt(data,iso));}
+function conditionsFromRow(row){
+  if(!row)return null;
+  const result={local_hour:numberOrNull(row.local_hour??row.time?.slice(0,2))};
+  for(const [key,field] of Object.entries(WEATHER_ROW_FIELDS))result[field]=numberOrNull(row[key]);
+  return result;
+}
+function currentWeatherRow(data){
+  const iso=data?.current?.time;if(typeof iso!=='string')return null;
+  const row=weatherRowAt(data,iso.slice(0,13)+':00')||{};
+  Object.assign(row,{iso,time:iso.slice(11,16),date:iso.slice(0,10),local_hour:numberOrNull(iso.slice(11,13)),source:'current'});
+  for(const [key,field] of Object.entries(WEATHER_ROW_FIELDS)){
+    if(Object.hasOwn(data.current,field)||!['rainProb','visibility'].includes(key))row[key]=numberOrNull(data.current[field]);
+  }
+  if(row.apparent_temperature===null)row.apparent_temperature=row.temperature;
+  row.apparent=row.apparent_temperature;
+  return row;
+}
+function hasWeatherCore(c){
+  return ['temperature_2m','wind_speed_10m','precipitation','weather_code'].every(key=>numberOrNull(c?.[key])!==null)&&numberOrNull(c.wind_speed_10m)>=0&&numberOrNull(c.precipitation)>=0&&[0,1,2,3,45,48,51,53,55,56,57,61,63,65,66,67,71,73,75,77,80,81,82,85,86,95,96,99].includes(numberOrNull(c.weather_code));
+}
 function setupMenu(){
   const button=document.getElementById('menuBtn'),nav=document.getElementById('nav');
   if(!button||!nav||button.dataset.gnMenuBound)return;
@@ -17,16 +62,17 @@ function setupMenu(){
   document.addEventListener('keydown',event=>{if(event.key==='Escape'&&nav.classList.contains('open')){setOpen(false);button.focus();}});
   window.addEventListener('resize',()=>{if(window.innerWidth>=1025)setOpen(false);},{passive:true});
 }
-function codeMeta(code){const m={0:['☀️','მოწმენდილი'],1:['🌤️','უმეტესად მოწმენდილი'],2:['⛅','ნაწილობრივ ღრუბლიანი'],3:['☁️','ღრუბლიანი'],45:['🌫️','ნისლი'],48:['🌫️','ნისლი'],51:['🌦️','ჟინჟღლი'],53:['🌦️','ჟინჟღლი'],55:['🌧️','ძლიერი ჟინჟღლი'],61:['🌧️','წვიმა'],63:['🌧️','წვიმა'],65:['🌧️','ძლიერი წვიმა'],71:['🌨️','თოვა'],73:['🌨️','თოვა'],75:['❄️','ძლიერი თოვა'],80:['🌦️','წვიმის შხეფები'],81:['🌧️','წვიმის შხეფები'],82:['⛈️','ძლიერი შხეფები'],95:['⛈️','ჭექა-ქუხილი'],96:['⛈️','ჭექა-ქუხილი'],99:['⛈️','ძლიერი ჭექა-ქუხილი']};return m[code]||['🌥️','ცვალებადი']}
+function codeMeta(code){if(numberOrNull(code)===null)return ['—','მონაცემი მიუწვდომელია'];const m={0:['☀️','მოწმენდილი'],1:['🌤️','უმეტესად მოწმენდილი'],2:['⛅','ნაწილობრივ ღრუბლიანი'],3:['☁️','ღრუბლიანი'],45:['🌫️','ნისლი'],48:['🌫️','ყინულოვანი ნისლი'],51:['🌦️','სუსტი ჟინჟღლი'],53:['🌦️','ჟინჟღლი'],55:['🌧️','ძლიერი ჟინჟღლი'],56:['🧊','ყინულოვანი ჟინჟღლი'],57:['🧊','ძლიერი ყინულოვანი ჟინჟღლი'],61:['🌧️','სუსტი წვიმა'],63:['🌧️','წვიმა'],65:['🌧️','ძლიერი წვიმა'],66:['🧊','ყინულოვანი წვიმა'],67:['🧊','ძლიერი ყინულოვანი წვიმა'],71:['🌨️','სუსტი თოვა'],73:['🌨️','თოვა'],75:['❄️','ძლიერი თოვა'],77:['❄️','თოვლის მარცვლები'],80:['🌦️','სუსტი წვიმის შხეფები'],81:['🌧️','წვიმის შხეფები'],82:['⛈️','ძლიერი შხეფები'],85:['🌨️','თოვლის შხეფები'],86:['❄️','ძლიერი თოვლის შხეფები'],95:['⛈️','ჭექა-ქუხილი'],96:['⛈️','ჭექა-ქუხილი და სეტყვა'],99:['⛈️','ძლიერი ჭექა-ქუხილი და სეტყვა']};return m[code]||['🌥️','ცვალებადი']}
 function scoreWeather(c){
-  const t=Number(c?.temperature_2m);
-  const w=Number(c?.wind_speed_10m);
-  const p=Number(c?.precipitation);
-  const pr=Number(c?.pressure_msl);
-  const h=Number(c?.relative_humidity_2m);
-  const code=Number(c?.weather_code);
-  const rainProb=Number(c?.precipitation_probability);
-  const n=(v,d)=>Number.isFinite(v)?v:d;
+  if(!hasWeatherCore(c))return null;
+  const t=numberOrNull(c?.temperature_2m);
+  const w=numberOrNull(c?.wind_speed_10m);
+  const p=numberOrNull(c?.precipitation);
+  const pr=numberOrNull(c?.pressure_msl);
+  const h=numberOrNull(c?.relative_humidity_2m);
+  const code=numberOrNull(c?.weather_code);
+  const rainProb=numberOrNull(c?.precipitation_probability);
+  const n=(v,d)=>v===null?d:v;
   const temp=n(t,20), wind=Math.max(0,n(w,0)), rain=Math.max(0,n(p,0)), pressure=n(pr,1013), humidity=n(h,55), probability=Math.max(0,n(rainProb,0));
   const tempScore=Math.max(35,100-Math.max(0,Math.abs(temp-21)-4)*5);
   const windScore=wind<=7?100:wind<=15?90-(wind-7)*3:wind<=25?66-(wind-15)*3.6:wind<=35?30-(wind-25)*2.2:5;
@@ -35,20 +81,25 @@ function scoreWeather(c){
   const humidityScore=humidity>=40&&humidity<=70?100:humidity<40?Math.max(55,100-(40-humidity)*2):Math.max(50,100-(humidity-70)*1.8);
   let weatherScore=100;
   if([95,96,99].includes(code)) weatherScore=15;
-  else if([71,73,75,82].includes(code)) weatherScore=35;
+  else if([56,57,66,67].includes(code))weatherScore=25;
+  else if([71,73,75,77,82,85,86].includes(code)) weatherScore=35;
   else if([65,80,81].includes(code)) weatherScore=48;
   else if([61,63,55].includes(code)) weatherScore=62;
   else if([45,48].includes(code)) weatherScore=68;
   else if([51,53].includes(code)) weatherScore=80;
   const probPenalty=Math.max(0,(probability-20)*0.3);
-  const score=tempScore*.20 + windScore*.24 + rainScore*.24 + pressureScore*.10 + humidityScore*.10 + weatherScore*.12 - probPenalty;
-  return Math.max(0,Math.min(100,Math.round(score)));
+  const terms=[[tempScore,.20],[windScore,.24],[rainScore,.24],[weatherScore,.12]];
+  if(pr!==null)terms.push([pressureScore,.10]);if(h!==null)terms.push([humidityScore,.10]);
+  const score=terms.reduce((sum,[value,weight])=>sum+value*weight,0)/terms.reduce((sum,[,weight])=>sum+weight,0)-probPenalty;
+  const cap=[95,96,99].includes(code)?30:wind>=50||rain>=10?25:[56,57,66,67,86].includes(code)?35:100;
+  return Math.max(0,Math.min(cap,Math.round(score)));
 }
 function outdoorScore(c){
   // Outdoor score is intentionally conservative. It is evaluated per hour,
   // using the actual hourly conditions plus gusts, rain probability,
   // visibility and (when available) daylight context.
-  const n=(v,d)=>Number.isFinite(Number(v))?Number(v):d;
+  if(!hasWeatherCore(c))return null;
+  const n=(v,d)=>numberOrNull(v)??d;
   const t=n(c?.temperature_2m,20), apparent=n(c?.apparent_temperature,t);
   const w=Math.max(0,n(c?.wind_speed_10m,0)), gust=Math.max(0,n(c?.wind_gusts_10m,w));
   const rain=Math.max(0,n(c?.precipitation,0)), pressure=n(c?.pressure_msl,1013);
@@ -56,7 +107,7 @@ function outdoorScore(c){
   const rp=Math.max(0,n(c?.precipitation_probability,0));
   const cloud=Math.max(0,Math.min(100,n(c?.cloud_cover,50)));
   const visibility=Math.max(0,n(c?.visibility,10000));
-  const hour=Number.isFinite(Number(c?.local_hour))?Number(c.local_hour):null;
+  const hour=numberOrNull(c?.local_hour);
 
   // Comfortable outdoor temperature uses apparent temperature so heat/chill
   // from wind is not ignored.
@@ -77,8 +128,9 @@ function outdoorScore(c){
 
   let weatherScore=92;
   if([95,96,99].includes(code))weatherScore=2;
+  else if([56,57,66,67].includes(code))weatherScore=12;
   else if([65,82].includes(code))weatherScore=12;
-  else if([75,73,71].includes(code))weatherScore=20;
+  else if([75,73,71,77,85,86].includes(code))weatherScore=20;
   else if([61,63,80,81].includes(code))weatherScore=32;
   else if([51,53,55].includes(code))weatherScore=52;
   else if([45,48].includes(code))weatherScore=60;
@@ -90,71 +142,162 @@ function outdoorScore(c){
   // Night-time is not "bad" by itself, but general outdoor comfort/visibility
   // is lower outside daylight. Dedicated Night Sky has its own score.
   let lightScore=86;
-  if(hour!==null){
+  const daylight=numberOrNull(c?.is_day);
+  if(daylight!==null)lightScore=daylight===1?100:48;
+  else if(hour!==null){
     if(hour>=7&&hour<=18) lightScore=100;
     else if(hour>=5&&hour<=6 || hour>=19&&hour<=20) lightScore=72;
     else lightScore=48;
   }
 
-  const raw=(tempScore*.18)+(windScore*.15)+(gustScore*.08)+(rainScore*.14)+(probScore*.08)+
-            (pressureScore*.09)+(humidityScore*.05)+(cloudScore*.05)+(weatherScore*.09)+
-            (visibilityScore*.01)+(lightScore*.08);
+  const terms=[[tempScore,.18],[windScore,.15],[rainScore,.14],[weatherScore,.09],[lightScore,.08]];
+  for(const [field,value,weight] of [['wind_gusts_10m',gustScore,.08],['precipitation_probability',probScore,.08],['pressure_msl',pressureScore,.09],['relative_humidity_2m',humidityScore,.05],['cloud_cover',cloudScore,.05],['visibility',visibilityScore,.01]])if(numberOrNull(c?.[field])!==null)terms.push([value,weight]);
+  const raw=terms.reduce((sum,[value,weight])=>sum+value*weight,0)/terms.reduce((sum,[,weight])=>sum+weight,0);
   // Slightly conservative curve prevents routine weather from looking like
   // a perfect 95-100 day while still rewarding genuinely good conditions.
-  return Math.max(0,Math.min(100,Math.round(4+96*Math.pow(Math.max(0,Math.min(100,raw))/100,1.22))));
+  const cap=[95,96,99].includes(code)?25:gust>=60||w>=50||rain>=10||apparent>=45||apparent<=-15?25:[56,57,66,67,86].includes(code)?35:100;
+  return Math.max(0,Math.min(cap,Math.round(4+96*Math.pow(Math.max(0,Math.min(100,raw))/100,1.22))));
 }
 function pressureStatus(p){if(p<995)return ['დაბალი წნევა','დაბალი წნევა ხშირად ცვლის პირობებს; სხვა ფაქტორებთან ერთად შეაფასე.'];if(p>1025)return ['მაღალი წნევა','მაღალი წნევისას ამინდი ხშირად უფრო სტაბილურია, მაგრამ სხვა პირობებიც მნიშვნელოვანია.'];return ['ნორმალური დიაპაზონი','წნევა საშუალო დიაპაზონშია; შეადარე ტემპერატურას, ქარს და ნალექს.']}
-function setPressureGauge(value,needleId,valueId,statusId,adviceId){const p=+value;if(!Number.isFinite(p))return;const pct=Math.max(0,Math.min(1,(p-960)/80));const deg=-90+180*pct;const n=document.getElementById(needleId);if(n)n.style.transform=`translateX(-50%) rotate(${deg}deg)`;const v=document.getElementById(valueId);if(v)v.textContent=Math.round(p);const [st,ad]=pressureStatus(p);const stEl=document.getElementById(statusId);const adEl=document.getElementById(adviceId);if(stEl)stEl.textContent=st;if(adEl)adEl.textContent=ad}
-async function openMeteo(lat,lon){
+function setPressureGauge(value,needleId,valueId,statusId,adviceId){const p=numberOrNull(value);const v=document.getElementById(valueId),stEl=document.getElementById(statusId),adEl=document.getElementById(adviceId);if(p===null){if(v)v.textContent='—';if(stEl)stEl.textContent='მონაცემი მიუწვდომელია';if(adEl)adEl.textContent='წნევის მონაცემს ველოდებით.';return;}const pct=Math.max(0,Math.min(1,(p-960)/80));const deg=-90+180*pct;const n=document.getElementById(needleId);if(n)n.style.transform=`translateX(-50%) rotate(${deg}deg)`;if(v)v.textContent=Math.round(p);const [st,ad]=pressureStatus(p);if(stEl)stEl.textContent=st;if(adEl)adEl.textContent=ad}
+const pendingWeatherRequests=new Map();
+function validCoordinates(lat,lon){const a=numberOrNull(lat),b=numberOrNull(lon);return a!==null&&b!==null&&Math.abs(a)<=90&&Math.abs(b)<=180;}
+function validateForecast(data){
+  if(!data?.current||!hasWeatherCore(data.current)||typeof data.current.time!=='string'||!Array.isArray(data.hourly?.time)||!data.hourly.time.length||!Array.isArray(data.daily?.time)||!data.daily.time.length)throw new Error('Incomplete weather data');
+  const validTime=value=>typeof value==='string'&&/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?$/.test(value)&&Number.isFinite(Date.parse(value+'Z'))&&new Date(value+'Z').toISOString().slice(0,16)===value.slice(0,16);
+  const offset=numberOrNull(data.utc_offset_seconds);
+  if(!validTime(data.current.time)||offset===null||Math.abs(offset)>14*3600||typeof data.timezone!=='string')throw new Error('Invalid weather timestamp');
+  try{new Intl.DateTimeFormat('en',{timeZone:data.timezone});}catch{throw new Error('Invalid weather timezone');}
+  if(!data.hourly.time.every(validTime)||!data.daily.time.every(date=>validTime(date+'T00:00')))throw new Error('Invalid forecast timeline');
+  for(const key of ['temperature_2m','wind_speed_10m','precipitation','weather_code'])if(!Array.isArray(data.hourly[key])||data.hourly[key].length!==data.hourly.time.length)throw new Error('Incomplete hourly weather data');
+  for(const key of ['weather_code','temperature_2m_max','temperature_2m_min'])if(!Array.isArray(data.daily[key])||data.daily[key].length!==data.daily.time.length)throw new Error('Incomplete daily weather data');
+  for(const [field,expected] of [['temperature_2m','°C'],['wind_speed_10m','km/h'],['precipitation','mm'],['pressure_msl','hPa']]){
+    for(const units of [data.current_units,data.hourly_units])if(units?.[field]&&units[field]!==expected)throw new Error('Unexpected weather units');
+  }
+  return data;
+}
+function weatherObservationTime(data){
+  if(Number.isFinite(data?.__meta?.currentTime))return data.__meta.currentTime;
+  const iso=data?.current?.time,offset=numberOrNull(data?.utc_offset_seconds);
+  if(typeof iso!=='string'||offset===null)return null;
+  const time=Date.parse(iso+'Z')-offset*1000;return Number.isFinite(time)?time:null;
+}
+async function openMeteo(lat,lon,options={}){
+  if(!validCoordinates(lat,lon))throw new Error('Valid location coordinates are required');
+  const key=`${Number(lat)},${Number(lon)}`;
+  if(pendingWeatherRequests.has(key))return pendingWeatherRequests.get(key);
+  const request=fetchWeather(Number(lat),Number(lon),options);
+  pendingWeatherRequests.set(key,request);
+  try{return await request;}finally{pendingWeatherRequests.delete(key);}
+}
+async function fetchWeather(lat,lon,options){
   const coords=`latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}`;
   const controller=()=>{const c=new AbortController();const t=setTimeout(()=>c.abort(),12000);return {signal:c.signal,done:()=>clearTimeout(t)};};
-  try{
-    const c=controller();try{const r=await fetch(`/api/weather?${coords}`,{cache:'no-store',signal:c.signal});const d=await r.json();if(r.ok&&d?.data){d.data.__meta=d.meta||{};c.done();return d.data}}finally{c.done()}
-  }catch{}
-  const u=`https://api.open-meteo.com/v1/forecast?${coords}&timezone=auto&forecast_days=16&models=best_match&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,rain,showers,snowfall,weather_code,cloud_cover,pressure_msl,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m&hourly=temperature_2m,relative_humidity_2m,precipitation_probability,precipitation,weather_code,cloud_cover,pressure_msl,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m,visibility&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,wind_speed_10m_max,sunrise,sunset,uv_index_max`;
+  if(!String(window.location?.hostname||'').endsWith('.github.io')||window.GN_API_BASE_URL){
+    try{
+      const c=controller();try{const route=`/api/weather?${coords}${options.force?'&refresh=1':''}`;const r=await fetch(window.GN_API_URL?window.GN_API_URL(route):route,{cache:'no-store',signal:c.signal});const d=await r.json();if(r.ok&&d?.data){validateForecast(d.data);d.data.__meta=d.meta||{};return d.data}}finally{c.done()}
+    }catch{}
+  }
+  const u=`https://api.open-meteo.com/v1/forecast?${coords}&timezone=auto&forecast_days=16&models=best_match&temperature_unit=celsius&wind_speed_unit=kmh&precipitation_unit=mm&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,rain,showers,snowfall,weather_code,cloud_cover,pressure_msl,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m,is_day&hourly=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation_probability,precipitation,weather_code,cloud_cover,pressure_msl,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m,visibility,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,wind_speed_10m_max,sunrise,sunset,uv_index_max`;
   let lastErr=null;
   for(let i=0;i<2;i++){
-    try{const c=controller();try{const r=await fetch(u,{cache:'no-store',signal:c.signal});if(!r.ok)throw new Error('weather unavailable');const d=await r.json();d.__meta={source:'Open-Meteo direct fallback',updatedAt:Date.now(),stale:false};c.done();return d}catch(e){c.done();throw e}}catch(e){lastErr=e;await new Promise(r=>setTimeout(r,350))}
+    try{const c=controller();try{const r=await fetch(u,{cache:'no-store',signal:c.signal});if(!r.ok)throw new Error('weather unavailable');const d=validateForecast(await r.json());const updatedAt=Date.now(),currentTime=weatherObservationTime(d);d.__meta={source:'Open-Meteo',updatedAt,fetchedAt:updatedAt,currentTime,stale:currentTime===null||updatedAt-currentTime>90*60*1000||currentTime-updatedAt>30*60*1000};return d}finally{c.done()}}catch(e){lastErr=e;if(i===0)await new Promise(r=>setTimeout(r,350))}
   }
   throw lastErr||new Error('weather unavailable')
 }
-async function geocode(q){const u=`https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=8&accept-language=ka&countrycodes=ge&q=${encodeURIComponent(q)}`;const r=await fetch(u,{headers:{Accept:'application/json'}});if(!r.ok)throw new Error('geocode failed');return r.json()}
-function fmtDate(x){return new Date(x).toLocaleDateString('ka-GE',{weekday:'long',day:'2-digit',month:'short'})}
-function fmtTime(x){return new Date(x).toLocaleTimeString('ka-GE',{hour:'2-digit',minute:'2-digit'})}
+async function geocode(q){const u=`https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=8&accept-language=ka&countrycodes=ge&q=${encodeURIComponent(q)}`,controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);try{const r=await fetch(u,{headers:{Accept:'application/json'},signal:controller.signal});if(!r.ok)throw new Error('geocode failed');const data=await r.json();if(!Array.isArray(data))throw new Error('Invalid location results');return data;}finally{clearTimeout(timer);}}
+function fmtDate(x){const local=typeof x==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(x),date=new Date(local?x+'T12:00:00Z':x);return Number.isFinite(date.getTime())?date.toLocaleDateString('ka-GE',{weekday:'long',day:'2-digit',month:'short',timeZone:local?'UTC':'Asia/Tbilisi'}):'—';}
+function fmtTime(x){if(typeof x==='string'&&/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(x))return x.slice(11,16);const date=new Date(x);return Number.isFinite(date.getTime())?date.toLocaleTimeString('ka-GE',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Tbilisi'}):'—';}
 async function loadHomeWeather(lat,lon,city){try{const d=await openMeteo(lat,lon),c=d.current,m=codeMeta(c.weather_code),s=scoreWeather(c);document.getElementById('homeCity').textContent=city;document.getElementById('homeIcon').textContent=m[0];document.getElementById('homeTemp').textContent=Math.round(c.temperature_2m)+'°';document.getElementById('homeDesc').textContent=m[1];document.getElementById('homeScore').textContent=s;document.getElementById('homePressure').textContent=Math.round(c.pressure_msl)+' hPa';document.getElementById('homeWind').textContent=Math.round(c.wind_speed_10m)+' კმ/სთ';document.getElementById('homeHumidity').textContent=Math.round(c.relative_humidity_2m)+'%';document.getElementById('homeRain').textContent=Number(c.precipitation).toFixed(1)+' მმ'}catch(e){console.error(e)}}
 async function initWeatherPage(lat,lon,city){
-  const input=document.getElementById('weatherSearch'),res=document.getElementById('weatherSearchResults');
-  let activeLat=lat,activeLon=lon,activeCity=city,selectedWeatherHour='';
-  function weatherRows(d){
-    const hs=d?.hourly?.time||[];return hs.map((t,i)=>({iso:t,time:t.slice(11,16),temperature:Number(d.hourly.temperature_2m?.[i]),pressure:Number(d.hourly.pressure_msl?.[i]),wind:Number(d.hourly.wind_speed_10m?.[i]),gust:Number(d.hourly.wind_gusts_10m?.[i]),precip:Number(d.hourly.precipitation?.[i]),rainProb:Number(d.hourly.precipitation_probability?.[i]),humidity:Number(d.hourly.relative_humidity_2m?.[i]),cloud:Number(d.hourly.cloud_cover?.[i]),visibility:Number(d.hourly.visibility?.[i]||0),code:Number(d.hourly.weather_code?.[i])})).filter(r=>r.iso.slice(0,10)===(d.current?.time||d.hourly.time?.[0]||'').slice(0,10));
+  const get=id=>document.getElementById(id),set=(id,value)=>{const el=get(id);if(el)el.textContent=value;};
+  const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const fmt=(value,unit='',digits=1)=>numberOrNull(value)===null?'—':Number(value).toFixed(digits)+unit;
+  let activeLat=lat,activeLon=lon,activeCity=city,data=null,selectedISO='',trackCurrent=true,requestId=0,searchId=0;
+  function renderFactors(){
+    if(!data)return;
+    const row=trackCurrent?currentWeatherRow(data):weatherRowAt(data,selectedISO);
+    if(row&&window.GNLiveFactors)GNLiveFactors.render({data,row,type:'weather',subject:null,locationName:activeCity,live:controller?.live!==false,selectedCurrent:trackCurrent});
   }
-  function selectWeatherRow(d,row){
-    if(!row)return;selectedWeatherHour=row.time;const el=document.getElementById('weatherHourSelect');if(el)el.value=row.time;
-    const score=outdoorScore({temperature_2m:row.temperature,pressure_msl:row.pressure,wind_speed_10m:row.wind,precipitation:row.precip,precipitation_probability:row.rainProb,weather_code:row.code,relative_humidity_2m:row.humidity,cloud_cover:row.cloud,wind_gusts_10m:row.gust});
-    const box=document.getElementById('weatherHourlySelected');if(box){const mm=codeMeta(row.code);box.innerHTML=`<div class="selected-hour-grid"><div><span>${mm[0]}</span><b>${row.time}</b><small>${mm[1]}</small></div><div><small>ტემპერატურა</small><b>${row.temperature.toFixed(1)}°C</b></div><div><small>წნევა</small><b>${row.pressure.toFixed(1)} hPa</b></div><div><small>ქარი</small><b>${row.wind.toFixed(1)} კმ/სთ</b></div><div><small>ნალექი</small><b>${row.precip.toFixed(1)} მმ</b></div><div><small>ღრუბლიანობა</small><b>${Math.round(row.cloud)}%</b></div><div><small>Outdoor Score</small><b class="selected-score">${score}/100</b></div></div>`;}
-    document.querySelectorAll('#weatherHourlyStrip .weather-hour-card').forEach(el=>el.classList.toggle('active',el.dataset.iso===row.iso));
-    if(window.GNLiveFactors)GNLiveFactors.render({data:d,row,subject:null,type:'weather',locationName:activeCity});
+  function selectRow(iso){trackCurrent=false;selectedISO=iso;renderSelected();}
+  function renderSelected(){
+    if(!data)return;
+    const row=trackCurrent?currentWeatherRow(data):weatherRowAt(data,selectedISO);
+    if(!row)return;
+    const currentHour=String(data.current.time).slice(0,13)+':00',chosenHour=trackCurrent?currentHour:row.iso;
+    selectedISO=chosenHour;
+    const select=get('weatherHourSelect');if(select)select.value=chosenHour;
+    const score=outdoorScore(conditionsFromRow(row)),meta=codeMeta(row.code),box=get('weatherHourlySelected');
+    if(box)box.innerHTML=`<div class="selected-hour-grid"><div><span>${meta[0]}</span><b>${esc(row.time)}</b><small>${trackCurrent?'მიმდინარე პირობები':'საათობრივი პროგნოზი'} • ${esc(meta[1])}</small></div><div><small>ტემპერატურა</small><b>${fmt(row.temperature,'°C')}</b></div><div><small>წნევა</small><b>${fmt(row.pressure,' hPa')}</b></div><div><small>ქარი</small><b>${fmt(row.wind,' კმ/სთ')}</b></div><div><small>ნალექი</small><b>${fmt(row.precip,' მმ')}</b></div><div><small>ღრუბლიანობა</small><b>${fmt(row.cloud,'%',0)}</b></div><div><small>Outdoor Score</small><b class="selected-score">${score===null?'—':score+'/100'}</b></div></div>`;
+    document.querySelectorAll('#weatherHourlyStrip .weather-hour-card').forEach(el=>el.classList.toggle('active',el.dataset.iso===chosenHour));
+    renderFactors();
+    window.dispatchEvent(new CustomEvent('gn:weatherUpdated',{detail:{data,locationName:activeCity,selectedCurrent:trackCurrent}}));
   }
-  function renderWeatherHours(d){
-    const rows=weatherRows(d),strip=document.getElementById('weatherHourlyStrip'),sel=document.getElementById('weatherHourSelect');if(!strip||!rows.length)return;
-    const forecastHour=String(d.current?.time||'').slice(11,13)+':00';
-    const current=rows.find(r=>r.time===forecastHour)||rows[0];
-    if(sel){sel.innerHTML=rows.map(r=>`<option value="${r.time}">${r.time}</option>`).join('');const keep=rows.some(r=>r.time===selectedWeatherHour)?selectedWeatherHour:current.time;sel.value=keep;sel.onchange=()=>{const r=rows.find(x=>x.time===sel.value);if(r)selectWeatherRow(d,r)};}
-    strip.innerHTML=rows.map(r=>{const mm=codeMeta(r.code);return`<button type="button" class="weather-hour-card${(r.time===(sel?.value||current.time))?' active':''}" data-iso="${r.iso}"><small>${r.time}</small><span>${mm[0]}</span><b>${r.temperature.toFixed(1)}°</b><em>${Math.round(r.cloud)}% ☁</em><strong>${Math.round(outdoorScore({temperature_2m:r.temperature,pressure_msl:r.pressure,wind_speed_10m:r.wind,precipitation:r.precip,precipitation_probability:r.rainProb,weather_code:r.code,relative_humidity_2m:r.humidity,cloud_cover:r.cloud,wind_gusts_10m:r.gust}))}</strong></button>`}).join('');
-    strip.querySelectorAll('.weather-hour-card').forEach(b=>b.onclick=()=>{const r=rows.find(x=>x.iso===b.dataset.iso);if(r)selectWeatherRow(d,r)});
-    const chosen=rows.find(r=>r.time===(sel?.value||current.time))||current;selectWeatherRow(d,chosen);
+  function renderHours(){
+    const date=data.current.time.slice(0,10),rows=hourlyRows(data,date),select=get('weatherHourSelect'),strip=get('weatherHourlyStrip');
+    if(!rows.length)return;
+    if(!trackCurrent&&!rows.some(row=>row.iso===selectedISO))trackCurrent=true;
+    if(select){select.innerHTML=rows.map(row=>`<option value="${esc(row.iso)}">${esc(row.time)}</option>`).join('');select.onchange=()=>selectRow(select.value);}
+    if(strip){strip.innerHTML=rows.map(row=>{const meta=codeMeta(row.code),score=outdoorScore(conditionsFromRow(row));return `<button type="button" class="weather-hour-card" data-iso="${esc(row.iso)}"><small>${esc(row.time)}</small><span>${meta[0]}</span><b>${fmt(row.temperature,'°')}</b><em>${fmt(row.cloud,'%',0)} ☁</em><strong>${score??'—'}</strong></button>`;}).join('');strip.querySelectorAll('button').forEach(button=>button.onclick=()=>selectRow(button.dataset.iso));}
+    renderSelected();
   }
-  async function load(a,b,n){
-    try{activeLat=a;activeLon=b;activeCity=n;const d=await openMeteo(a,b),c=d.current,m=codeMeta(c.weather_code),s=scoreWeather(c);document.getElementById('weatherCity').textContent=n;document.getElementById('weatherIcon').textContent=m[0];document.getElementById('weatherTemp').textContent=Number(c.temperature_2m).toFixed(1);document.getElementById('weatherDesc').textContent=m[1];const srcEl=document.getElementById('weatherSourceStatus');if(srcEl&&d.__meta)srcEl.textContent=`წყარო: ${d.__meta.source||'Open-Meteo'}${d.__meta.stale?' • ბოლო ხელმისაწვდომი მონაცემი':''}`;document.getElementById('weatherScore').textContent=s;document.getElementById('wFeels').textContent=Number(c.apparent_temperature).toFixed(1)+'°C';document.getElementById('wPressure').textContent=Number(c.pressure_msl).toFixed(1)+' hPa';document.getElementById('wHumidity').textContent=Math.round(c.relative_humidity_2m)+'%';document.getElementById('wWind').textContent=Number(c.wind_speed_10m).toFixed(1)+' კმ/სთ';document.getElementById('wGust').textContent=Number(c.wind_gusts_10m).toFixed(1)+' კმ/სთ';document.getElementById('wRain').textContent=Number(c.precipitation).toFixed(1)+' მმ';setPressureGauge(c.pressure_msl,'weatherPressureNeedle','weatherPressureValue','weatherPressureStatus','weatherPressureAdvice');document.getElementById('weatherDaily').innerHTML=d.daily.time.slice(0,window.GNPremium?.maxForecastDays?.()||1).map((x,i)=>{const mm=codeMeta(d.daily.weather_code[i]);return`<article class="daily-card"><b>${fmtDate(x)}</b><div class="dicon">${mm[0]}</div><strong>${Math.round(d.daily.temperature_2m_max[i])}° / ${Math.round(d.daily.temperature_2m_min[i])}°</strong><small>${mm[1]}</small><small>💧 ${d.daily.precipitation_probability_max[i]||0}%</small><small>💨 ${Math.round(d.daily.wind_speed_10m_max[i]||0)} კმ/სთ</small></article>`}).join('');renderWeatherHours(d);if(window.GNLiveFactors&&document.getElementById('assessmentFactors'))GNLiveFactors.render({data:d,row:GNLiveFactors.rowAt(d,(d.hourly?.time||[]).find(t=>t.slice(11,16)===selectedWeatherHour)||d.hourly?.time?.[0]),subject:null,type:'weather',locationName:n});}catch(e){console.error(e);document.getElementById('weatherDesc').textContent='Live ამინდის მონაცემები დროებით ვერ ჩაიტვირთა.'}}
-  async function search(){const q=input.value.trim();if(!q)return;res.textContent='იტვირთება…';try{const data=await geocode(q);res.innerHTML=(data||[]).map((x,i)=>`<button data-i="${i}">${x.display_name}</button>`).join('')||'ვერ მოიძებნა';res.querySelectorAll('button').forEach(b=>b.onclick=()=>{const x=data[+b.dataset.i];load(+x.lat,+x.lon,x.display_name);res.innerHTML=`არჩეულია: ${x.display_name}`})}catch(e){res.textContent='ძებნა ვერ შესრულდა.'}}
-  document.getElementById('weatherSearchBtn').onclick=search;input.onkeydown=e=>{if(e.key==='Enter')search()};document.getElementById('weatherGps').onclick=()=>navigator.geolocation.getCurrentPosition(p=>load(p.coords.latitude,p.coords.longitude,'ჩემი მდებარეობა'),()=>alert('GPS ნებართვა ვერ მივიღეთ.'));
-  await load(lat,lon,city);
-  if(window.GNLiveFactors)GNLiveFactors.bind({liveDefault:true,refresh:()=>load(activeLat,activeLon,activeCity)});
+  function render(){
+    const row=currentWeatherRow(data),meta=codeMeta(row?.code),score=outdoorScore(conditionsFromRow(row));
+    set('weatherCity',activeCity);set('weatherIcon',meta[0]);set('weatherTemp',fmt(row?.temperature));set('weatherDesc',meta[1]);set('weatherScore',score??'—');
+    set('wFeels',fmt(row?.apparent_temperature,'°C'));set('wPressure',fmt(row?.pressure,' hPa'));set('wHumidity',fmt(row?.humidity,'%',0));set('wWind',fmt(row?.wind,' კმ/სთ'));set('wGust',fmt(row?.gust,' კმ/სთ'));set('wRain',fmt(row?.precip,' მმ'));
+    setPressureGauge(row?.pressure,'weatherPressureNeedle','weatherPressureValue','weatherPressureStatus','weatherPressureAdvice');
+    const mode=data.__meta?.stale?'ბოლო ხელმისაწვდომი მონაცემი':'მიმდინარე მოდელის მონაცემი';
+    set('weatherSourceStatus',`წყარო: ${data.__meta?.source||'Open-Meteo'} • ${mode} • ${data.current.time.replace('T',' ')} (${data.timezone||'ადგილობრივი დრო'})`);
+    if(get('gnGoScore')){set('gnGoScore',score??'—');set('gnGoText',score===null?'მონაცემი არ არის საკმარისი.':score>=80?'კარგი პირობებია გარე აქტივობისთვის.':score>=50?'საშუალო პირობებია — შეამოწმე დეტალები.':'რთული პირობებია — გადაამოწმე ამინდი გასვლამდე.');}
+    const daily=get('weatherDaily');if(daily)daily.innerHTML=data.daily.time.slice(0,window.GNPremium?.maxForecastDays?.()||1).map((date,i)=>{const d=data.daily,m=codeMeta(d.weather_code?.[i]);return `<article class="daily-card"><b>${esc(fmtDate(date))}</b><div class="dicon">${m[0]}</div><strong>${fmt(d.temperature_2m_max?.[i],'°',0)} / ${fmt(d.temperature_2m_min?.[i],'°',0)}</strong><small>${esc(m[1])}</small><small>💧 ${fmt(d.precipitation_probability_max?.[i],'%',0)}</small><small>💨 ${fmt(d.wind_speed_10m_max?.[i],' კმ/სთ',0)}</small></article>`;}).join('');
+    renderHours();
+  }
+  function clearWeather(message){
+    for(const id of ['weatherTemp','weatherScore','wFeels','wPressure','wHumidity','wWind','wGust','wRain','gnGoScore'])set(id,'—');
+    set('weatherIcon','—');set('weatherDesc',message);set('weatherSourceStatus','Open-Meteo • მონაცემი მიუწვდომელია');set('gnGoText',message);
+    for(const id of ['weatherDaily','weatherHourlyStrip','weatherHourlySelected'])if(get(id))get(id).replaceChildren();
+    if(get('weatherHourSelect'))get('weatherHourSelect').replaceChildren();
+    if(window.GNLiveFactors)GNLiveFactors.render({data:null,row:null,type:'weather',locationName:activeCity,live:false,error:true});
+    window.dispatchEvent(new CustomEvent('gn:weatherUpdated',{detail:{data:null,locationName:activeCity}}));
+  }
+  async function load(a=activeLat,b=activeLon,name=activeCity,options={}){
+    const token=++requestId,changed=a!==activeLat||b!==activeLon;
+    activeLat=a;activeLon=b;activeCity=name;
+    if(changed){data=null;trackCurrent=true;clearWeather('ამინდის მონაცემები იტვირთება…');set('weatherCity',name);}
+    try{
+      const result=await openMeteo(a,b,options);if(token!==requestId)return;
+      data=result;render();
+    }catch(error){
+      if(token!==requestId)return;
+      if(data){data={...data,__meta:{...data.__meta,stale:true}};render();set('weatherDesc','განახლება ვერ მოხერხდა — ნაჩვენებია ბოლო მონაცემი.');}
+      else clearWeather('ამინდის მონაცემები დროებით ვერ ჩაიტვირთა. სცადე განახლება.');
+    }
+  }
+  const controller=window.GNLiveFactors?.bind({liveDefault:true,refresh:options=>load(activeLat,activeLon,activeCity,options)});
+  async function search(){
+    const input=get('weatherSearch'),results=get('weatherSearchResults'),q=input?.value.trim();if(!q||!results)return;
+    const token=++searchId;results.textContent='იტვირთება…';
+    try{
+      const found=await geocode(q);if(token!==searchId)return;
+      results.replaceChildren();
+      if(!found.length){results.textContent='ვერ მოიძებნა';return;}
+      found.forEach(place=>{const button=document.createElement('button');button.type='button';button.textContent=place.display_name;button.onclick=()=>{if(validCoordinates(place.lat,place.lon)){load(Number(place.lat),Number(place.lon),place.display_name,{force:true});results.replaceChildren();}};results.appendChild(button);});
+    }catch{if(token===searchId)results.textContent='ძებნა ვერ შესრულდა. სცადე ხელახლა.';}
+  }
+  if(get('weatherSearchBtn'))get('weatherSearchBtn').onclick=search;
+  if(get('weatherSearch'))get('weatherSearch').onkeydown=event=>{if(event.key==='Enter'){event.preventDefault();search();}};
+  if(get('weatherGps'))get('weatherGps').onclick=()=>{
+    if(!navigator.geolocation){set('weatherDesc','ამ ბრაუზერში GPS მიუწვდომელია. გამოიყენე ძებნა.');return;}
+    navigator.geolocation.getCurrentPosition(position=>load(position.coords.latitude,position.coords.longitude,'ჩემი მდებარეობა',{force:true}),()=>set('weatherDesc','GPS მდებარეობა ვერ მივიღეთ. გამოიყენე ძებნა.'),{timeout:10000,maximumAge:60000});
+  };
+  window.addEventListener('gn:premium-ready',()=>{if(data)render();});
+  await load();
 }
+
 setupMenu();
 
-function chanceBand(score){const n=Math.max(0,Math.min(100,Math.round(Number(score)||0)));if(n>=85)return ['excellent','ძალიან კარგი'];if(n>=70)return ['good','კარგი'];if(n>=50)return ['medium','საშუალო'];if(n>=30)return ['weak','სუსტი'];return ['poor','დაბალი'];}
-function chanceMarkup(score,label='შანსი'){const n=Math.max(0,Math.min(100,Math.round(Number(score)||0))),[cls,text]=chanceBand(n);return `<div class="gn-chance gn-chance-${cls}" data-score="${n}"><span class="gn-chance-ring" style="--chance:${n}"><b>${n}%</b></span><span class="gn-chance-copy"><strong>${label}</strong><small>${text}</small></span></div>`;}
+function chanceBand(score){const value=numberOrNull(score);if(value===null)return ['unknown','მონაცემი მიუწვდომელია'];const n=Math.max(0,Math.min(100,Math.round(value)));if(n>=85)return ['excellent','ძალიან კარგი'];if(n>=70)return ['good','კარგი'];if(n>=50)return ['medium','საშუალო'];if(n>=30)return ['weak','სუსტი'];return ['poor','დაბალი'];}
+function chanceMarkup(score,label='პირობების ინდექსი'){const value=numberOrNull(score),n=value===null?null:Math.max(0,Math.min(100,Math.round(value))),[cls,text]=chanceBand(n),safeLabel=String(label).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));return `<div class="gn-chance gn-chance-${cls}"${n===null?'':` data-score="${n}"`}><span class="gn-chance-ring" style="--chance:${n??0}"><b>${n===null?'—':n+'/100'}</b></span><span class="gn-chance-copy"><strong>${safeLabel}</strong><small>${text}</small></span></div>`;}
 window.GeoChanceUI={band:chanceBand,markup:chanceMarkup};
 
-window.GeoNatureCommon=window.GeoNatureCommon||{scoreWeather:scoreWeather,outdoorScore:outdoorScore,openMeteo:openMeteo,codeMeta:codeMeta,fmtDate:fmtDate,localDateISO:localDateISO};
+window.GeoNatureCommon=Object.assign(window.GeoNatureCommon||{},{scoreWeather,outdoorScore,openMeteo,codeMeta,fmtDate,localDateISO,numberOrNull,zonedDateTime,weatherRowAt,hourlyRows,conditionsFromRow,currentWeatherRow,validCoordinates,weatherObservationTime});

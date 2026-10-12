@@ -112,3 +112,9 @@ input[type=checkbox],input[type=radio]{accent-color:var(--accent)}
   .feature-card,.catalog-card,.location-card,.fish-card{transition:none}
   .feature-card:hover,.catalog-card:hover,.location-card:hover,.fish-card:hover{transform:none}
 }
+
+/* Neutral states show unavailable data and paused forecasts without a live pulse. */
+#headerLivePill[data-live="0"] i{background:var(--muted);box-shadow:none;animation:none}
+.home-score-card[data-level="unknown"]{border-color:var(--line)!important}
+.gn-chance-unknown .gn-chance-ring{color:var(--muted);background:var(--surface2)}
+.gn-chance-ring b{font-size:clamp(12px,2.5vw,16px)}

@@ -33,5 +33,5 @@ jobs:
           node-version: "24"
       - name: Check JavaScript syntax
         run: npm run check
-      - name: Check API persistence and wildlife date boundaries
+      - name: Check weather, scoring, live state, storage and API regressions
         run: npm test

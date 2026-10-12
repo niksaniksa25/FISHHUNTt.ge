@@ -4,7 +4,9 @@
 
 Use Node.js 20 or newer (`npm start`); cloud development uses Node.js 24 with `NODE_USE_ENV_PROXY=1`. No third-party package installation is required. Keep private runtime records outside the static checkout using `GEONATURE_DATA_DIR`.
 
-Run `npm run check` to check every active JavaScript file and `npm test` for API persistence, private-file protection, fishing exceptions and hunting date boundaries. The GitHub validation workflow runs both commands.
+Run `npm run check` to check every active JavaScript file and `npm test` for weather, conditions scoring, live state, account storage, API persistence, private-file protection and wildlife restrictions. The GitHub validation workflow runs both commands.
+
+Current conditions, selected-hour forecasts, stale data and unavailable measurements are separate. Fishing scores are comparative indices out of 100, not measured catch percentages. See [live data behavior and limitations](docs/LIVE-DATA.md).
 
 Shared responsive layouts are in `css/responsive.css`, with separate `css/responsive-ios.css` and `css/responsive-android.css` platform adjustments. `js/device-responsive.js` applies device classes and visible-viewport sizing; `css/nature-theme.css` supplies the shared forest/river palette.
 
@@ -20,7 +22,7 @@ This build keeps the existing site and adds:
 Real payment credentials must be entered in `.env` on the server. Do not put merchant secrets into browser JavaScript.
 
 
-UI update: the More menu now contains all secondary tools in a grouped, responsive dropdown.
+The More menu reveals secondary tools in a grouped, responsive dropdown. Donation has its own compact link in the main navigation.
 
 
 ### Premium term purchases
@@ -28,7 +30,7 @@ UI update: the More menu now contains all secondary tools in a grouped, responsi
 
 
 ## New Premium Smart Tools
-Fish Activity Timeline, Live Hotspots, Stargazing Score, Smart Alerts, Community Reports, Best Moment, Personal GeoNature, AI Trip Planner, Record Predictor and Safety Mode are exposed on premium-extras.html.
+`premium-extras.html` provides forecast-based activity timelines, destination comparisons, sky and safety assessments, best-hour planning and statistics from actual local catch records. Local reports are labelled as browser storage; no sample records or invented live scores are included.
 
 ## Admin Panel
 Open admin.html from the AI page using the Admin Panel button. Admin password is verified only on the server; do not put it in client JavaScript.

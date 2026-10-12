@@ -26,3 +26,5 @@
 .score-legend{position:absolute;left:18px;bottom:18px;z-index:900;background:rgba(20,27,26,.92);color:#fff;border-radius:14px;padding:10px 12px;font-size:12px;box-shadow:0 6px 20px rgba(0,0,0,.18)}
 .score-legend b{display:block;margin-bottom:5px}.score-legend span{margin-right:8px}
 @media(max-width:800px){.score-legend{left:10px;bottom:10px}}
+
+.outdoor-score-marker.score-unavailable,.map-score-popup .popup-score.score-unavailable{background:#657177!important;color:#fff!important}

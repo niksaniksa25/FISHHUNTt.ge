@@ -62,15 +62,17 @@
     const pill=document.getElementById('headerLivePill');
     if(!pill||pill.dataset.gnLiveBound)return;
     pill.dataset.gnLiveBound='true';
-    const dot=pill.querySelector('i');
     const text=pill.querySelector('span');
-    let on=true;
-    setInterval(()=>{
-      on=!on;
-      if(dot)dot.style.opacity=on?'1':'.55';
-      if(text)text.textContent=on?'LIVE':'LIVE • ამოწმებს';
-      setTimeout(()=>{on=true;if(dot)dot.style.opacity='1';if(text)text.textContent='LIVE'},700);
-    },5000);
+    if(!pill.dataset.live){pill.dataset.live='0';if(text)text.textContent='ამინდი';}
+    const update=event=>{
+      const data=event.detail?.data;
+      const current=Boolean(data?.current)&&!data.__meta?.stale&&!event.detail?.isMissing&&event.detail?.live!==false&&event.detail?.selectedCurrent!==false;
+      pill.dataset.live=current?'1':'0';
+      if(text)text.textContent=!data?'მიუწვდომელია':data.__meta?.stale?'ბოლო მონაცემი':current?'მიმდინარე':event.detail?.live===false?'შეჩერებულია':'პროგნოზი';
+    };
+    window.addEventListener('gn:weatherUpdated',update);
+    window.addEventListener('gn:assessmentUpdated',update);
+
   }
   function setup(){setupMoreMenu();setupHeaderLive()}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setup,{once:true});

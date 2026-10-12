@@ -196,86 +196,101 @@ window.WATERS=[
 ];
 
 
-/* Shared, calibrated chance indices used consistently across catalog, fishing, species profiles and destination guide.
-   These are comparative activity indices, not guaranteed real-world catch/observation probabilities. */
+/* Comparative conditions index, not a measured catch probability.
+   Air temperature describes outdoor conditions. Species temperature ranges
+   describe water and are used only when a real water measurement is supplied. */
 window.GeoFishChance=(function(){
-  function nums(v){return (String(v??'').match(/-?\d+(?:\.\d+)?/g)||[]).map(Number).filter(Number.isFinite);}
+  function number(value){
+    if(value===null||value===undefined||typeof value==='boolean'||(typeof value==='string'&&!value.trim()))return null;
+    const n=Number(value);return Number.isFinite(n)?n:null;
+  }
+  function nums(value){return (String(value??'').replace(/(\d)\s*-\s*(?=\d)/g,'$1–').match(/-?\d+(?:\.\d+)?/g)||[]).map(Number).filter(Number.isFinite);}
   function rangeFit(value,range,tolerance){
-    const n=nums(range);if(!Number.isFinite(Number(value))||n.length<2)return 62;
-    const v=Number(value),lo=Math.min(n[0],n[1]),hi=Math.max(n[0],n[1]);
-    if(v>=lo&&v<=hi)return 94;
-    const d=v<lo?lo-v:v-hi,t=Math.max(.5,Number(tolerance)||4);
-    return Math.max(8,Math.round(94*Math.exp(-d/t)));
+    const n=nums(range),v=number(value);if(v===null||n.length<2)return null;
+    const lo=Math.min(n[0],n[1]),hi=Math.max(n[0],n[1]);
+    if(v>=lo&&v<=hi)return 100;
+    const distance=v<lo?lo-v:v-hi;
+    return Math.max(0,Math.round(100*Math.exp(-distance/Math.max(.5,tolerance))));
   }
   function activityFit(text,hour){
-    const x=String(text||'').toLowerCase(),h=((Number(hour)||12)%24+24)%24;
-    if(x.includes('მთელი')||x.includes('ცვალებადი'))return 76;
+    const n=number(hour);if(n===null)return null;
+    const x=String(text||'').toLowerCase(),h=((n%24)+24)%24;
+    if(x.includes('მთელი')||x.includes('ცვალებადი'))return 80;
     const windows=[];
     if(x.includes('განთიადი')||x.includes('გამთენიისას'))windows.push([4,8]);
     if(x.includes('დილა'))windows.push([6,10]);
     if(x.includes('დღე'))windows.push([10,16]);
     if(x.includes('საღამო'))windows.push([17,21]);
     if(x.includes('ღამე'))windows.push([21,24],[0,4]);
-    if(!windows.length)return 62;
-    if(windows.some(([a,b])=>h>=a&&h<=b))return 92;
-    let dist=99;for(const [a,b] of windows)dist=Math.min(dist,h<a?a-h:h>b?h-b:0);
-    return dist<=2?72:dist<=4?54:34;
+    if(!windows.length)return null;
+    if(windows.some(([a,b])=>h>=a&&h<=b))return 100;
+    let distance=24;
+    for(const [a,b] of windows)for(const edge of [a,b]){const d=Math.abs(h-edge);distance=Math.min(distance,d,24-d);}
+    return Math.max(20,Math.round(100-distance*14));
   }
   function weatherFit(code){
-    const c=Number(code);
-    if([95,96,99].includes(c))return 8;
-    if([65,75,82].includes(c))return 22;
-    if([61,63,71,73,80,81].includes(c))return 42;
-    if([55,53,51].includes(c))return 58;
+    const c=number(code);if(c===null)return null;
+    if([95,96,99].includes(c))return 0;
+    if([65,75,77,82,86].includes(c))return 15;
+    if([61,63,71,73,80,81,85].includes(c))return 40;
+    if([55,53,51,56,57,66,67].includes(c))return 60;
     if([45,48].includes(c))return 65;
-    if(c===0)return 92;if([1,2].includes(c))return 86;if(c===3)return 72;
-    return 68;
+    if(c===0)return 95;if([1,2,3].includes(c))return 90;
+    return null;
   }
+  const aliases={pikeperch:['zander'],zander:['pikeperch'],grasscarp:['whiteamur'],whiteamur:['grasscarp']};
   function habitatFit(f,water){
-    if(!water)return 70;
-    const ids=String(water[6]||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean);
-    const id=String(f?.[0]||'').toLowerCase();
-    const aliases={pikeperch:['zander'],zander:['pikeperch'],grasscarp:['whiteamur'],whiteamur:['grasscarp'],browntrout:['trout'],trout:['browntrout'],mullet:['blacksea','mulletsilver','grey']};
-    if(ids.includes(id)||(aliases[id]||[]).some(a=>ids.includes(a)))return 96;
+    if(!water)return {score:null,cap:100};
+    const ids=String(water[6]||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean),id=String(f?.[0]||'').toLowerCase();
+    if(ids.includes(id)||(aliases[id]||[]).some(a=>ids.includes(a)))return {score:100,cap:100};
     const kind=String(water[2]||'').toLowerCase(),type=String(f?.[3]||'').toLowerCase();
-    if(kind.includes('ზღვა'))return type.includes('ზღვა')?85:8;
-    if(kind.includes('მდინარე'))return type.includes('მდინარე')?86:(type.includes('ზღვა')?8:58);
-    if(kind.includes('ტბ')||kind.includes('წყალსაცავ'))return type.includes('ზღვა')?6:(type.includes('მდინარე')?50:76);
-    return 58;
+    const incompatible=(kind.includes('ზღვა')&&!type.includes('ზღვა'))||((kind.includes('ტბ')||kind.includes('წყალსაცავ')||kind.includes('მდინარე'))&&type.includes('ზღვა')&&!type.includes('მდინარე')&&!type.includes('მტკნარი'));
+    if(incompatible)return {score:0,cap:10};
+    // An unlisted species has no confirmed association with this destination.
+    if(ids.length&&id!=='env')return {score:25,cap:40};
+    return {score:null,cap:100};
   }
+  function valid(c){return ['temperature_2m','pressure_msl','wind_speed_10m','precipitation','weather_code'].every(key=>number(c?.[key])!==null)&&number(c.wind_speed_10m)>=0&&number(c.precipitation)>=0&&weatherFit(c.weather_code)!==null;}
+  window.GeoFishConditions={valid,numberOrNull:number,activityFit};
   return function(f,c={},water=null,applyTime=true){
-    if(!f)return 12;
-    const temp=Number(c?.temperature_2m),pressure=Number(c?.pressure_msl),wind=Number(c?.wind_speed_10m),rain=Number(c?.precipitation),rp=Number(c?.precipitation_probability),humidity=Number(c?.relative_humidity_2m);
-    const hour=Number.isFinite(Number(c?.local_hour))?Number(c.local_hour):new Date().getHours();
-    const tFit=rangeFit(Number.isFinite(temp)?temp:18,f[7],4);
-    const pFit=rangeFit(Number.isFinite(pressure)?pressure:1013,f[8],7);
-    const wFit=rangeFit(Number.isFinite(wind)?wind:7,f[9],5);
-    const rainFit=!Number.isFinite(rain)?72:rain<=.2?92:rain<=1?74:rain<=3?48:rain<=6?22:8;
-    const probFit=!Number.isFinite(rp)?70:rp<=10?90:rp<=25?76:rp<=45?54:rp<=70?30:10;
-    const humFit=!Number.isFinite(humidity)?68:(humidity>=40&&humidity<=78?82:Math.max(25,82-Math.abs(humidity-(humidity<40?40:78))*1.5));
-    const activity=applyTime===false?70:activityFit(f[10],hour);
-    const raw=tFit*.31+pFit*.12+wFit*.10+rainFit*.09+probFit*.08+weatherFit(c?.weather_code)*.10+humFit*.07+habitatFit(f,water)*.08+activity*.05;
-    // Keep this as a cautious comparative index, never implying an 90–100% guarantee.
-    return Math.max(12,Math.min(88,Math.round(6+raw*.86)));
+    if(!f||!valid(c))return null;
+    const temp=number(c.temperature_2m),pressure=number(c.pressure_msl),wind=number(c.wind_speed_10m),rain=number(c.precipitation),rp=number(c.precipitation_probability),humidity=number(c.relative_humidity_2m);
+    const habitat=habitatFit(f,water);
+    const outdoorTemp=rangeFit(temp,'5–30',8);
+    const terms=[[outdoorTemp,.10],[rangeFit(pressure,f[8],7),.10],[rangeFit(wind,f[9],5),.15],[Math.max(0,100-rain*18),.15],[weatherFit(c.weather_code),.15],[habitat.score,.15]];
+    if(rp!==null&&rp>=0&&rp<=100)terms.push([100-rp*.7,.05]);
+    if(humidity!==null&&humidity>=0&&humidity<=100)terms.push([Math.max(30,100-Math.abs(humidity-60)),.03]);
+    if(applyTime!==false)terms.push([activityFit(f[10],c.local_hour),.12]);
+    const waterTemp=number(c.water_temperature);
+    if(waterTemp!==null)terms.push([rangeFit(waterTemp,f[7],4),.25]);
+    const usable=terms.filter(([value])=>value!==null),weight=usable.reduce((sum,[,w])=>sum+w,0);
+    const score=Math.round(usable.reduce((sum,[value,w])=>sum+value*w,0)/weight);
+    // Storms and hazardous wind cannot receive a reassuring overall label.
+    const hazardCap=[95,96,99].includes(number(c.weather_code))?20:wind>=50?25:100;
+    return Math.max(0,Math.min(100,habitat.cap,hazardCap,score));
   };
 })();
 window.GeoWildlifeChance=function(x,context={}){
-  const d=context?.date?new Date(context.date+'T12:00:00'):new Date();
-  const h=Number.isFinite(Number(context?.local_hour))?Number(context.local_hour):new Date().getHours();
-  const m=d.getMonth()+1,s=String(x?.[7]||'').toLowerCase(),a=String(x?.[8]||'').toLowerCase();
-  const kind=String(x?.[0]||'').toLowerCase();
-  const spread=String(x?.[6]||'').toLowerCase();
-  const habitat=String(x?.[5]||'').toLowerCase();
-
-  let season=56;
-  if(s.includes('მთელი'))season=79;
-  else if(s.includes('გაზაფხული'))season=[3,4,5].includes(m)?92:43;
-  else if(s.includes('ზაფხული'))season=[6,7,8].includes(m)?92:43;
-  else if(s.includes('შემოდგომა'))season=[9,10,11].includes(m)?92:43;
-  else if(s.includes('ზამთარი'))season=[12,1,2].includes(m)?92:43;
-  else if(s.includes('მიგრაციის'))season=[3,4,5,9,10,11].includes(m)?87:47;
-  else if(s.includes('სეზონ'))season=52;
-
+  if(!x||!x[1])return null;
+  const number=window.GeoFishConditions.numberOrNull;
+  const zone=context.timezone||'Asia/Tbilisi';
+  let now=window.GeoNatureCommon?.zonedDateTime?.(zone);
+  if(!now){
+    const parts=Object.fromEntries(new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Tbilisi',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',hourCycle:'h23'}).formatToParts(new Date()).map(part=>[part.type,part.value]));
+    now={date:`${parts.year}-${parts.month}-${parts.day}`,hour:Number(parts.hour)};
+  }
+  const date=context.date===undefined||context.date===null?now.date:String(context.date);
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return null;
+  const parsed=new Date(date+'T12:00:00Z');if(!Number.isFinite(parsed.getTime())||parsed.toISOString().slice(0,10)!==date)return null;
+  const m=Number(date.slice(5,7)),hour=Object.hasOwn(context,'local_hour')?number(context.local_hour):now.hour;
+  if(hour!==null&&(hour<0||hour>=24))return null;
+  const s=String(x[7]||'').toLowerCase(),a=String(x[8]||'').toLowerCase(),kind=String(x[0]||'').toLowerCase(),spread=String(x[6]||'').toLowerCase();
+  const months=new Set();
+  if(s.includes('გაზაფხული')||s.includes('მიგრ'))[3,4,5].forEach(value=>months.add(value));
+  if(/(^|[^ა-ჰ])ზაფხულ/.test(s))[6,7,8].forEach(value=>months.add(value));
+  if(s.includes('შემოდგომა')||s.includes('მიგრ'))[9,10,11].forEach(value=>months.add(value));
+  if(s.includes('ზამთარი'))[12,1,2].forEach(value=>months.add(value));
+  const season=s.includes('მთელი')?80:months.size?(months.has(m)?100:35):null;
   const windows=[];
   if(a.includes('განთიადი')||a.includes('გამთენიისას'))windows.push([4,8]);
   if(a.includes('დილ'))windows.push([5,10]);
@@ -283,46 +298,26 @@ window.GeoWildlifeChance=function(x,context={}){
   if(a.includes('საღამ'))windows.push([17,21]);
   if(a.includes('ბინდ'))windows.push([18,22]);
   if(a.includes('ღამ'))windows.push([21,24],[0,4]);
-  let activity=54;
-  if(a.includes('მთელი'))activity=79;
-  else if(windows.some(([lo,hi])=>h>=lo&&h<=hi))activity=92;
-  else if(windows.length){
-    let dist=99;
-    for(const [lo,hi] of windows)dist=Math.min(dist,h<lo?lo-h:h>hi?h-hi:0);
-    activity=dist<=2?73:dist<=4?56:34;
+  let activity=null;
+  if(hour!==null){
+    if(a.includes('მთელი'))activity=80;
+    else if(windows.some(([lo,hi])=>hour>=lo&&hour<=hi))activity=100;
+    else if(windows.length){let distance=24;for(const [lo,hi] of windows)for(const edge of [lo,hi]){const diff=Math.abs(hour-edge);distance=Math.min(distance,diff,24-diff);}activity=Math.max(20,100-distance*14);}
   }
-
-  const speciesBase=kind.includes('bird')||kind.includes('ფრინ')?63:
-    kind.includes('mammal')||kind.includes('ცხოვ')?58:
-    kind.includes('reptile')||kind.includes('ქვეწარმ')?47:54;
-  let locationFit=62;
-  const requestedRegion=String(context?.region||context?.location||'').toLowerCase();
-  if(requestedRegion){
-    const east=/თბილის|თელავ|კახეთ|რუსთავ|აღმოსავლ/.test(requestedRegion);
-    const west=/ქუთაის|ბათუმ|ფოთ|იმერეთ|გურია|აჭარა|სამეგრელ|დასავლ/.test(requestedRegion);
-    const mountain=/მესტია|ამბროლაურ|ბორჯომ|ახალციხ|მთიან|კავკასიონ/.test(requestedRegion);
-    if((spread.includes('აღმოსავლ')&&east)||(spread.includes('დასავლ')&&west)||(spread.includes('მთიან')&&mountain))locationFit=88;
-    else if(spread.includes('მთელ')||spread.includes('საქართველოში')||spread.includes('საქართველო'))locationFit=70;
-    else locationFit=43;
-  }else if(spread.includes('მთელ')||spread.includes('საქართველოში'))locationFit=68;
-
-  let weatherFit=70;
-  const code=Number(context?.weather_code??context?.weatherCode);
-  if(Number.isFinite(code)){
-    if([95,96,99].includes(code))weatherFit=20;
-    else if([65,75,82,81,73].includes(code))weatherFit=35;
-    else if([51,53,55,61,63,71,80].includes(code))weatherFit=51;
-    else if([45,48].includes(code))weatherFit=48;
-    else if([0,1].includes(code))weatherFit=86;
-    else if([2,3].includes(code))weatherFit=72;
+  const requestedRegion=String(context.region||context.location||'').toLowerCase();
+  let locationFit=null;
+  if(requestedRegion&&spread){
+    const east=/თბილის|თელავ|კახეთ|რუსთავ|აღმოსავლ/.test(requestedRegion),west=/ქუთაის|ბათუმ|ფოთ|იმერეთ|გურია|აჭარა|სამეგრელ|დასავლ/.test(requestedRegion),mountain=/მესტია|ამბროლაურ|ბორჯომ|ახალციხ|მთიან|კავკასიონ/.test(requestedRegion);
+    if((spread.includes('აღმოსავლ')&&east)||(spread.includes('დასავლ')&&west)||(spread.includes('მთიან')&&mountain))locationFit=90;
+    else if(spread.includes('მთელ')||spread.includes('საქართველო'))locationFit=75;
+    else locationFit=35;
   }
-  let weatherPenalty=0;
-  const wind=Number(context?.wind_speed_10m??context?.wind);
-  if(Number.isFinite(wind)&&wind>25)weatherPenalty=Math.min(15,(wind-25)*(kind.includes('bird')?1.1:.45));
-  const rain=Number(context?.precipitation);
-  if(Number.isFinite(rain)&&rain>3)weatherPenalty+=Math.min(10,(rain-3)*1.4);
-
-  // This is a comparative activity index, not a guaranteed real-world sighting probability.
-  const score=season*.28+activity*.35+speciesBase*.20+locationFit*.11+weatherFit*.06-weatherPenalty;
-  return Math.max(12,Math.min(88,Math.round(score)));
+  // Species metadata supports a typical activity comparison. It does not
+  // measure abundance, sightings or the legal right to hunt this species.
+  const terms=[[season,.4],[activity,.5],[locationFit,.1]].filter(([value])=>value!==null);
+  if(!terms.length)return null;
+  const wind=number(context.wind_speed_10m??context.wind),rain=number(context.precipitation),code=number(context.weather_code??context.weatherCode);
+  let penalty=0;if(wind!==null&&wind>25)penalty+=Math.min(20,(wind-25)*(kind.includes('bird')?1:.5));if(rain!==null&&rain>3)penalty+=Math.min(15,(rain-3)*2);
+  const totalWeight=terms.reduce((sum,[,weight])=>sum+weight,0),score=Math.round(terms.reduce((sum,[value,weight])=>sum+value*weight,0)/totalWeight-penalty);
+  return Math.max(0,Math.min([95,96,99].includes(code)?25:100,score));
 };
