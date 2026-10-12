@@ -91,6 +91,12 @@ document.addEventListener('DOMContentLoaded', function(){
   ensureMoreLink('dashboard.html','📊','ჩემი GeoNature','XP • სტატისტიკა • გეგმები','🧭 ინსტრუმენტები');
   ensureMoreLink('forests.html','🌲','ტყეების Explorer','ტყე → ბინადრები','📚 ცოდნა');
   ensureMoreLink('red-book.html','📕','წითელი წიგნი','დაცული სახეობების ცნობარი','📚 ცოდნა');
-  ensureMoreLink('donate.html','❤️','მხარდაჭერა / დონაცია','დაეხმარე GeoNature-ის განვითარებას','📚 ცოდნა');
+  addTopLink('donate.html','♡ დონაცია');
+  const donationLink=directLink('donate.html');
+  if(donationLink){
+    donationLink.classList.add('nav-donate');
+    donationLink.textContent='♡ დონაცია';
+  }
+  nav?.querySelectorAll('.more-menu a[href="donate.html"]').forEach(link=>link.remove());
   ensureMoreLink('seasons.html','🗓️','სეზონური კალენდარი','თევზაობის თვეები • ველური ბუნების სეზონურობა','🧭 ინსტრუმენტები');
 });

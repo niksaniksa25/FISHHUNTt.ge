@@ -9,3 +9,12 @@
 .more-menu::-webkit-scrollbar{width:7px}.more-menu::-webkit-scrollbar-thumb{background:#27452f;border-radius:10px}.more-group-title{padding:10px 10px 6px;color:#8ea497;font-size:9px;font-weight:900;letter-spacing:.11em;text-transform:uppercase}.more-group-title:not(:first-child){margin-top:4px;border-top:1px solid var(--line);padding-top:12px}.more-menu .more-item{padding:11px 12px}.more-menu .more-item .mt{font-size:12px}.more-menu .more-item small{font-size:9px}.more-menu-grid{}
 @media(min-width:1001px){.more-menu{display:grid;grid-template-columns:1fr 1fr;gap:2px 6px}.more-menu .more-group-title{grid-column:1/-1}.more-menu .more-divider{display:none}}
 @media(max-width:1000px){.more-menu{max-height:calc(100vh - 150px);overflow:auto}.more-menu .more-group-title{padding-left:8px}}
+
+/* Match the shared phone/tablet navigation breakpoint and retain full labels. */
+.more-item .mt{min-width:0;overflow-wrap:anywhere}
+@media(max-width:1024px){
+  .more-wrap{display:block;width:100%;min-width:0}
+  .more-trigger{width:100%;justify-content:space-between;text-align:left}
+  .more-menu{position:static;width:100%;max-width:100%;margin-top:4px;display:none;opacity:1;visibility:visible;transform:none}
+  .more-menu.open{display:block}
+}

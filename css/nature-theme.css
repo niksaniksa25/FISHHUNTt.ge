@@ -38,6 +38,13 @@ body{
 .header #nav>a.active,.header #nav>a:hover{
   background:rgba(157,227,189,.11)!important;color:var(--accent)!important;
 }
+.header #nav>a.nav-donate{
+  color:var(--accent)!important;background:rgba(157,227,189,.07)!important;
+  border:1px solid rgba(157,227,189,.24);border-radius:10px;font-weight:700;
+}
+.header #nav>a.nav-donate:hover,.header #nav>a.nav-donate.active{
+  background:rgba(157,227,189,.15)!important;border-color:rgba(157,227,189,.45);
+}
 .hero,.page-head,.fish-hero{
   background:
     radial-gradient(ellipse at 85% 10%,rgba(88,152,125,.15),transparent 60%),

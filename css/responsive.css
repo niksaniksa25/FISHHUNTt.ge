@@ -84,7 +84,7 @@ label, .form-label, .input-label { font-size: max(14px, .9em) !important; }
   .header #nav > a, .header #nav .more-wrap, .header #nav .admin-nav-link { width: auto !important; }
   .header #nav > a, .header #nav .more-trigger { font-size: 12px !important; padding: 8px 7px !important; white-space: nowrap; }
 }
-@media (min-width: 1025px) and (max-width: 1279px) {
+@media (min-width: 1025px) and (max-width: 1439px) {
   .header-inner { padding-block: 10px; }
   .header .logo { flex-shrink: 0; }
   #nav, .header #nav { flex: 1; min-width: 0; flex-wrap: wrap !important; justify-content: flex-end !important; row-gap: 8px !important; }
