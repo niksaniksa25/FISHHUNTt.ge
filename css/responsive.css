@@ -37,7 +37,7 @@ img, video, canvas, svg { max-width: 100%; }
 .catalog-card, .form-card, .account-panel, .chat, .map-side { min-width: 0; max-width: 100%; }
 .hero-grid > *, .fish-hero-grid > *, .two-col > *, .planner-grid > *,
 .location-layout > *, .catalog-layout > *, .ai-layout > *, .baro > *,
-.home-live-main > *, .species-hero-grid > *, .catch-layout > *, .fg-hero-grid > * { min-width: 0; }
+.home-live-main > *, .species-hero-grid > *, .catch-layout > * { min-width: 0; }
 input, select, textarea { max-width: 100%; min-width: 0; font-size: 16px; }
 button, a, input, select, textarea { touch-action: manipulation; }
 button { min-height: 44px; }
@@ -264,118 +264,62 @@ label, .form-label, .input-label { font-size: max(14px, .9em) !important; }
 .place-tools .tool-head>*{min-width:0;max-width:100%}
 @media(max-width:480px){.place-tools .tool-head{align-items:flex-start}.place-tools .tool-head .btn{width:100%}}
 #badges,#catchlog,#photoid,#fishProfile{scroll-margin-top:90px}
-.gn-photo-preview[hidden] { display: none !important; }
 
-/* Phones browse each group in one independently swipeable row. */
-@media (max-width: 768px) {
-  :is(
-    .fish-results, .catalog-results, .location-grid, .fg-grid, .forest-grid,
-    .red-grid, .forest-wild-grid, .season-results, .feature-grid, .stat-grid,
-    .cards-grid, .home-insight-grid, .quick-tools, .pricing-grid, .trial-grid,
-    .term-plan-grid, .facts-grid, .safety-grid, .story-grid, .season-footer-grid,
-    .place-tool-grid, .factor-grid, .factor-model-list, .mini-grid, .metrics,
-    .metrics-6, .home-score-grid, .home-factor-grid, .fish-stat-grid, .hunt-fact-grid,
-    .catalog-stats, .quick-stats, .info-grid, .environment-grid, .species-water-grid,
-    .forest-fact-grid, .forest-detail-grid, .red-profile-grid, .detail-grid, .live-metrics,
-    .place-hour-metrics, .selected-hour-grid, .gn-grid-4, .gn-home-grid, .gn-activity-grid,
-    .badge-grid, .gallery, .gn-insight-grid, .gn-extras-grid, .fg-summary,
-    .place-stat-row, .profile-days, .profile-week-grid, .daily-grid, .day-cards,
-    .home-week-strip, .gn-smart-days, .gn-best-days, .fish-links, #gnBestHours,
-    #gnHuntHours, #gnCatchList, #dashCatchRows, #dashPlans, #gnPhotoResult,
-    .catch-list, .gn-push-feed, .field-kit-grid, .donation-explainer, .leaderboard-summary
-  ):not([hidden]) {
-    --gn-swipe-card: min(86%, 340px);
+/* Phone navigation exposes every page title in one independently swipeable row. */
+@media (max-width: 1024px) {
+  html { scroll-padding-top: calc(132px + var(--gn-safe-top)); }
+  .header-inner { flex-wrap: wrap; row-gap: 7px; }
+  .header #menuBtn.menu { display: none !important; }
+  .header #nav, .header #nav:not(.open), .header #nav.open {
     display: flex !important;
+    position: static !important;
+    flex: 0 0 100% !important;
+    width: 100% !important; min-width: 0 !important; max-width: 100% !important;
     flex-flow: row nowrap !important;
-    align-items: stretch !important;
-    gap: 12px !important;
-    width: 100%; min-width: 0; max-width: 100%;
+    align-items: center !important; justify-content: flex-start !important;
     max-height: none !important;
-    overflow-x: auto !important;
-    overflow-y: hidden !important;
-    overscroll-behavior-x: contain;
-    overscroll-behavior-y: auto;
-    overflow-anchor: none;
+    overflow-x: auto !important; overflow-y: hidden !important;
+    padding: 5px 2px 9px !important;
+    gap: 7px !important;
+    border: 0 !important; border-radius: 0 !important;
+    box-shadow: none !important;
+    overscroll-behavior-x: contain; overscroll-behavior-y: auto;
     -webkit-overflow-scrolling: touch;
     touch-action: pan-x pan-y pinch-zoom;
-    scroll-snap-type: x proximity;
-    scroll-padding-inline: 2px;
     scrollbar-width: thin;
-    scrollbar-color: rgba(157, 227, 189, .45) transparent;
-    padding: 4px 2px 12px;
+    scrollbar-color: rgba(157,227,189,.45) transparent;
   }
-  :is(
-    .fish-results, .catalog-results, .location-grid, .fg-grid, .forest-grid,
-    .red-grid, .forest-wild-grid, .season-results, .feature-grid, .stat-grid,
-    .cards-grid, .home-insight-grid, .quick-tools, .pricing-grid, .trial-grid,
-    .term-plan-grid, .facts-grid, .safety-grid, .story-grid, .season-footer-grid,
-    .place-tool-grid, .factor-grid, .factor-model-list, .mini-grid, .metrics,
-    .metrics-6, .home-score-grid, .home-factor-grid, .fish-stat-grid, .hunt-fact-grid,
-    .catalog-stats, .quick-stats, .info-grid, .environment-grid, .species-water-grid,
-    .forest-fact-grid, .forest-detail-grid, .red-profile-grid, .detail-grid, .live-metrics,
-    .place-hour-metrics, .selected-hour-grid, .gn-grid-4, .gn-home-grid, .gn-activity-grid,
-    .badge-grid, .gallery, .gn-insight-grid, .gn-extras-grid, .fg-summary,
-    .place-stat-row, .profile-days, .profile-week-grid, .daily-grid, .day-cards,
-    .home-week-strip, .gn-smart-days, .gn-best-days, .fish-links, #gnBestHours,
-    #gnHuntHours, #gnCatchList, #dashCatchRows, #dashPlans, #gnPhotoResult,
-    .catch-list, .gn-push-feed, .field-kit-grid, .donation-explainer, .leaderboard-summary
-  ) > * {
-    flex: 0 0 var(--gn-swipe-card) !important;
-    width: var(--gn-swipe-card) !important;
-    min-width: 0 !important; max-width: 100% !important;
-    grid-column: auto !important; grid-row: auto !important;
-    scroll-snap-align: start;
-    scroll-margin-inline: 2px;
+  .header #nav .more-wrap, .header #nav .more-menu, .header #nav .more-menu.open {
+    display: contents !important;
   }
-  :is(
-    .fish-results, .catalog-results, .location-grid, .fg-grid, .forest-grid,
-    .red-grid, .forest-wild-grid, .season-results, .feature-grid, .stat-grid,
-    .cards-grid, .home-insight-grid, .quick-tools, .pricing-grid, .trial-grid,
-    .term-plan-grid, .facts-grid, .safety-grid, .story-grid, .season-footer-grid,
-    .place-tool-grid, .factor-grid, .factor-model-list, .mini-grid, .metrics,
-    .metrics-6, .home-score-grid, .home-factor-grid, .fish-stat-grid, .hunt-fact-grid,
-    .catalog-stats, .quick-stats, .info-grid, .environment-grid, .species-water-grid,
-    .forest-fact-grid, .forest-detail-grid, .red-profile-grid, .detail-grid, .live-metrics,
-    .place-hour-metrics, .selected-hour-grid, .gn-grid-4, .gn-home-grid, .gn-activity-grid,
-    .badge-grid, .gallery, .gn-insight-grid, .gn-extras-grid, .fg-summary,
-    .place-stat-row, .profile-days, .profile-week-grid, .daily-grid, .day-cards,
-    .home-week-strip, .gn-smart-days, .gn-best-days, .fish-links, #gnBestHours,
-    #gnHuntHours, #gnCatchList, #dashCatchRows, #dashPlans, #gnPhotoResult,
-    .catch-list, .gn-push-feed, .field-kit-grid, .donation-explainer, .leaderboard-summary
-  ) > :only-child {
-    flex-basis: 100% !important;
-    width: 100% !important;
+  .header #nav .more-trigger, .header #nav .more-group-title,
+  .header #nav .more-divider, .header #nav .more-item small {
+    display: none !important;
   }
-  :is(
-    .factor-grid, .factor-model-list, .mini-grid, .metrics, .metrics-6,
-    .home-factor-grid, .fish-stat-grid, .hunt-fact-grid, .catalog-stats, .quick-stats,
-    .info-grid, .environment-grid, .species-water-grid, .forest-fact-grid, .forest-detail-grid,
-    .red-profile-grid, .detail-grid, .live-metrics, .place-hour-metrics, .selected-hour-grid,
-    .gn-insight-grid, .fg-summary, .place-stat-row, .profile-days, .profile-week-grid,
-    .daily-grid, .day-cards, .home-week-strip, .gn-smart-days, .gn-best-days,
-    .fish-links, .badge-grid, #gnBestHours, #gnHuntHours
-  ):not([hidden]) {
-    --gn-swipe-card: min(82%, 240px);
+  .header #nav > a, .header #nav .more-item {
+    display: inline-flex !important; align-items: center !important;
+    flex: 0 0 auto !important;
+    width: auto !important; min-width: 0 !important; max-width: none !important;
+    min-height: 44px !important;
+    padding: 9px 12px !important;
+    white-space: nowrap !important; overflow-wrap: normal !important;
+    font-size: 14px !important;
+    border-radius: 10px !important;
+    background: rgba(157,227,189,.045);
+    gap: 7px;
   }
-  :is(
-    .home-hour-strip, .hourly-strip, .gn-hourly-strip, .place-hourly-detail, .hours-strip,
-    .weather-hour-strip, .season-month-strip, .place-forecast
-  ) {
-    flex-wrap: nowrap !important;
-    min-width: 0; max-width: 100%;
-    overflow-x: auto !important;
-    overscroll-behavior-x: contain;
-    -webkit-overflow-scrolling: touch;
-    touch-action: pan-x pan-y pinch-zoom;
-    scroll-snap-type: x proximity;
-    scrollbar-width: thin;
+  .header #nav .more-item .mt {
+    flex: 0 0 auto; font-size: 14px !important;
+    white-space: nowrap !important; overflow-wrap: normal !important;
   }
-  :is(
-    .home-hour-strip, .hourly-strip, .gn-hourly-strip, .place-hourly-detail, .hours-strip,
-    .weather-hour-strip, .season-month-strip, .place-forecast
-  ) > * {
-    flex-shrink: 0;
-    scroll-snap-align: start;
+  .header #nav a[data-gn-mobile-duplicate="true"] { display: none !important; }
+  .header #nav a[aria-current="page"] {
+    color: var(--accent) !important; background: rgba(157,227,189,.14) !important;
   }
-  .gn-insight-grid > .gn-insight-wide { grid-column: auto !important; }
+  .header #nav .header-live-pill, .header #nav .gn-auth-slot {
+    flex: 0 0 auto !important; width: auto !important; min-width: 0 !important;
+    flex-wrap: nowrap !important; margin: 0 !important;
+  }
+  .header #nav .gn-auth-btn { flex: 0 0 auto !important; white-space: nowrap; }
+  body.gn-header-profile-open .gn-feedback-fab { visibility: hidden !important; pointer-events: none !important; }
 }

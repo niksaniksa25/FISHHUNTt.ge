@@ -8,7 +8,7 @@ Run `npm run check` to check every active JavaScript file and `npm test` for wea
 
 Current conditions, selected-hour forecasts, stale data and unavailable measurements are separate. Fishing scores are comparative indices out of 100, not measured catch percentages. See [live data behavior and limitations](docs/LIVE-DATA.md).
 
-Shared responsive layouts are in `css/responsive.css`, with separate `css/responsive-ios.css` and `css/responsive-android.css` platform adjustments. On phone widths, repeated cards, forecast days and assessment fields use independent horizontal swipe rows with a visible next-card preview; live fish reordering preserves the row's scroll position. `js/device-responsive.js` applies device classes and visible-viewport sizing; `css/nature-theme.css` supplies the shared forest/river palette.
+Shared responsive layouts are in `css/responsive.css`, with separate `css/responsive-ios.css` and `css/responsive-android.css` platform adjustments. `js/device-responsive.js` applies device classes and visible-viewport sizing; `css/nature-theme.css` supplies the shared forest/river palette.
 
 The season calendar, species profiles and planning tools show restrictions separately from activity forecasts. See [the source versions and legal coverage](docs/WILDLIFE-RULES.md); an activity score does not establish permission to catch or hunt.
 
@@ -24,7 +24,7 @@ This build keeps the existing site and adds:
 Real payment credentials must be entered in `.env` on the server. Do not put merchant secrets into browser JavaScript.
 
 
-The More menu reveals secondary tools in a grouped, responsive dropdown. Donation has its own compact link in the main navigation.
+On phones and tablets, all page titles appear in one horizontally scrollable header row, including the secondary destinations. The desktop More menu groups secondary tools in a dropdown. Donation has its own compact link in the main navigation.
 
 
 ### Premium term purchases

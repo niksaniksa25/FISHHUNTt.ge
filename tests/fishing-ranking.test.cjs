@@ -29,7 +29,6 @@ function fixture() {
       if (context.document.activeElement === child) {
         context.document.activeElement = null; context.scrollY += 200;
       }
-      this.scrollLeft = (this.scrollLeft || 0) + 100;
       this.children = this.children.filter(item => item !== child);
       const index = at ? this.children.indexOf(at) : this.children.length;
       this.children.splice(index < 0 ? this.children.length : index, 0, child);
@@ -117,13 +116,11 @@ test('weather reordering keeps existing cards, selected identity, keyboard focus
   const originalCards = cards().slice();
   set('selectedFish=FISHES[1]');
   originalCards[1].focus(); const y = context.scrollY;
-  get('fishResults').scrollLeft = 260;
   scores = [30, 70, 90]; context.refreshVisibleFishScores();
   assert.deepEqual(cards().map(card => card.dataset.fishId), [list[2][0], list[1][0], list[0][0]]);
   assert.ok(cards().every(card => originalCards.includes(card)), 'updates move nodes instead of rebuilding them');
   assert.equal(context.selectedFish, list[1]); assert.equal(context.document.activeElement, originalCards[1]);
   assert.equal(context.scrollY, y); assert.equal(originalCards[1].lastFocusOptions.preventScroll, true);
-  assert.equal(get('fishResults').scrollLeft, 260, 'live reordering preserves the independent phone row position');
   assert.equal(originalCards[1].attributes['aria-pressed'], 'true');
   assert.match(get('fishProfileChance').innerHTML, /70/);
 });
