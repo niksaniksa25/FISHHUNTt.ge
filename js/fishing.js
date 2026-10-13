@@ -97,7 +97,7 @@ function reorderFishingCards(ranked){
   const ordered=ranked.map(entry=>entry.card);
   if(ordered.every((card,index)=>card===before[index]))return;
   const focused=document.activeElement,restoreFocus=focused&&box.contains(focused);
-  const x=window.scrollX,y=window.scrollY;
+  const x=window.scrollX,y=window.scrollY,railX=box.scrollLeft||0;
   // Keep the actual nodes and listeners: a weather update must not close a
   // focused card or take the user to the profile while they browse the list.
   for(let index=0;index<ordered.length;index++){
@@ -107,6 +107,7 @@ function reorderFishingCards(ranked){
     else box.insertBefore(card,at||null);
   }
   if(restoreFocus&&document.activeElement!==focused)focused.focus({preventScroll:true});
+  if(box.scrollLeft!==railX)box.scrollLeft=railX;
   if(window.scrollX!==x||window.scrollY!==y)window.scrollTo({left:x,top:y,behavior:'instant'});
 }
 function updateFishingRankingContext(){
