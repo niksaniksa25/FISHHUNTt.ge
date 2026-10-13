@@ -7,6 +7,11 @@ let hourlyToken=0;
 let plannerRequestToken=0;
 let liveFishingRequestToken=0;
 let selectedFishingRuleMethod='rod';
+// An empty hour tracks current conditions. A chosen forecast hour stays pinned.
+let selectedFishingHour='';
+let fishingDateTracksToday=true;
+let fishCardImageObserver=null;
+const fishCardImageSubjects=new WeakMap();
 
 function updateFishingRules(){
   const profile=document.getElementById('fishProfile'),rules=window.GeoWildlifeRules;
@@ -26,6 +31,33 @@ function safeText(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<
 function parseRange(v){return (String(v||'').match(/-?\d+(?:\.\d+)?/g)||[]).map(Number).filter(Number.isFinite);}
 function fishImage(f, cb){
   GeoImage.resolveSpeciesImage(f[1], f[11], f[2]).then(src=>cb(src)).catch(()=>cb(GeoImage.placeholder(f[1],'fish')));
+}
+function loadFishingCardImage(card,fish){
+  const img=card.querySelector('img');
+  if(!img||!card.isConnected||card.dataset.imageRequested==='true')return;
+  const fishId=String(fish[0]);card.dataset.imageRequested='true';
+  fishImage(fish,src=>{
+    if(card.isConnected&&img.isConnected&&card.dataset.fishId===fishId)img.src=src;
+  });
+}
+function prepareFishingCardImages(){
+  fishCardImageObserver?.disconnect();fishCardImageObserver=null;
+  if(typeof window.IntersectionObserver!=='function')return;
+  // Native loading="lazy" delays the photo itself. The observer also delays
+  // the species-image lookup, avoiding dozens of requests for offscreen fish.
+  fishCardImageObserver=new window.IntersectionObserver((entries,observer)=>{
+    for(const entry of entries){
+      if(!entry.isIntersecting)continue;
+      observer.unobserve(entry.target);
+      const fish=fishCardImageSubjects.get(entry.target);
+      if(fish)loadFishingCardImage(entry.target,fish);
+    }
+  },{rootMargin:'400px 0px',threshold:0});
+}
+function observeFishingCardImage(card,fish){
+  fishCardImageSubjects.set(card,fish);
+  if(fishCardImageObserver)fishCardImageObserver.observe(card);
+  else loadFishingCardImage(card,fish);
 }
 
 function fishingNumber(value){
@@ -50,15 +82,52 @@ function chanceForFish(f,condition=currentFishingCondition(),water=selectedWater
 function fishingScoreMarkup(score,label='პირობების ინდექსი'){
   return window.GeoChanceUI?.markup?window.GeoChanceUI.markup(score,label):`<span class="fish-chance">${score===null?'—':score+'/100'}</span>`;
 }
+function compareFishRanks(a,b){
+  if(a.score===null&&b.score!==null)return 1;
+  if(a.score!==null&&b.score===null)return -1;
+  return (b.score??0)-(a.score??0)||a.catalogueIndex-b.catalogueIndex||String(a.fish[0]).localeCompare(String(b.fish[0]));
+}
+function rankedFishingList(list,condition=currentFishingCondition(),water=selectedWater){
+  const indexes=new Map((window.FISHES||[]).map((fish,index)=>[String(fish[0]),index]));
+  return list.map(fish=>({fish,score:fishingNumber(chanceForFish(fish,condition,water)),catalogueIndex:indexes.get(String(fish[0]))??Number.MAX_SAFE_INTEGER})).sort(compareFishRanks);
+}
+function reorderFishingCards(ranked){
+  const box=document.getElementById('fishResults');if(!box)return;
+  const before=[...box.querySelectorAll('.fish-card[data-fish-id]')];
+  const ordered=ranked.map(entry=>entry.card);
+  if(ordered.every((card,index)=>card===before[index]))return;
+  const focused=document.activeElement,restoreFocus=focused&&box.contains(focused);
+  const x=window.scrollX,y=window.scrollY;
+  // Keep the actual nodes and listeners: a weather update must not close a
+  // focused card or take the user to the profile while they browse the list.
+  for(let index=0;index<ordered.length;index++){
+    const card=ordered[index],at=box.children[index];
+    if(card===at)continue;
+    if(typeof box.moveBefore==='function')box.moveBefore(card,at||null);
+    else box.insertBefore(card,at||null);
+  }
+  if(restoreFocus&&document.activeElement!==focused)focused.focus({preventScroll:true});
+  if(window.scrollX!==x||window.scrollY!==y)window.scrollTo({left:x,top:y,behavior:'instant'});
+}
+function updateFishingRankingContext(){
+  const hint=document.getElementById('fishRankingContext');if(!hint)return;
+  const row=selectedHourlyRow;
+  hint.textContent=row?`${row.source==='current'?'LIVE პირობები':'არჩეული საათის პროგნოზი'} • ${selectedWater?.[1]||'არჩეული ადგილი'} • ${row.date} ${row.time} • მაღალი ინდექსიდან დაბლისკენ`:'მაღალი ინდექსიდან დაბლისკენ • უცნობი მაჩვენებლები ბოლოშია';
+}
 function refreshVisibleFishScores(){
-  const condition=currentFishingCondition();
-  document.querySelectorAll('#fishResults .fish-card[data-fish-id]').forEach(card=>{
-    const f=(window.FISHES||[]).find(x=>String(x[0])===card.dataset.fishId);if(!f)return;
-    const score=chanceForFish(f,condition,selectedWater),markup=fishingScoreMarkup(score);
+  const condition=currentFishingCondition(),cards=[...document.querySelectorAll('#fishResults .fish-card[data-fish-id]')];
+  const fishes=new Map((window.FISHES||[]).map((fish,index)=>[String(fish[0]),{fish,index}])),ranked=[];
+  cards.forEach(card=>{
+    const entry=fishes.get(card.dataset.fishId);if(!entry)return;
+    const score=fishingNumber(chanceForFish(entry.fish,condition,selectedWater)),markup=fishingScoreMarkup(score);
     const slot=card.querySelector('.fish-chance-slot');if(slot)slot.innerHTML=markup;
     const titleChance=card.querySelector('.fish-card-title-row > .gn-chance');if(titleChance)titleChance.outerHTML=markup;
     card.dataset.chance=score===null?'':String(score);
+    card.setAttribute('aria-pressed',String(selectedFish===entry.fish));
+    card.setAttribute('aria-label',`${entry.fish[1]} — ${score===null?'ინდექსი უცნობია':score+'/100'}`);
+    ranked.push({fish:entry.fish,catalogueIndex:entry.index,score,card});
   });
+  ranked.sort(compareFishRanks);reorderFishingCards(ranked);updateFishingRankingContext();
   updateSelectedFishChance();
 }
 function updateSelectedFishChance(){
@@ -79,7 +148,7 @@ function scoredFishingHours(data,iso){
   return rows.map(r=>({r,score:fishScore(selectedFish,conditionFromFishingRow(r),selectedWater)})).filter(item=>item.score!==null).sort((a,b)=>b.score-a.score||a.r.iso.localeCompare(b.r.iso));
 }
 function bestScoredHourForDate(data,iso){return scoredFishingHours(data,iso)[0]||null;}
-function chooseBestHourForDate(iso){const best=plannerWeather&&bestScoredHourForDate(plannerWeather,iso);if(!best)return;selectedHourlyRow=best.r;window.__gnFishingWeather=conditionFromFishingRow(best.r);const hour=document.getElementById('hourSelect');if(hour&&[...hour.options].some(o=>o.value===best.r.time))hour.value=best.r.time;}
+function chooseBestHourForDate(iso){const best=plannerWeather&&bestScoredHourForDate(plannerWeather,iso);if(!best)return;selectedFishingHour=best.r.time;fishingDateTracksToday=false;selectedHourlyRow=best.r;window.__gnFishingWeather=conditionFromFishingRow(best.r);const hour=document.getElementById('hourSelect');if(hour&&[...hour.options].some(o=>o.value===best.r.time))hour.value=best.r.time;}
 function selectedHourForDate(data,iso){
   const rows=hourlyRowsForDate(data,iso);if(!rows.length)return null;
   const now=window.GeoNatureCommon?.zonedDateTime?.(data)||{date:data.current?.time?.slice(0,10),time:data.current?.time?.slice(11,16)};
@@ -97,7 +166,7 @@ function clearFishingWeather(message='ამინდის მონაცე�
   const strip=document.getElementById('fishingHourlyStrip');if(strip)strip.innerHTML='';
   const hour=document.getElementById('hourSelect');if(hour)hour.innerHTML='<option value="">საათები მიუწვდომელია</option>';
   setPressureGauge(null,'pressureNeedle','pressureValue','pressureStatus','pressureAdvice');
-  if(window.GNLiveFactors)window.GNLiveFactors.render({data:null,row:null,subject:selectedFish,type:'fishing',locationName:selectedWater?.[1]||'ადგილი არჩეული არ არის',live:false});
+  if(window.GNLiveFactors)window.GNLiveFactors.render({data:null,row:null,subject:selectedFish,water:selectedWater,score:null,type:'fishing',locationName:selectedWater?.[1]||'ადგილი არჩეული არ არის',live:false});
   refreshVisibleFishScores();document.dispatchEvent(new CustomEvent('gn:fishingUpdated'));
 }
 function showMissingWaterCoordinates(){
@@ -116,7 +185,7 @@ function applyHourlyToLive(row){
   const set=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val};
   set('fishLiveCity',selectedWater?.[1]||'არჩეული ადგილი');
   set('fishLiveTime',`${fmtDate(row.date)} • ${row.time}`);
-  set('fishLiveMode',plannerWeather?.__meta?.stale?'ბოლო ხელმისაწვდომი პროგნოზი':'საათობრივი პროგნოზი');
+  set('fishLiveMode',plannerWeather?.__meta?.stale?'ბოლო ხელმისაწვდომი მონაცემი':row.source==='current'?'LIVE • მიმდინარე პირობები':'საათობრივი პროგნოზი');
   set('fishLiveIcon',mm[0]);
   set('fishLiveTemp',fishingValue(row.temperature,'°'));
   set('fishLiveDesc',`${mm[1]} • ${score===null?'შეფასება მიუწვდომელია':score+'/100'}`);
@@ -129,14 +198,15 @@ function applyHourlyToLive(row){
   set('fishLiveRain',fishingValue(row.precip,' მმ',1));
   setPressureGauge(row.pressure,'pressureNeedle','pressureValue','pressureStatus','pressureAdvice');
   const lab=document.getElementById('selectedHourLabel');
-  const hs=document.getElementById('hourSelect');if(hs&&[...hs.options].some(o=>o.value===row.time))hs.value=row.time;
-  if(lab)lab.textContent=`არჩეული საათი: ${row.time}`;
-  if(window.GNLiveFactors) window.GNLiveFactors.render({data:plannerWeather,row,subject:selectedFish,type:'fishing',locationName:selectedWater?.[1]||'არჩეული ადგილი'});
+  const hs=document.getElementById('hourSelect');if(hs)hs.value=selectedFishingHour;
+  if(lab)lab.textContent=`${row.source==='current'?'მიმდინარე პირობები':'არჩეული საათი'}: ${row.time}`;
+  if(window.GNLiveFactors) window.GNLiveFactors.render({data:plannerWeather,row,subject:selectedFish,water:selectedWater,score,type:'fishing',locationName:selectedWater?.[1]||'არჩეული ადგილი',selectedCurrent:row.source==='current'});
   const out=document.getElementById('fishingHourlySelected');
   if(out){
     out.innerHTML=`<div class="selected-hour-grid"><div><span>${mm[0]}</span><b>${row.time}</b><small>${mm[1]}</small></div><div><small>ტემპერატურა</small><b>${fishingValue(row.temperature,'°C')}</b></div><div><small>წნევა</small><b>${fishingValue(row.pressure,' hPa')}</b></div><div><small>ქარი</small><b>${fishingValue(row.wind,' კმ/სთ')}</b></div><div><small>ნალექი</small><b>${fishingValue(row.precip,' მმ',1)}</b></div><div><small>წვიმის ალბათობა</small><b>${fishingValue(row.rainProb,'%')}</b></div><div><small>Fishing Score</small><b class="selected-score">${score===null?'—':score+'/100'}</b></div></div>`;
   }
-  document.querySelectorAll('#fishingHourlyStrip .hour-card').forEach(el=>el.classList.toggle('active',el.dataset.iso===row.iso));
+  const highlightedHour=row.source==='current'?row.iso.slice(0,13)+':00':row.iso;
+  document.querySelectorAll('#fishingHourlyStrip .hour-card').forEach(el=>el.classList.toggle('active',el.dataset.iso===highlightedHour));
   window.__gnFishingWeather=condition;
   refreshVisibleFishScores();
   document.dispatchEvent(new CustomEvent('gn:fishingUpdated'));
@@ -152,9 +222,10 @@ function renderFishingHourly(data){
   if(loc)loc.textContent=selectedWater?.[1]||'თბილისი';
   if(dt)dt.textContent=fmtDate(date);
   if(!rows.length){clearFishingWeather('ამ თარიღისთვის საათობრივი მონაცემი მიუწვდომელია.');wrap.innerHTML='<div class="empty">ამ თარიღისთვის საათობრივი მონაცემი მიუწვდომელია.</div>';return;}
-  populateHourSelect(rows);
-  const chosenHour=document.getElementById('hourSelect')?.value;
-  const current=(chosenHour&&rows.find(r=>r.time===chosenHour))||bestScoredHourForDate(data,date)?.r||selectedHourForDate(data,date);
+  populateHourSelect(rows,date,data);
+  const now=window.GeoNatureCommon?.zonedDateTime?.(data)||{date:data.current?.time?.slice(0,10)};
+  const currentRow=!selectedFishingHour&&date===now.date?window.GeoNatureCommon?.currentWeatherRow?.(data):null;
+  const current=(selectedFishingHour&&rows.find(r=>r.time===selectedFishingHour))||(currentRow?.date===date?currentRow:null)||bestScoredHourForDate(data,date)?.r||selectedHourForDate(data,date);
   wrap.innerHTML=rows.map(row=>{
     const mm=codeMeta(row.code);
     const condition=conditionFromFishingRow(row);
@@ -162,24 +233,26 @@ function renderFishingHourly(data){
     const active=current?.iso===row.iso?' active':'';
     return `<button class="hour-card${active}" data-iso="${row.iso}"><small>${row.time}</small><span class="hour-icon">${mm[0]}</span><strong>${fishingValue(row.temperature,'°')}</strong><em>${fishingValue(row.pressure)}</em><b>${fishingValue(row.wind,' კმ/სთ')}</b><span class="hour-score">${score===null?'—':score}</span></button>`;
   }).join('');
-  wrap.querySelectorAll('.hour-card').forEach(card=>card.onclick=()=>{const row=rows.find(r=>r.iso===card.dataset.iso);selectedFishCardScore=null;applyHourlyToLive(row);});
+  wrap.querySelectorAll('.hour-card').forEach(card=>card.onclick=()=>{const row=rows.find(r=>r.iso===card.dataset.iso);selectedFishCardScore=null;selectedFishingHour=row.time;fishingDateTracksToday=false;applyHourlyToLive(row);});
   applyHourlyToLive(current);
 }
 
 function renderFishResults(list){
   const box=document.getElementById('fishResults');
+  prepareFishingCardImages();
   box.innerHTML='';
-  list.slice(0,100).forEach(f=>{
+  rankedFishingList(list).slice(0,100).forEach(({fish:f,score:chance})=>{
     const card=document.createElement('article');
     card.className='fish-card';
     card.tabIndex=0;
-    const chance=chanceForFish(f,currentFishingCondition(),selectedWater);const chanceHtml=fishingScoreMarkup(chance);card.dataset.fishId=String(f[0]);card.dataset.chance=chance===null?'':String(chance);card.innerHTML=`<div class="fish-img-wrap"><img class="fish-img" loading="lazy" alt="${safeText(f[1])}"><span class="fish-chance-slot">${chanceHtml}</span></div><div class="fish-card-body"><div class="fish-card-title-row"><div><span class="tag">${safeText(f[3])}</span><h3>${safeText(f[1])}</h3></div>${chanceHtml}</div><p>${safeText(f[2])} • ${safeText(f[4])}</p><div class="fish-card-meta"><span>⚖️ ${safeText(f[6])}</span><span>🌡️ ${safeText(f[7])}</span></div></div>`;
-    fishImage(f,src=>{const img=card.querySelector('img');if(img)img.src=src;});
-    card.onclick=()=>selectFish(f,true,Number(card.dataset.chance));
-    card.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();selectFish(f,true,Number(card.dataset.chance));}};
+    const chanceHtml=fishingScoreMarkup(chance);card.dataset.fishId=String(f[0]);card.dataset.chance=chance===null?'':String(chance);card.setAttribute('role','button');card.setAttribute('aria-pressed',String(selectedFish===f));card.setAttribute('aria-label',`${f[1]} — ${chance===null?'ინდექსი უცნობია':chance+'/100'}`);card.innerHTML=`<div class="fish-img-wrap"><img class="fish-img" loading="lazy" alt="${safeText(f[1])}"><span class="fish-chance-slot">${chanceHtml}</span></div><div class="fish-card-body"><div class="fish-card-title-row"><div><span class="tag">${safeText(f[3])}</span><h3>${safeText(f[1])}</h3></div>${chanceHtml}</div><p>${safeText(f[2])} • ${safeText(f[4])}</p><div class="fish-card-meta"><span>⚖️ ${safeText(f[6])}</span><span>🌡️ ${safeText(f[7])}</span></div></div>`;
+    card.onclick=()=>selectFish(f,true,fishingNumber(card.dataset.chance));
+    card.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();selectFish(f,true,fishingNumber(card.dataset.chance));}};
     box.appendChild(card);
+    observeFishingCardImage(card,f);
   });
   if(!list.length) box.innerHTML='<div class="empty">ამ ძებნით თევზი ვერ მოიძებნა.</div>';
+  updateFishingRankingContext();
 }
 
 function renderFishProfileShell(){
@@ -225,6 +298,17 @@ function compatibleWaterIndexes(fish){
   const ids=new Set([String(fish[0]||'').trim().toLowerCase(),...(FISH_ID_ALIASES[String(fish[0]||'').trim().toLowerCase()]||[])].map(x=>String(x).trim().toLowerCase()));
   return WATERS.map((w,i)=>({w,i})).filter(({w})=>String(w[6]||'').split(',').map(x=>x.trim().toLowerCase()).some(id=>ids.has(id))).map(x=>x.i);
 }
+function fishingSelectionFromURL(search){
+  const params=new URLSearchParams(search),requestedFish=String(params.get('fish')||'').trim().toLowerCase();
+  const fish=FISHES.find(subject=>String(subject[0]).toLowerCase()===requestedFish)||null;
+  const requestedPlace=params.get('place')||params.get('water')||'';
+  const requestedWaterIndex=requestedPlace?WATERS.findIndex(subject=>subject[0]===requestedPlace||subject[1]===requestedPlace):-1;
+  const compatible=compatibleWaterIndexes(fish);
+  // Keep an alert's destination only when the catalogue connects it to this
+  // species. An unknown URL value cannot manufacture a fish or habitat.
+  const waterIndex=compatible.includes(requestedWaterIndex)?requestedWaterIndex:(compatible[0]??-1);
+  return {fish,waterIndex,requestedWaterIndex};
+}
 function showNoFishLocations(){
   clearFishingWeather('ამ სახეობისთვის შესაბამისი ადგილის ამინდი მიუწვდომელია.');
   const days=document.getElementById('dayCards');if(days)days.innerHTML='';
@@ -251,7 +335,13 @@ function syncWaterOptions(preferCompatible=true){
   if(oldWater!==selectedWater){clearFishingWeather('არჩეული ადგილის პროგნოზი იტვირთება…');plannerRequestToken++;liveFishingRequestToken++;}
   updateWaterMeta();
 }
-function populateHourSelect(rows){const el=document.getElementById('hourSelect');if(!el||!rows?.length)return;const keep=el.value;el.innerHTML='<option value="">ავტომატურად — საუკეთესო საათი</option>'+rows.map(r=>`<option value="${r.time}">${r.time}</option>`).join('');if(rows.some(r=>r.time===keep))el.value=keep;}
+function populateHourSelect(rows,date,data){
+  const el=document.getElementById('hourSelect');if(!el||!rows?.length)return;
+  if(selectedFishingHour&&!rows.some(row=>row.time===selectedFishingHour))selectedFishingHour='';
+  const today=window.GeoNatureCommon?.zonedDateTime?.(data)?.date||data?.current?.time?.slice(0,10);
+  el.innerHTML=`<option value="">${date===today?'ახლა — LIVE პირობები':'ავტომატურად — საუკეთესო საათი'}</option>`+rows.map(r=>`<option value="${r.time}">${r.time}</option>`).join('');
+  el.value=selectedFishingHour;
+}
 function selectFish(f,scroll=true,sourceScore=null){
   selectedFish=f;selectedFishCardScore=Number.isFinite(Number(sourceScore))&&sourceScore!==null&&sourceScore!==''?Math.max(0,Math.min(100,Number(sourceScore))):null;
   syncWaterOptions(true);
@@ -262,8 +352,9 @@ function selectFish(f,scroll=true,sourceScore=null){
   renderFishProfileShell();
   refreshVisibleFishScores();
   const callout=document.getElementById('bestCallout');if(callout)callout.innerHTML='<span class="loading-box">არჩეული თევზისა და ადგილის საათობრივი პირობები ახლდება…</span>';const days=document.getElementById('dayCards');if(days)days.innerHTML='<div class="loading-box">პროგნოზი იტვირთება…</div>';
-  runPlanner(true).catch(err=>console.error('planner error',err));
+  const planning=runPlanner(true).catch(err=>console.error('planner error',err));
   if(scroll) document.getElementById('fishProfile')?.scrollIntoView({behavior:'smooth',block:'start'});
+  return planning;
 }
 
 function waterCompatibilityScore(f,water){
@@ -357,7 +448,7 @@ function updateWaterMeta(){
   el.innerHTML=`<b>${safeText(selectedWater[1])}</b><span>${safeText(selectedWater[3])} • ${safeText(selectedWater[2])}</span>${coords}`;
 }
 
-async function runPlanner(profileRefresh=false){
+async function runPlanner(profileRefresh=false,providedWeather=null){
   const requestId=++plannerRequestToken;
   updateFishingRules();
   if(!selectedFish||!selectedWater){
@@ -370,7 +461,7 @@ async function runPlanner(profileRefresh=false){
   const loadingDays=document.getElementById('dayCards');if(loadingDays)loadingDays.innerHTML='<div class="loading-box">არჩეული დღის საუკეთესო საათი და პირობები იტვირთება…</div>';
   const fishAtStart=selectedFish,waterAtStart=selectedWater;
   try{
-    const weatherResult=await openMeteo(waterAtStart[4],waterAtStart[5]);
+    const weatherResult=providedWeather||await openMeteo(waterAtStart[4],waterAtStart[5]);
     if(requestId!==plannerRequestToken||selectedFish!==fishAtStart||selectedWater!==waterAtStart)return;
     plannerWeather=weatherResult;
     updateWaterMeta();
@@ -406,7 +497,7 @@ async function loadLiveFishing(lat,lon,city){
     const data=await openMeteo(lat,lon);
     if(requestId!==liveFishingRequestToken||selectedWater!==waterAtStart)return;
     plannerWeather=data;
-    renderFishingHourly(data);renderFishSearch();
+    renderFishingHourly(data);
   }catch(error){
     if(requestId!==liveFishingRequestToken||selectedWater!==waterAtStart)return;
     console.error(error);clearFishingWeather('ამინდის პროგნოზი დროებით ვერ ჩაიტვირთა.');
@@ -416,11 +507,31 @@ async function loadLiveFishing(lat,lon,city){
 function renderFishSearch(){
   const input=document.getElementById('fishSearch'),type=document.getElementById('fishType'),count=document.getElementById('fishCount'),suggestions=document.getElementById('fishSuggestions');
   const q=input.value.trim().toLowerCase(),t=type.value;
-  const list=FISHES.filter(f=>{const hay=[f[1],f[2],f[11],f[4],f[5],f[3]].join(' ').toLowerCase();const typeOk=t==='all'||(t==='fresh'&&f[3].includes('მტკნარი'))||(t==='river'&&f[3].includes('მდინარე'))||(t==='sea'&&f[3].includes('ზღვა'));return typeOk&&(!q||hay.includes(q));});
+  const list=rankedFishingList(FISHES.filter(f=>{const hay=[f[1],f[2],f[11],f[4],f[5],f[3]].join(' ').toLowerCase();const typeOk=t==='all'||(t==='fresh'&&f[3].includes('მტკნარი'))||(t==='river'&&f[3].includes('მდინარე'))||(t==='sea'&&f[3].includes('ზღვა'));return typeOk&&(!q||hay.includes(q));})).map(entry=>entry.fish);
   count.textContent=`${list.length} სახეობა`;
   suggestions.innerHTML=list.slice(0,10).map((f,i)=>`<button data-i="${i}">${safeText(f[1])}</button>`).join('');
   suggestions.querySelectorAll('button').forEach(b=>b.onclick=()=>selectFish(list[Number(b.dataset.i)]));
   renderFishResults(list);
+}
+
+async function refreshFishingWeather(options={}){
+  if(!selectedWater)return;
+  if(!waterHasCoordinates(selectedWater)){showMissingWaterCoordinates();return;}
+  const waterAtStart=selectedWater,requestId=++liveFishingRequestToken;
+  try{
+    const latest=await openMeteo(waterAtStart[4],waterAtStart[5],options);
+    if(selectedWater!==waterAtStart||requestId!==liveFishingRequestToken)return;
+    plannerWeather=latest;
+    if(fishingDateTracksToday&&!selectedFishingHour){
+      const now=window.GeoNatureCommon?.zonedDateTime?.(latest),dateInput=document.getElementById('startDate');
+      if(now?.date&&dateInput)dateInput.value=now.date;
+    }
+    if(selectedFish)await runPlanner(true,latest);
+    else renderFishingHourly(latest);
+  }catch(error){
+    if(selectedWater===waterAtStart&&requestId===liveFishingRequestToken)clearFishingWeather('განახლება ვერ მოხერხდა.');
+    console.error(error);
+  }
 }
 
 async function initFishingPage(){
@@ -445,11 +556,8 @@ async function initFishingPage(){
       const i=Number(fishSelect.value);if(Number.isInteger(i)&&FISHES[i])selectFish(FISHES[i],false);
     };
   }
-  const params=new URLSearchParams(location.search);
-  const requestedPlace=params.get('place');
-  let startWater=0;
-  if(requestedPlace){const idx=WATERS.findIndex(w=>w[0]===requestedPlace||w[1]===requestedPlace);if(idx>=0)startWater=idx;}
-  selectedWater=WATERS[startWater];water.value=String(startWater);updateWaterMeta();syncWaterOptions(false);
+  const initialSelection=fishingSelectionFromURL(location.search);
+  selectedWater=WATERS[initialSelection.waterIndex]||null;water.value=initialSelection.waterIndex>=0?String(initialSelection.waterIndex):'';updateWaterMeta();syncWaterOptions(false);
   water.onchange=async()=>{
     selectedFishCardScore=null;const raw=water.value;const idx=raw===''?NaN:Number(raw);const nextWater=Number.isInteger(idx)?WATERS[idx]||null:null;
     selectedWater=nextWater;plannerRequestToken++;liveFishingRequestToken++;plannerWeather=null;selectedHourlyRow=null;window.__gnFishingWeather=null;updateWaterMeta();refreshVisibleFishScores();
@@ -458,22 +566,20 @@ async function initFishingPage(){
     if(!waterHasCoordinates(selectedWater)){showMissingWaterCoordinates();return;}
     clearFishingWeather('არჩეული ადგილის პროგნოზი იტვირთება…');
     const waterAtStart=selectedWater;
-    try{const result=await openMeteo(waterAtStart[4],waterAtStart[5]);if(selectedWater!==waterAtStart)return;plannerWeather=result;renderFishingHourly(plannerWeather);if(selectedFish)await runPlanner();else await loadLiveFishing(waterAtStart[4],waterAtStart[5],waterAtStart[1]);}catch(e){console.error(e);if(selectedWater===waterAtStart){clearFishingWeather('პროგნოზი დროებით ვერ ჩაიტვირთა.');const callout=document.getElementById('bestCallout');if(callout)callout.innerHTML='<span class="empty">პროგნოზი დროებით ვერ ჩაიტვირთა.</span> <button type="button" class="btn ghost" id="retryWaterForecast">↻ თავიდან ცდა</button>';document.getElementById('retryWaterForecast')?.addEventListener('click',()=>{if(selectedFish)runPlanner(true);else loadLiveFishing(waterAtStart[4],waterAtStart[5],waterAtStart[1])});const days=document.getElementById('dayCards');if(days)days.innerHTML='';}}
+    try{const result=await openMeteo(waterAtStart[4],waterAtStart[5]);if(selectedWater!==waterAtStart)return;plannerWeather=result;if(selectedFish)await runPlanner(false,result);else renderFishingHourly(result);}catch(e){console.error(e);if(selectedWater===waterAtStart){clearFishingWeather('პროგნოზი დროებით ვერ ჩაიტვირთა.');const callout=document.getElementById('bestCallout');if(callout)callout.innerHTML='<span class="empty">პროგნოზი დროებით ვერ ჩაიტვირთა.</span> <button type="button" class="btn ghost" id="retryWaterForecast">↻ თავიდან ცდა</button>';document.getElementById('retryWaterForecast')?.addEventListener('click',()=>{if(selectedFish)runPlanner(true);else loadLiveFishing(waterAtStart[4],waterAtStart[5],waterAtStart[1])});const days=document.getElementById('dayCards');if(days)days.innerHTML='';}}
   };
   window.GNPremium?.applyDayLimit(document.getElementById('daysCount'));
   document.getElementById('fishSearch').oninput=renderFishSearch;document.getElementById('fishType').onchange=renderFishSearch;
   document.getElementById('fishClear').onclick=()=>{document.getElementById('fishSearch').value='';document.getElementById('fishType').value='all';renderFishSearch();};
-  dateInput.onchange=()=>{selectedFishCardScore=null;runPlanner();};document.getElementById('daysCount').onchange=()=>{selectedFishCardScore=null;window.GNPremium?.applyDayLimit(document.getElementById('daysCount'));runPlanner();};document.getElementById('planBtn').onclick=()=>{selectedFishCardScore=null;runPlanner();};document.getElementById('hourSelect')?.addEventListener('change',()=>{selectedFishCardScore=null;if(plannerWeather)renderFishingHourly(plannerWeather)});
-  document.getElementById('bestTomorrow').onclick=()=>{selectedFishCardScore=null;const d=new Date((dateInput.value||window.GeoNatureCommon?.localDateISO?.()||new Date().toLocaleDateString('sv-SE'))+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+1);const next=d.toISOString().slice(0,10);if(next>dateInput.max)return;dateInput.value=next;document.getElementById('daysCount').value='1';runPlanner();};
+  dateInput.onchange=()=>{selectedFishCardScore=null;selectedFishingHour='';fishingDateTracksToday=dateInput.value===(window.GeoNatureCommon?.localDateISO?.()||dateInput.min);runPlanner();};document.getElementById('daysCount').onchange=()=>{selectedFishCardScore=null;window.GNPremium?.applyDayLimit(document.getElementById('daysCount'));runPlanner();};document.getElementById('planBtn').onclick=()=>{selectedFishCardScore=null;runPlanner();};document.getElementById('hourSelect')?.addEventListener('change',event=>{selectedFishCardScore=null;selectedFishingHour=event.target.value;fishingDateTracksToday=!selectedFishingHour&&dateInput.value===(window.GeoNatureCommon?.localDateISO?.()||dateInput.min);if(plannerWeather)renderFishingHourly(plannerWeather)});
+  document.getElementById('bestTomorrow').onclick=()=>{selectedFishCardScore=null;const d=new Date((dateInput.value||window.GeoNatureCommon?.localDateISO?.()||new Date().toLocaleDateString('sv-SE'))+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+1);const next=d.toISOString().slice(0,10);if(next>dateInput.max)return;selectedFishingHour='';fishingDateTracksToday=false;dateInput.value=next;document.getElementById('daysCount').value='1';runPlanner();};
   renderFishSearch();
-  if(selectedWater)await loadLiveFishing(selectedWater[4],selectedWater[5],selectedWater[1]);
-  if(window.GNLiveFactors) window.GNLiveFactors.bind({liveDefault:true,refresh:async()=>{
-    if(!selectedWater)return;
-    if(!waterHasCoordinates(selectedWater)){showMissingWaterCoordinates();return;}
-    const waterAtStart=selectedWater;
-    try{const latest=await openMeteo(waterAtStart[4],waterAtStart[5]);if(selectedWater!==waterAtStart)return;plannerWeather=latest;renderFishingHourly(plannerWeather);if(selectedFish)await runPlanner(true);else await loadLiveFishing(waterAtStart[4],waterAtStart[5],waterAtStart[1]);}
-    catch(e){if(selectedWater===waterAtStart)clearFishingWeather('განახლება ვერ მოხერხდა.');console.error(e)}
-  }});
+  if(initialSelection.fish)await selectFish(initialSelection.fish,false);
+  else if(selectedWater)await loadLiveFishing(selectedWater[4],selectedWater[5],selectedWater[1]);
+  if(window.GNLiveFactors) window.GNLiveFactors.bind({liveDefault:true,refresh:refreshFishingWeather});
+  if(initialSelection.fish&&location.hash==='#fishProfile')requestAnimationFrame(()=>{
+    if(selectedFish===initialSelection.fish&&location.hash==='#fishProfile')document.getElementById('fishProfile')?.scrollIntoView({behavior:'instant',block:'start'});
+  });
 }
 window.__defineGetter__('selectedFish',()=>selectedFish);
 window.__defineGetter__('selectedWater',()=>selectedWater);
@@ -485,4 +591,4 @@ window.scoreBandLabel=scoreBandLabel;
 window.activityWindowScore=activityWindowScore;
 document.addEventListener('geonature:refresh-plus',()=>document.dispatchEvent(new CustomEvent('gn:fishingUpdated')));
 
-window.GeoFishingPlanner={rowsForDate:hourlyRowsForDate,conditionFromRow:conditionFromFishingRow,scoredHours:scoredFishingHours,bestHour:bestScoredHourForDate,get selectedRow(){return selectedHourlyRow;}};
+window.GeoFishingPlanner={rowsForDate:hourlyRowsForDate,conditionFromRow:conditionFromFishingRow,scoredHours:scoredFishingHours,bestHour:bestScoredHourForDate,rankedList:rankedFishingList,selectionFromURL:fishingSelectionFromURL,get selectedRow(){return selectedHourlyRow;},get tracksCurrent(){return !selectedFishingHour&&selectedHourlyRow?.source==='current';}};

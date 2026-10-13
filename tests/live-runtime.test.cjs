@@ -27,15 +27,15 @@ test('live factors keep missing weather unknown and distinguish current, forecas
   const env=browser(factorIds);env.load('js/common.js');env.load('js/live-factors.js');
   const data=weather(),row=env.context.GeoNatureCommon.weatherRowAt(data,data.hourly.time[1]);row.cloud=null;row.rainProb=null;data.hourly.pressure_msl[0]=null;
   env.context.GNLiveFactors.render({data,row,type:'weather',locationName:'A'});
-  assert.equal(env.elements.get('factorCloud').textContent,'—');assert.equal(env.elements.get('factorRain').textContent,'—');assert.equal(env.elements.get('factorPressureChange').textContent,'—');
-  assert.match(env.elements.get('factorMode').textContent,/პროგნოზი/);assert.match(env.elements.get('assessmentLiveState').textContent,/პროგნოზი/);assert.equal(env.elements.get('factorFeed').textContent,'—');
+  assert.equal(env.elements.get('factorCloud').textContent,'მონაცემი არ არის');assert.equal(env.elements.get('factorRain').textContent,'0.0 მმ');assert.equal(env.elements.get('factorPressureChange').textContent,'მონაცემი არ არის');
+  assert.match(env.elements.get('factorMode').textContent,/პროგნოზი/);assert.match(env.elements.get('assessmentLiveState').textContent,/პროგნოზი/);assert.match(env.elements.get('factorFeed').textContent,/^\d+\/100$/);
   env.context.GNLiveFactors.render({data,row:{...row,current:true},type:'weather',locationName:'A'});
   assert.match(env.elements.get('factorMode').textContent,/LIVE/);assert.match(env.elements.get('assessmentLiveState').textContent,/LIVE/);
   env.context.GNLiveFactors.render({data,row:{...row,current:true,temperature:null},type:'weather',locationName:'A'});assert.doesNotMatch(env.elements.get('assessmentLiveState').textContent,/LIVE/);
   env.context.GNLiveFactors.render({data:{...data,__meta:{...data.__meta,stale:true}},row:{...row,current:true},type:'weather'});
   assert.doesNotMatch(env.elements.get('factorMode').textContent,/LIVE/);
   env.context.GNLiveFactors.render({data:null,row:null,error:true,locationName:'B'});
-  assert.equal(env.elements.get('factorTemp').textContent,'—');assert.equal(env.elements.get('factorLocation').textContent,'B');
+  assert.equal(env.elements.get('factorTemp').textContent,'მონაცემი არ არის');assert.equal(env.elements.get('factorLocation').textContent,'B');
 });
 test('live refresh pauses its timer and coalesces repeated manual refreshes',async()=>{
   const env=browser(factorIds);env.load('js/live-factors.js');const pending=deferred();let calls=0;

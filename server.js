@@ -557,7 +557,9 @@ function calcPushScore(weather,fish,place){
   if(!/^(?:[01]\d|2[0-3])$/.test(hourText))return null;
   const restrictions=pushFishingModel.GeoWildlifeRules.evaluate(canonicalFish,{kind:'fish',date,method:'rod',waterId:canonicalWater[0]});
   if(!restrictions.dateValid||restrictions.status==='prohibited')return null;
-  return pushFishingModel.GeoFishChance(canonicalFish,{...current,local_hour:Number(hourText)},canonicalWater,true);
+  const explanation=pushFishingModel.GeoFishConditions.explain(canonicalFish,{...current,local_hour:Number(hourText)},canonicalWater,true);
+  if(explanation.components.find(item=>item.key==='habitat')?.fit!==100)return null;
+  return explanation.score;
 }
 function frontendLink(relativePath){
   const configured=String(process.env.GN_FRONTEND_URL||'https://niksaniksa25.github.io/FISHHUNTt.ge/').trim();
@@ -582,7 +584,7 @@ async function performPushChecks(){
           if(preferences.hour!=='any'&&Number(preferences.hour)!==localHour)continue;
           const score=calcPushScore(weather,fish,place),key=`${fish.id}|${place.id}`,last=Number(sub.lastSent[key]||0);
           if(score===null||score<preferences.threshold||Date.now()-last<6*60*60*1000)continue;
-          await sendPush(sub.subscription,{title:'🎣 GeoNature • პირობები',body:`${fish.name} • ${place.name}: პირობების ინდექსი ${score}/100. საორიენტაციო შეფასებაა; დაჭერის ალბათობას არ წარმოადგენს. ადგილობრივი დრო: ${weather.current.time.slice(11,16)}. მოპოვების წესები გადაამოწმე.`,url:frontendLink(`fishing.html?fish=${encodeURIComponent(fish.id)}&water=${encodeURIComponent(place.id)}`),tag:`fish-${fish.id}-${place.id}`});
+          await sendPush(sub.subscription,{title:'🎣 GeoNature • პირობები',body:`${fish.name} • ${place.name}: პირობების ინდექსი ${score}/100. საორიენტაციო შეფასებაა; დაჭერის ალბათობას არ წარმოადგენს. ადგილობრივი დრო: ${weather.current.time.slice(11,16)}. მოპოვების წესები გადაამოწმე.`,url:frontendLink(`fishing.html?fish=${encodeURIComponent(fish.id)}&place=${encodeURIComponent(place.id)}#fishProfile`),tag:`fish-${fish.id}-${place.id}`});
           sub.lastSent[key]=Date.now();changed=true;
         }catch(error){if(error.code==='GONE'){sub.enabled=false;changed=true}}
       }

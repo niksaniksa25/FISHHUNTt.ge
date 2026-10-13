@@ -12,7 +12,9 @@ Shared responsive layouts are in `css/responsive.css`, with separate `css/respon
 
 The season calendar, species profiles and planning tools show restrictions separately from activity forecasts. See [the source versions and legal coverage](docs/WILDLIFE-RULES.md); an activity score does not establish permission to catch or hunt.
 
-Feedback saves to the Node API and appears in the administrator inbox when the API is hosted. On GitHub Pages without a backend, the widget prepares a public GitHub issue that the visitor must submit on GitHub. Drafts remain available until API storage is acknowledged. See [feedback deployment](DEPLOYMENT-FEEDBACK.md) to configure private in-page delivery on a separate backend.
+Feedback saves to the Node API when it is hosted. On GitHub Pages, submitting opens a prefilled public GitHub issue in the same tab; the visitor signs in and presses Create issue there. Unsent drafts are preserved. See [feedback behavior and deployment](DEPLOYMENT-FEEDBACK.md).
+
+The fishing list sorts by the selected live conditions index and reorders existing cards after refresh, preserving filters, selected species and keyboard focus. Default hours track current conditions; explicitly selected forecast hours stay fixed. Assessment panels show all 20 fields with units, timestamps, unknown-data explanations and the actual fishing model's contributions and caps.
 
 This build keeps the existing site and adds:
 - Bank of Georgia payment integration scaffold for Plus (2.99 GEL/month) and AI Pro (7.99 GEL/month).
@@ -36,7 +38,9 @@ The More menu reveals secondary tools in a grouped, responsive dropdown. Donatio
 Open admin.html from the AI page using the Admin Panel button. Admin password is verified only on the server; do not put it in client JavaScript.
 
 ### Real Push Notifications
-GeoNature now supports Web Push subscriptions for selected fish + selected fishing places.
+Notifications work on GitHub Pages while the site is open: choose up to five fish and five places using the searchable checkbox lists. The browser checks fresh forecasts every 15 minutes and shows a saved in-page feed, counter and alerts for confirmed fish/location associations. Unsupported browser notification permissions do not disable the in-page feed. Each pair is limited to one conditions alert every four hours. These checks stop when the site is closed; the local test button demonstrates the interface without sending a real Push or fetching weather.
+
+Optional server Web Push supports notifications after closing the site when a Node backend and browser support are configured:
 
 1. Run `START_GeoNature.bat` (or `node server.js`). For local development use `http://localhost:8787/`; do not use Live Server for Push.
 2. Open `dashboard.html` and enable `🔔 შეტყობინებები`.
@@ -75,7 +79,7 @@ The account profile now supports photo backgrounds (fishing lake, fishing rod, f
 
 ## Feedback on GitHub Pages
 
-GitHub Pages only serves static files; it cannot receive feedback or save it to the admin inbox by itself. Deploy `server.js` as a public HTTPS Node service with persistent private storage, then set `window.GN_API_BASE_URL` in `js/api-config.js` to that service's origin (for example, `https://your-service.onrender.com`, with no trailing slash). Set `GN_FRONTEND_ORIGIN` in the server environment to the exact frontend origin, such as `https://niksaniksa25.github.io`. The feedback widget and admin inbox use that configuration. If the API origin is missing on GitHub Pages, the widget now displays a specific setup message rather than silently sending to a nonexistent `/api/feedback` route.
+Without a backend, Feedback opens GitHub Issues directly and preserves the draft; a GitHub account is required to finish submitting. To deliver reports privately to the admin inbox, host `server.js` with persistent private storage, set `window.GN_API_BASE_URL` in `js/api-config.js` to its HTTPS origin, and set `GN_FRONTEND_ORIGIN` on the server to the frontend's exact origin. Static hosting alone cannot maintain a private inbox.
 
 
 ## Feedback API deployment

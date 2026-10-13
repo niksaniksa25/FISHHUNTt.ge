@@ -115,6 +115,12 @@ test('push index uses the published fishing-page model including habitat and loc
   assert.equal(server.calcPushScore(weather, { id: 'carp' }, { id: 'tbilisi-sea' }), expected);
 });
 
+test('an unconfirmed fish and water association cannot trigger a low-threshold server alert', () => {
+  const weather=freshWeather(),fish=server.pushFishingModel.FISHES.find(item=>item[0]==='tench'),water=server.pushWaterById.get('tbilisi-sea');
+  assert.ok(Number.isFinite(server.pushFishingModel.GeoFishChance(fish,{...weather.current,local_hour:Number(weather.current.time.slice(11,13))},water,true)));
+  assert.equal(server.calcPushScore(weather,{id:'tench'},{id:'tbilisi-sea'}),null);
+});
+
 test('missing, stale, wrong-place and prohibited-species weather never produces an alert score', () => {
   const fish = { id: 'carp' }, place = { id: 'tbilisi-sea' };
   assert.equal(server.calcPushScore(null, fish, place), null);

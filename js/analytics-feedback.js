@@ -37,6 +37,7 @@
     if (location.protocol === 'file:' || String(location.hostname || '').toLowerCase().endsWith('.github.io')) return '';
     return route;
   }
+  let apiConfigSettled = false;
   if (!String(currentPath).toLowerCase().endsWith('/admin.html')) {
     apiConfigReady.then(() => {
       const endpoint = apiEndpoint('/api/analytics/visit');
@@ -52,9 +53,10 @@
   const style = document.createElement('style');
   style.textContent = `
   .gn-feedback-fab{position:fixed;z-index:9000;left:18px;bottom:18px;display:flex;align-items:center;gap:8px;border:1px solid rgba(118,235,170,.5);border-radius:999px;padding:11px 16px;background:linear-gradient(135deg,#0c2b22,#102b40);color:#e7fff4;font:700 13px/1.2 system-ui,sans-serif;box-shadow:0 8px 30px #0005;cursor:pointer;transition:transform .18s,box-shadow .18s}
-  .gn-feedback-fab:hover{transform:translateY(-2px);box-shadow:0 12px 32px #0007}.gn-feedback-overlay[hidden]{display:none!important}.gn-feedback-overlay{position:fixed;inset:0;z-index:9001;display:grid;place-items:center;padding:16px;background:rgba(2,8,14,.72);backdrop-filter:blur(7px)}
-  .gn-feedback-dialog{width:min(510px,100%);box-sizing:border-box;max-height:min(88vh,760px);max-height:min(88dvh,760px);overflow:auto;overscroll-behavior:contain;border:1px solid rgba(105,222,163,.35);border-radius:22px;padding:22px;background:linear-gradient(160deg,#10231f,#0b1725 75%);color:#edf8f3;box-shadow:0 24px 80px #0008;font:14px/1.55 system-ui,sans-serif}
+  .gn-feedback-fab:hover{transform:translateY(-2px);box-shadow:0 12px 32px #0007}.gn-feedback-overlay[hidden]{display:none!important}.gn-feedback-overlay{position:fixed;inset:0;top:var(--gn-visual-top,0px);bottom:auto;height:var(--gn-visible-height,100vh);height:var(--gn-visible-height,100dvh);box-sizing:border-box;z-index:9001;display:grid;place-items:center;padding:16px;background:rgba(2,8,14,.72);backdrop-filter:blur(7px)}
+  .gn-feedback-dialog{width:min(510px,100%);min-width:0;box-sizing:border-box;max-height:min(760px,calc(var(--gn-visible-height,100vh) - 32px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px)));max-height:min(760px,calc(var(--gn-visible-height,100dvh) - 32px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px)));overflow:auto;overscroll-behavior:contain;border:1px solid rgba(105,222,163,.35);border-radius:22px;padding:22px;background:linear-gradient(160deg,#10231f,#0b1725 75%);color:#edf8f3;box-shadow:0 24px 80px #0008;font:14px/1.55 system-ui,sans-serif}
   .gn-feedback-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;margin-bottom:16px}.gn-feedback-head h2{font-size:22px;margin:0 0 5px}.gn-feedback-head p{margin:0;color:#a6bdba;font-size:13px}.gn-feedback-close{border:1px solid #426258;background:#142d28;color:#eafff4;border-radius:10px;font-size:20px;width:38px;height:38px;cursor:pointer}
+  .gn-feedback-dialog [hidden]{display:none!important}.gn-feedback-close{flex:0 0 44px;width:44px;height:44px}
   .gn-feedback-dialog label{display:block;font-weight:700;margin:13px 0 6px;color:#d5e8e1}.gn-feedback-dialog select,.gn-feedback-dialog textarea,.gn-feedback-dialog input{width:100%;box-sizing:border-box;border:1px solid #344e4c;border-radius:11px;padding:11px 12px;background:#07141b;color:#effff8;font:inherit;outline:none}.gn-feedback-dialog textarea{min-height:130px;resize:vertical}.gn-feedback-dialog select:focus,.gn-feedback-dialog textarea:focus,.gn-feedback-dialog input:focus{border-color:#57d99a;box-shadow:0 0 0 3px #57d99a20}
   .gn-feedback-note{font-size:12px;color:#9bb6b1;margin:10px 0}.gn-feedback-submit{width:100%;border:0;border-radius:12px;padding:13px 16px;background:linear-gradient(135deg,#3dd989,#25b8a4);color:#032018;font-weight:900;font-size:14px;cursor:pointer}.gn-feedback-submit:disabled{opacity:.55;cursor:wait}.gn-feedback-status{min-height:20px;font-size:13px;margin-top:10px;color:#baf7d0;overflow-wrap:anywhere}.gn-feedback-status.error{color:#ffaaa8}.gn-feedback-status.fallback{color:#ffdca8}.gn-feedback-fallback-link{display:inline-block;margin:8px 0;padding:10px 13px;border-radius:10px;background:#3dd989;color:#032018;font-weight:900;text-decoration:none}.gn-feedback-fallback-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.gn-feedback-copy{border:1px solid #526f64;border-radius:10px;padding:9px 12px;background:#102a25;color:#e7fff4;font:700 12px system-ui,sans-serif;cursor:pointer}
   .gn-feedback-dialog :focus-visible,.gn-feedback-fab:focus-visible{outline:3px solid #93e9c0;outline-offset:3px}.gn-feedback-close,.gn-feedback-copy,.gn-feedback-fallback-link{min-height:44px}.gn-feedback-fab{bottom:calc(18px + env(safe-area-inset-bottom,0px))}.gn-feedback-overlay{padding: max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
@@ -71,7 +73,7 @@
       <div class="gn-feedback-head"><div><h2 id="gnFeedbackTitle">შეტყობინება GeoNature-ს</h2><p>იპოვე შეცდომა ან გაქვს იდეა? მოგვწერე, რა მოხდა და როგორ გავიმეოროთ.</p></div><button type="button" class="gn-feedback-close" aria-label="დახურვა">×</button></div>
       <form id="gnFeedbackForm"><label for="gnFeedbackCategory">ტიპი</label><select id="gnFeedbackCategory" name="category"><option value="bug">🐛 შეცდომა / არ მუშაობს</option><option value="idea">💡 ახალი იდეა</option><option value="question">❓ კითხვა</option><option value="other">💬 სხვა</option></select>
       <label for="gnFeedbackMessage">რა მოხდა? / რას შევცვლიდი?</label><textarea id="gnFeedbackMessage" name="message" minlength="1" maxlength="4000" required placeholder="აღწერე ნაბიჯები, გვერდი ან შეცდომა…"></textarea>
-      <label for="gnFeedbackEmail">ელფოსტა პასუხისთვის (არასავალდებულო)</label><input id="gnFeedbackEmail" name="email" type="email" maxlength="160" placeholder="name@example.com">
+      <label id="gnFeedbackEmailLabel" for="gnFeedbackEmail">ელფოსტა პასუხისთვის (არასავალდებულო)</label><input id="gnFeedbackEmail" name="email" type="email" maxlength="160" placeholder="name@example.com">
       <p id="gnFeedbackHelp" class="gn-feedback-note">გვერდი ავტომატურად მიეთითება. პაროლი ან ბარათის მონაცემები არ ჩაწერო. თუ პირდაპირი გაგზავნა მიუწვდომელია, შეგიძლია GitHub-ზე შექმნა საჯარო შეტყობინება. ამისთვის GitHub-ის ანგარიში დაგჭირდება; ელფოსტა იქ არ გადაგზავნება.</p>
       <button type="submit" class="gn-feedback-submit">შეტყობინების გაგზავნა</button><div class="gn-feedback-status" role="status" aria-live="polite"></div></form>
     </section>`;
@@ -138,7 +140,17 @@
     if (e.shiftKey && (document.activeElement === first || !overlay.contains(document.activeElement))) { e.preventDefault(); last.focus(); }
     else if (!e.shiftKey && (document.activeElement === last || !overlay.contains(document.activeElement))) { e.preventDefault(); first.focus(); }
   });
-  apiConfigReady.then(() => { if (!apiEndpoint('/api/feedback')) submit.textContent = 'GitHub-ზე შეტყობინების მომზადება'; });
+  function updateDeliveryMode() {
+    const githubOnly = !apiEndpoint('/api/feedback');
+    emailField.hidden = githubOnly;
+    emailField.disabled = githubOnly;
+    form.querySelector('#gnFeedbackEmailLabel').hidden = githubOnly;
+    submit.textContent = githubOnly ? 'GitHub-ზე შეტყობინების გახსნა ↗' : 'შეტყობინების გაგზავნა';
+    overlay.querySelector('#gnFeedbackHelp').textContent = githubOnly
+      ? 'ღილაკი გახსნის GitHub-ის შევსებულ ფორმას ამავე ჩანართში. შედი GitHub-ის ანგარიშით და დააჭირე „Create issue“-ს — მხოლოდ მაშინ გაიგზავნება. შეტყობინება საჯაროა; პაროლი, ელფოსტა ან ბარათის მონაცემები ტექსტში არ ჩაწერო. მონახაზი ამ ჩანართში შეინახება.'
+      : 'გვერდი ავტომატურად მიეთითება. პაროლი ან ბარათის მონაცემები არ ჩაწერო. თუ პირდაპირი გაგზავნა მიუწვდომელია, შეგიძლია GitHub-ზე შექმნა საჯარო შეტყობინება. ამისთვის GitHub-ის ანგარიში დაგჭირდება; ელფოსტა იქ არ გადაგზავნება.';
+  }
+  apiConfigReady.then(() => { apiConfigSettled = true; updateDeliveryMode(); });
   const feedbackCategoryLabels = { bug: 'შეცდომა / არ მუშაობს', idea: 'ახალი იდეა', question: 'კითხვა', other: 'სხვა' };
   function offerGitHubFallback(category, message, unavailable = false) {
     const pageUrl = location.protocol === 'file:' ? currentPath : location.origin + currentPath;
@@ -151,7 +163,7 @@
       '**გვერდი:** ' + pageUrl,
       '',
       '### შეტყობინება',
-      message.slice(0, maxPrefillChars) + (clipped ? '\n\n[შეტყობინება გრძელია და აქ პირველი 500 სიმბოლოა ჩასმული. სრული ტექსტის ჩასასმელად გამოიყენე გვერდზე არსებული „შეტყობინების კოპირება“ ღილაკი.]' : ''),
+      message.slice(0, maxPrefillChars) + (clipped ? '\n\n[აქ პირველი 500 სიმბოლოა. ჩასვი დაკოპირებული სრული ტექსტი ამ ველში. სრული შეტყობინება ასევე შენახულია საიტის მონახაზში — საჭიროებისას დაბრუნდი უკან და დააკოპირე.]' : ''),
       '',
       '---',
       '_შეტყობინება შექმნილია GeoNature-ის საიტის Feedback ვიჯეტიდან._'
@@ -162,15 +174,14 @@
     status.replaceChildren();
     status.className = 'gn-feedback-status fallback';
     const explanation = document.createElement('div');
-    explanation.textContent = (unavailable ? 'პირდაპირი გაგზავნა ამ გვერდზე მიუწვდომელია; შეტყობინება ჯერ არ გაგზავნილა. ' : 'გაგზავნის დადასტურება ვერ მივიღეთ. ტექსტი შენახულია ამ ჩანართში — შეგიძლია ხელახლა სცადო ან GitHub-ზე მოგვწერო. ') + 'GitHub-ზე შესვლის შემდეგ დააჭირე „Create issue“-ს. შეტყობინება საჯარო იქნება; ელფოსტა არ გადაგზავნილა.';
+    explanation.textContent = (unavailable ? 'იხსნება GitHub-ის შევსებული ფორმა; შეტყობინება ჯერ არ გაგზავნილა. ' : 'გაგზავნის დადასტურება ვერ მივიღეთ. ტექსტი შენახულია ამ ჩანართში — შეგიძლია ხელახლა სცადო ან GitHub-ზე მოგვწერო. ') + 'GitHub-ზე შესვლის შემდეგ დააჭირე „Create issue“-ს. შეტყობინება საჯარო იქნება; ელფოსტა არ გადაგზავნილა.';
     status.appendChild(explanation);
     const actions = document.createElement('div');
     actions.className = 'gn-feedback-fallback-actions';
     const link = document.createElement('a');
     link.className = 'gn-feedback-fallback-link';
     link.href = url;
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
+    link.rel = 'noreferrer';
     link.textContent = 'GitHub-ზე შეტყობინების გახსნა ↗';
     actions.appendChild(link);
     const copy = document.createElement('button');
@@ -178,28 +189,49 @@
     copy.className = 'gn-feedback-copy';
     copy.textContent = 'შეტყობინების კოპირება';
     copy.addEventListener('click', async () => {
-      try {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          await navigator.clipboard.writeText(message);
-        } else {
-          const temp = document.createElement('textarea');
-          temp.value = message;
-          temp.style.position = 'fixed';
-          temp.style.opacity = '0';
-          overlay.querySelector('.gn-feedback-dialog').appendChild(temp);
-          temp.select();
-          const copied = document.execCommand('copy');
-          temp.remove();
-          copy.focus();
-          if (!copied) throw new Error('COPY_FAILED');
-        }
-        copy.textContent = 'კოპირებულია ✓';
-      } catch (_) {
-        copy.textContent = 'კოპირება ვერ მოხერხდა';
+      if (await copyMessage(message)) {
+        copy.textContent = 'კოპირებულია ✓'; copy.focus();
+      } else {
+        copy.textContent = 'მონიშნულია — დააკოპირე ტექსტი';
+        messageField.focus();
+        messageField.select();
       }
     });
     actions.appendChild(copy);
     status.appendChild(actions);
+    return { url, clipped, copy, explanation };
+  }
+  async function copyMessage(message) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      try { await navigator.clipboard.writeText(message); return true; } catch (_) {}
+    }
+    const temp = document.createElement('textarea');
+    temp.value = message;
+    temp.readOnly = true;
+    temp.style.position = 'fixed';
+    temp.style.opacity = '0';
+    overlay.querySelector('.gn-feedback-dialog').appendChild(temp);
+    try { temp.select(); return document.execCommand('copy') === true; }
+    catch (_) { return false; }
+    finally { temp.remove(); }
+  }
+  async function openGitHubDraft(category, message) {
+    const draft = offerGitHubFallback(category, message, true);
+    if (draft.clipped) {
+      // Avoid losing long reports to browser/server URL limits. The full draft
+      // stays in this tab and is copied before the visitor opens GitHub.
+      if (!await copyMessage(message)) {
+        draft.explanation.textContent = 'შეტყობინება გრძელია. სრული ტექსტი მონიშნულია — დააკოპირე, შემდეგ გახსენი ქვემოთ GitHub-ის ფორმა და ჩასვი ტექსტი. მონახაზი შენახულია; შეტყობინება ჯერ არ გაგზავნილა.';
+        draft.copy.textContent = 'მონიშნულია — დააკოპირე ტექსტი';
+        messageField.focus(); messageField.select();
+        return;
+      }
+      draft.copy.textContent = 'სრული ტექსტი კოპირებულია ✓';
+      draft.copy.focus();
+    }
+    // Same-tab navigation works on mobile even when popup windows are blocked.
+    // Preserve the form until the visitor completes GitHub's own Create issue action.
+    try { location.assign(draft.url); } catch (_) { /* The visible link is a navigation fallback. */ }
   }
 
   form.addEventListener('submit', async e => {
@@ -214,6 +246,7 @@
     }
     const category = categoryField.value;
     const email = emailField.value.trim();
+    saveDraft();
     sending = true;
     submit.disabled = true;
     form.setAttribute('aria-busy', 'true');
@@ -221,13 +254,13 @@
     [messageField, emailField].forEach(field => { field.readOnly = true; });
     categoryField.disabled = true;
     saveDraft();
-    status.textContent = 'იგზავნება…'; status.className = 'gn-feedback-status';
+    status.textContent = apiConfigSettled && !apiEndpoint('/api/feedback') ? 'იხსნება GitHub-ის ფორმა…' : 'იგზავნება…'; status.className = 'gn-feedback-status';
     let timer;
     try {
-      await apiConfigReady;
+      if (!apiConfigSettled) await apiConfigReady;
       const endpoint = apiEndpoint('/api/feedback');
       if (!endpoint) {
-        offerGitHubFallback(category, message, true);
+        await openGitHubDraft(category, message);
         return;
       }
       const controller = new AbortController();

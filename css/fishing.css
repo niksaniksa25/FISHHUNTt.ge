@@ -52,3 +52,9 @@ h1, h2, h3, h4, h5, h6 { letter-spacing: 5px !important; line-height: 1.15 !impo
 
 /* Keep the clicked card estimate clearly identified while hourly context updates separately. */
 .fish-score-consistency-note{display:block;margin-top:8px;font-size:.78rem;line-height:1.45;color:var(--muted,#8faebf);max-width:48ch}
+
+.fish-card-title-row{flex-wrap:wrap}
+.fish-card-title-row h3{min-width:0;flex:1 1 100px;overflow-wrap:anywhere}
+.fish-card .gn-chance{max-width:100%;min-width:0}
+.fish-card .gn-chance-copy{min-width:0;overflow-wrap:anywhere}
+.fish-card .gn-chance-copy strong,.fish-card .gn-chance-copy small{white-space:normal}

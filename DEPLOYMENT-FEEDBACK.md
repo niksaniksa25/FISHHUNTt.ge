@@ -2,7 +2,9 @@
 
 The static GitHub Pages frontend cannot run `server.js`. A persistent Node service is required so feedback submissions survive restarts.
 
-Without a separately hosted API, feedback still works through a prefilled public GitHub issue. Visitors sign in to GitHub and press **Create issue** to finish submitting. The site does not claim that preparing or opening a draft has sent it, and it does not forward the optional email address. For a private inbox and direct in-page submission, follow the setup below. No deployed API address is supplied by this repository.
+Without a separately hosted API, the feedback button directly opens a prefilled public GitHub issue in the same tab. Visitors sign in to GitHub and press **Create issue** to finish submitting. Same-tab navigation works when mobile browsers block popups, and the site keeps the unsent draft in session storage so returning to the site restores it. The public form hides the unused email field and explains the GitHub account requirement before navigation. The site does not claim that preparing or opening a draft has sent it and excludes email, query parameters and URL fragments from the issue link.
+
+For reports longer than 500 characters, the widget copies the full message before opening a shorter prefilled URL; paste that full text into GitHub's message field. If clipboard access is unavailable, the widget selects the full text and shows a manual-copy instruction and a direct GitHub link instead of discarding it. For a private inbox and direct in-page submission, follow the setup below. No deployed API address is supplied by this repository.
 
 ## Render Blueprint
 

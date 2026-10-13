@@ -2,7 +2,7 @@
   'use strict';
   const EPOCH=Date.parse('2000-01-06T18:14:00Z'), SYN=29.53058867;
   function phase(dateLike){
-    const d=new Date(dateLike||Date.now());
+    const d=new Date(dateLike??Date.now());
     const age=((((d.getTime()-EPOCH)/86400000)%SYN)+SYN)%SYN;
     const p=age/SYN, illum=(1-Math.cos(p*2*Math.PI))/2*100;
     let label,icon,index;
@@ -22,7 +22,7 @@
     return {date:d,age,illum,label,icon,index,waxing:index>0&&index<4,nextLabel:next.label,nextIcon:next.icon,nextDate,daysToNext:days};
   }
   const set=(id,val)=>{const e=document.getElementById(id);if(e)e.textContent=val};
-  const fmt=d=>new Date(d).toLocaleDateString('ka-GE',{day:'numeric',month:'long'});
+  const fmt=d=>new Date(d).toLocaleDateString('ka-GE',{day:'numeric',month:'long',timeZone:'Asia/Tbilisi'});
   function render(dateLike){
     const m=phase(dateLike);
     set('homeMoonIcon',m.icon);set('homeMoonPhase',m.label);set('homeMoonIllum',`${Math.round(m.illum)}%`);
@@ -35,13 +35,17 @@
   }
   window.GeoNatureMoon={phase,render};
   document.addEventListener('DOMContentLoaded',()=>{
-    render();
-    setInterval(()=>render(),60000);
-    const h=document.getElementById('homeSelectedTime'),d=document.getElementById('homeDateSelect');
-    if(h&&d){
-      const sync=()=>{const ts=h.textContent.match(/\\b(\\d{2}:\\d{2})\\b/);if(ts&&d.value)render(`${d.value}T${ts[1]}:00`);};
-      new MutationObserver(sync).observe(h,{childList:true,characterData:true,subtree:true});
-      d.addEventListener('change',()=>setTimeout(sync,50));
-    }
+    const selected=document.getElementById('homeSelectedTime'),date=document.getElementById('homeDateSelect');
+    const sync=()=>{
+      const time=selected?.textContent.match(/\b(\d{2}:\d{2})\b/);
+      if(time&&date?.value){
+        const timestamp=Date.parse(`${date.value}T${time[1]}:00Z`)-4*3600000;
+        if(Number.isFinite(timestamp)){render(timestamp);return;}
+      }
+      render();
+    };
+    sync();setInterval(sync,60000);
+    if(selected)new MutationObserver(sync).observe(selected,{childList:true,characterData:true,subtree:true});
+    date?.addEventListener('change',()=>setTimeout(sync,0));
   });
 })();

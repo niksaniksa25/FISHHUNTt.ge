@@ -9,3 +9,9 @@
 .gn-activity-top > div:not(.gn-bait-icon){flex:1 1 0;min-width:0}
 .gn-activity-top .gn-bait-icon,.gn-activity-top .gn-live-max{flex-shrink:0}
 .gn-activity-top h3{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
+
+/* Actions and long labels remain readable on narrow screens. */
+#gnPersonalInsights .row-between,.gn-dashboard-grid .row-between,.gn-smart-page-guide .row-between{flex-wrap:wrap;align-items:flex-start}
+#gnPersonalInsights .row-between>*,.gn-dashboard-grid .row-between>*,.gn-smart-page-guide .row-between>*{min-width:0;max-width:100%}
+.gn-dashboard-grid .gn-form-grid>*{min-width:0;max-width:100%}
+.gn-list-row>*{min-width:0;overflow-wrap:anywhere}

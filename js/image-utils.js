@@ -1,5 +1,48 @@
 (function(){
   const memory = new Map();
+  const pending = new Map();
+  const requestQueue = [];
+  const MAX_REQUESTS = 4, REQUEST_TIMEOUT = 8000, LOOKUP_TIMEOUT = 16000;
+  let activeRequests = 0;
+
+  function cachedLookup(key, lookup, fallback){
+    const cached=memory.get(key);
+    if(cached&&cached.expires>Date.now())return Promise.resolve(cached.value);
+    if(pending.has(key))return pending.get(key);
+    const deadline=Date.now()+LOOKUP_TIMEOUT;
+    const work=Promise.resolve().then(()=>lookup(deadline)).catch(()=>fallback()).then(value=>{
+      const success=Array.isArray(value)?value.length>0:validImage(value);
+      memory.set(key,{value,expires:Date.now()+(success?6*60*60*1000:60*1000)});
+      return value;
+    }).finally(()=>pending.delete(key));
+    pending.set(key,work);
+    return work;
+  }
+
+  function queuedJson(url, signal){
+    return new Promise((resolve,reject)=>{
+      const abort=()=>{
+        const index=requestQueue.indexOf(start);
+        if(index>=0)requestQueue.splice(index,1);
+        reject(new Error('Image lookup timed out'));
+      };
+      const start=()=>{
+        if(signal.aborted){abort();return;}
+        activeRequests++;
+        Promise.resolve().then(()=>fetch(url,{headers:{Accept:'application/json'},signal})).then(response=>{
+          if(!response.ok)throw new Error('Image lookup unavailable');
+          return response.json();
+        }).then(resolve,reject).finally(()=>{
+          signal.removeEventListener('abort',abort);
+          activeRequests--;
+          requestQueue.shift()?.();
+        });
+      };
+      signal.addEventListener('abort',abort,{once:true});
+      if(signal.aborted){abort();signal.removeEventListener('abort',abort);return;}
+      if(activeRequests<MAX_REQUESTS)start();else requestQueue.push(start);
+    });
+  }
 
   function esc(value){
     return String(value ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
@@ -19,17 +62,19 @@
     return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
   }
 
-  async function json(url){
-    const r = await fetch(url, {headers:{Accept:'application/json'}});
-    if(!r.ok) throw new Error('request failed');
-    return r.json();
+  async function json(url, deadline=Date.now()+REQUEST_TIMEOUT){
+    const remaining=Math.min(REQUEST_TIMEOUT,deadline-Date.now());
+    if(remaining<=0)throw new Error('Image lookup timed out');
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),remaining);
+    try{return await queuedJson(url,controller.signal);}
+    finally{clearTimeout(timer);}
   }
 
   function validImage(src){
     return typeof src === 'string' && /^https?:\/\//i.test(src);
   }
 
-  async function wikipediaImage(title){
+  async function wikipediaImage(title, deadline){
     if(!title) return '';
     const urls = [
       `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`,
@@ -37,7 +82,7 @@
     ];
     for(const url of urls){
       try{
-        const data = await json(url);
+        const data = await json(url,deadline);
         const src = data?.thumbnail?.source || data?.originalimage?.source || '';
         if(validImage(src)) return src;
       }catch(_){ /* try next */ }
@@ -65,7 +110,7 @@
     return score;
   }
 
-  async function commonsImage(queries, terms, strictTitleMatch=false){
+  async function commonsImage(queries, terms, strictTitleMatch=false, deadline){
     const queryList=Array.isArray(queries)?queries:[queries];
     let best=null;
     const fullTitle=normalizeImageTitle((terms||[])[0]||'');
@@ -74,7 +119,7 @@
       if(!q)continue;
       try{
         const url='https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch='+encodeURIComponent(q)+'&gsrnamespace=6&gsrlimit=12&prop=imageinfo&iiprop=url&iiurlwidth=1000&format=json&origin=*';
-        const data=await json(url);
+        const data=await json(url,deadline);
         const pages=Object.values(data?.query?.pages||{});
         for(const page of pages){
           const src=page?.imageinfo?.[0]?.thumburl||page?.imageinfo?.[0]?.url||'';
@@ -101,17 +146,16 @@
 
   async function resolveSpeciesImage(name, scientific, english){
     const key = `species:${scientific || english || name}`;
-    if(memory.has(key)) return memory.get(key);
-    const titles = [scientific, english, name].filter(Boolean);
-    let src = await wikipediaImage(scientific || english || name);
-    if(!src && english && english !== scientific) src = await wikipediaImage(english);
-    if(!src){
-      const terms = [scientific, english, name].filter(Boolean);
-      src = await commonsImage([scientific, `${english || ''} ${scientific || ''}`.trim(), name], terms);
-    }
-    if(!src) src = placeholder(name, name && /თევზ|კობრი|კალმახი|ლოქო|ფარგა|ქარიყლაპია/i.test(name) ? 'fish' : 'nature');
-    memory.set(key, src);
-    return src;
+    const fallback=()=>placeholder(name,name&&/თევზ|კობრი|კალმახი|ლოქო|ფარგა|ქარიყლაპია/i.test(name)?'fish':'nature');
+    return cachedLookup(key,async deadline=>{
+      let src=await wikipediaImage(scientific||english||name,deadline);
+      if(!src&&english&&english!==scientific)src=await wikipediaImage(english,deadline);
+      if(!src){
+        const terms=[scientific,english,name].filter(Boolean);
+        src=await commonsImage([scientific,`${english||''} ${scientific||''}`.trim(),name],terms,false,deadline);
+      }
+      return src||fallback();
+    },fallback);
   }
 
   const PLACE_WIKI = {
@@ -161,29 +205,29 @@
 
   async function resolvePlaceImage(name, region, kind){
     const key = `place:${name}`;
-    if(memory.has(key)) return memory.get(key);
+    const fallback=()=>placeholder(`${name} • ${region||''}`,kind==='მდინარე'||kind==='ზღვა'?'water':'nature');
+    return cachedLookup(key,async deadline=>{
     const title = PLACE_WIKI[name] || '';
     let src = '';
 
     // Prefer an exact Wikipedia article we explicitly mapped.
     if(title){
-      try { src = await wikipediaImage(title); } catch(_) { src = ''; }
+      try { src = await wikipediaImage(title,deadline); } catch(_) { src = ''; }
     }
 
     // Only use Commons when the result title contains the exact place tokens.
     if(!src && title){
       const terms = PLACE_EXACT_TERMS[name] || title.split(/\s+/).filter(Boolean);
-      src = await commonsImage([title, `${title} Georgia`], terms);
+      src = await commonsImage([title, `${title} Georgia`], terms,false,deadline);
     }
 
     // Never query Wikipedia by the raw Georgian name here: that can resolve to a
     // different city, person or generic article and causes visually wrong photos.
-    if(!src) src = placeholder(`${name} • ${region || ''}`, kind === 'მდინარე' || kind === 'ზღვა' ? 'water' : 'nature');
-    memory.set(key, src);
-    return src;
+    return src||fallback();
+    },fallback);
   }
 
-  async function wikipediaImageExact(title){
+  async function wikipediaImageExact(title,deadline){
     const wanted=normalizeImageTitle(title);
     if(!wanted)return '';
     const urls=[
@@ -192,7 +236,7 @@
     ];
     for(const url of urls){
       try{
-        const data=await json(url);
+        const data=await json(url,deadline);
         const resolved=normalizeImageTitle(data?.title||'');
         const src=data?.thumbnail?.source||data?.originalimage?.source||'';
         // Do not accept a redirect to a different article as a photo for this forest.
@@ -204,11 +248,12 @@
 
   async function resolveNatureImage(name, english){
     const key='nature:'+name+':'+(english||'');
-    if(memory.has(key)) return memory.get(key);
+    const fallback=()=>placeholder(name,'nature');
+    return cachedLookup(key,async deadline=>{
     const title=String(english||name||'').trim();
     let src='';
     // Prefer the exact English Wikipedia page for the named habitat/park.
-    try{src=await wikipediaImageExact(title)}catch(_){}
+    try{src=await wikipediaImageExact(title,deadline)}catch(_){}
     if(!src&&title){
       const stop=new Set(['national','park','parks','protected','areas','managed','reserve','reserves','forest','forests','zone','belt','mountain','mountains','valley','valleys','rainy','rainforest','state','the','and','of','georgia','nature','woodland']);
       const distinctive=title.split(/[^A-Za-z0-9]+/).filter(w=>w.length>=5&&!stop.has(w.toLowerCase()));
@@ -216,16 +261,18 @@
       // result alone is not enough, which was causing forests to show mixed-up photos.
       const terms=[title,...distinctive];
       const queries=[title,title+' Georgia',...distinctive.map(w=>w+' forest Georgia')];
-      try{src=await commonsImage(queries,terms,true)}catch(_){}
+      try{src=await commonsImage(queries,terms,true,deadline)}catch(_){}
     }
-    if(!src)src=placeholder(name,'nature');
-    memory.set(key,src);
-    return src;
+    return src||fallback();
+    },fallback);
   }
 
   async function resolveSpeciesGallery(name, scientific, english){
+    const key=`gallery:${scientific||english||name}`;
+    return cachedLookup(key,async deadline=>{
     const queries=[scientific,english,`${english||''} ${scientific||''}`.trim(),name].filter(Boolean), terms=[scientific,english,name].filter(Boolean).map(String), out=[], seen=new Set();
-    for(const q of queries){try{const u=`https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(q)}&gsrnamespace=6&gsrlimit=10&prop=imageinfo&iiprop=url&iiurlwidth=1200&format=json&origin=*`;const d=await json(u);for(const pg of Object.values(d?.query?.pages||{})){const title=String(pg?.title||''),src=pg?.imageinfo?.[0]?.thumburl||pg?.imageinfo?.[0]?.url||'';if(!validImage(src)||seen.has(src))continue;let score=scoreCommonsTitle(title,terms);if(/map|logo|icon|flag|diagram|coat of arms/i.test(title))score-=30;if(score<3)continue;seen.add(src);out.push({src,score})}}catch(_){}if(out.length>=8)break}out.sort((a,b)=>b.score-a.score);return out.slice(0,6).map(x=>x.src);
+    for(const q of queries){try{const u=`https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(q)}&gsrnamespace=6&gsrlimit=10&prop=imageinfo&iiprop=url&iiurlwidth=1200&format=json&origin=*`;const d=await json(u,deadline);for(const pg of Object.values(d?.query?.pages||{})){const title=String(pg?.title||''),src=pg?.imageinfo?.[0]?.thumburl||pg?.imageinfo?.[0]?.url||'';if(!validImage(src)||seen.has(src))continue;let score=scoreCommonsTitle(title,terms);if(/map|logo|icon|flag|diagram|coat of arms/i.test(title))score-=30;if(score<3)continue;seen.add(src);out.push({src,score})}}catch(_){}if(out.length>=8)break}out.sort((a,b)=>b.score-a.score);return out.slice(0,6).map(x=>x.src);
+    },()=>[]);
   }
   window.GeoImage = {placeholder, resolveSpeciesImage, resolveSpeciesGallery, resolvePlaceImage, resolveNatureImage, esc};
 })();

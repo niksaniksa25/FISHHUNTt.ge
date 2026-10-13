@@ -5,14 +5,18 @@ function initCatalog(){
   function scoreFor(x){return x[0]==='fish'?(window.GeoFishChance?.(x[9],window.__gnCatalogWeather||{})??null):(window.GeoWildlifeChance?.(x)??null);}
   function speciesURL(x,score){const n=window.GeoNatureCommon.numberOrNull(score);return 'species.html?id='+encodeURIComponent(x[1])+(n===null?'':'&chance='+encodeURIComponent(n));}
   function redBadge(x){const hit=(window.RED_BOOK||[]).find(r=>r[1]===x[1]);return hit?'<span class=\"red-mini-badge\">📕 დაცული</span>':'';}
+  let imageObserver=null;const imageSpecies=new WeakMap();
+  if('IntersectionObserver'in window)imageObserver=new IntersectionObserver(entries=>{for(const entry of entries){if(!entry.isIntersecting)continue;imageObserver.unobserve(entry.target);const species=imageSpecies.get(entry.target);if(species&&entry.target.isConnected)loadImg(entry.target,species);}},{rootMargin:'400px'});
+  function queueImage(target,x){if(!target)return;target.loading='lazy';target.decoding='async';if(imageObserver){imageSpecies.set(target,x);imageObserver.observe(target);}else loadImg(target,x);}
   function loadImg(target,x){
-    if(x[0]==='fish')return GeoImage.resolveSpeciesImage(x[1],x[3],x[2]).then(src=>{if(target)target.src=src;});
-    return GeoImage.resolveSpeciesImage(x[1],x[3],x[2]).then(src=>{if(target)target.src=src;});
+    if(x[0]==='fish')return GeoImage.resolveSpeciesImage(x[1],x[3],x[2]).then(src=>{if(target?.isConnected)target.src=src;});
+    return GeoImage.resolveSpeciesImage(x[1],x[3],x[2]).then(src=>{if(target?.isConnected)target.src=src;});
   }
   function render(){
+    imageObserver?.disconnect();
     const q=search.value.trim().toLowerCase(),t=type.value;const list=all.filter(x=>((t==='all'||x[0]===t||(t==='animals'&&(x[0]==='mammal'||x[0]==='reptile'||x[0]==='amphibian')))&&(!q||x.join(' ').toLowerCase().includes(q))));
     results.innerHTML=list.slice(0,90).map((x,i)=>{const chance=scoreFor(x);return `<article class="catalog-card" data-i="${i}" data-score="${chance??''}"><div class="catalog-image-wrap"><img class="cat-img" alt="${GeoImage.esc(x[1])}" src="${GeoImage.placeholder(x[1],x[0]==='fish'?'fish':x[0]==='bird'?'bird':x[0]==='mammal'?'animal':'nature')}"><span class="catalog-chance-slot">${window.GeoChanceUI?.markup?window.GeoChanceUI.markup(chance,x[0]==='fish'?'თბილისის პირობების ინდექსი':'ტიპური აქტიურობა'):`<span class="catalog-chance">${chance===null?'—':chance+'/100'}</span>`}</span></div><div class="catalog-card-body"><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><span class="catalog-tag">${GeoImage.esc(x[4])}</span>${redBadge(x)}</div><h3>${GeoImage.esc(x[1])}</h3><p>${GeoImage.esc(x[2])} • ${GeoImage.esc(x[5])}</p></div></article>`}).join('')||'<div class="empty">შედეგი ვერ მოიძებნა.</div>';
-    list.slice(0,90).forEach((x,i)=>{const card=results.children[i];if(!card)return;loadImg(card.querySelector('img'),x);card.onclick=()=>{location.href=speciesURL(x,card.dataset.score);};});
+    list.slice(0,90).forEach((x,i)=>{const card=results.children[i];if(!card)return;queueImage(card.querySelector('img'),x);card.onclick=()=>{location.href=speciesURL(x,card.dataset.score);};});
     suggest.innerHTML=list.slice(0,8).map((x,i)=>`<button data-i="${i}">${GeoImage.esc(x[1])}</button>`).join('');suggest.querySelectorAll('button').forEach(b=>b.onclick=()=>{const x=list[Number(b.dataset.i)];const chance=scoreFor(x);location.href=speciesURL(x,chance)});
   }
   function show(x){

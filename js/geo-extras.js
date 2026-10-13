@@ -87,7 +87,7 @@
     root.appendChild(host); renderPersonalInsights();
   }
   function renderPersonalInsights(){
-    const box=document.getElementById('gnPersonalInsightsGrid');if(!box)return;let s={};try{s=JSON.parse(localStorage.getItem('geonature_plus_v1')||'{}')||{}}catch(_){s={}};const catches=Array.isArray(s.catches)?s.catches.filter(c=>c&&typeof c==='object'):[],plans=Array.isArray(s.plans)?s.plans:[],favs=Array.isArray(s.favorites)?s.favorites:[];
+    const box=document.getElementById('gnPersonalInsightsGrid');if(!box)return;let s={};try{s=JSON.parse(localStorage.getItem('geonature_plus_v1')||'{}')||{}}catch(_){s={}};const catches=window.GeoNaturePlus?.allCatches?window.GeoNaturePlus.allCatches(s):Array.isArray(s.catches)?s.catches.filter(c=>c&&typeof c==='object'):[],plans=Array.isArray(s.plans)?s.plans:[],favs=Array.isArray(s.favorites)?s.favorites:[];
     let topFish='ჯერ არ არის',topPlace='ჯერ არ არის',bestWeight=0,bestFish='—';
     const fishCount=Object.create(null),placeCount=Object.create(null);catches.forEach(c=>{if(typeof c.fish==='string'&&c.fish)fishCount[c.fish]=(fishCount[c.fish]||0)+1;if(typeof c.place==='string'&&c.place)placeCount[c.place]=(placeCount[c.place]||0)+1;const weight=number(c.weight);if(weight!==null&&weight>bestWeight){bestWeight=weight;bestFish=typeof c.fish==='string'?c.fish:'—'}});
     topFish=Object.entries(fishCount).sort((a,b)=>b[1]-a[1])[0]?.[0]||topFish;topPlace=Object.entries(placeCount).sort((a,b)=>b[1]-a[1])[0]?.[0]||topPlace;

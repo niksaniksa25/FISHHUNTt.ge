@@ -251,24 +251,32 @@ window.GeoFishChance=(function(){
     return {score:null,cap:100};
   }
   function valid(c){return ['temperature_2m','pressure_msl','wind_speed_10m','precipitation','weather_code'].every(key=>number(c?.[key])!==null)&&number(c.wind_speed_10m)>=0&&number(c.precipitation)>=0&&weatherFit(c.weather_code)!==null;}
-  window.GeoFishConditions={valid,numberOrNull:number,activityFit};
-  return function(f,c={},water=null,applyTime=true){
-    if(!f||!valid(c))return null;
-    const temp=number(c.temperature_2m),pressure=number(c.pressure_msl),wind=number(c.wind_speed_10m),rain=number(c.precipitation),rp=number(c.precipitation_probability),humidity=number(c.relative_humidity_2m);
-    const habitat=habitatFit(f,water);
-    const outdoorTemp=rangeFit(temp,'5–30',8);
-    const terms=[[outdoorTemp,.10],[rangeFit(pressure,f[8],7),.10],[rangeFit(wind,f[9],5),.15],[Math.max(0,100-rain*18),.15],[weatherFit(c.weather_code),.15],[habitat.score,.15]];
-    if(rp!==null&&rp>=0&&rp<=100)terms.push([100-rp*.7,.05]);
-    if(humidity!==null&&humidity>=0&&humidity<=100)terms.push([Math.max(30,100-Math.abs(humidity-60)),.03]);
-    if(applyTime!==false)terms.push([activityFit(f[10],c.local_hour),.12]);
-    const waterTemp=number(c.water_temperature);
-    if(waterTemp!==null)terms.push([rangeFit(waterTemp,f[7],4),.25]);
-    const usable=terms.filter(([value])=>value!==null),weight=usable.reduce((sum,[,w])=>sum+w,0);
-    const score=Math.round(usable.reduce((sum,[value,w])=>sum+value*w,0)/weight);
-    // Storms and hazardous wind cannot receive a reassuring overall label.
+  function explain(f,c={},water=null,applyTime=true){
+    c=c||{};
+    const temp=number(c.temperature_2m),pressure=number(c.pressure_msl),wind=number(c.wind_speed_10m),rain=number(c.precipitation),rp=number(c.precipitation_probability),humidity=number(c.relative_humidity_2m),hour=number(c.local_hour),waterTemp=number(c.water_temperature);
+    const habitat=habitatFit(f,water),components=[];
+    const add=(key,label,value,unit,fit,weight,reason='მონაცემი მიუწვდომელია')=>components.push({key,label,value,unit,fit,weight,available:fit!==null,reason:fit===null?reason:'',normalizedWeight:0,contribution:null});
+    add('air_temperature','ჰაერის ტემპერატურა',temp,'°C',rangeFit(temp,'5–30',8),.10);
+    add('pressure','წნევა',pressure,'hPa',rangeFit(pressure,f?.[8],7),.10);
+    add('wind','ქარი',wind,'კმ/სთ',rangeFit(wind,f?.[9],5),.15);
+    add('precipitation','ნალექის რაოდენობა',rain,'მმ',rain===null?null:Math.max(0,100-rain*18),.15);
+    add('weather','ამინდის მდგომარეობა',number(c.weather_code),'WMO',weatherFit(c.weather_code),.15);
+    add('habitat','სახეობისა და ადგილის შესაბამისობა',water?.[1]||null,'',habitat.score,.15,'ადგილი ან სახეობის გავრცელება დაუზუსტებელია');
+    add('rain_probability','წვიმის ალბათობა',rp,'%',rp!==null&&rp>=0&&rp<=100?100-rp*.7:null,.05);
+    add('humidity','ტენიანობა',humidity,'%',humidity!==null&&humidity>=0&&humidity<=100?Math.max(30,100-Math.abs(humidity-60)):null,.03);
+    add('activity','სახეობის ტიპური აქტიურობა',hour,'სთ',applyTime!==false&&f?activityFit(f[10],hour):null,.12,applyTime===false?'საათის ფაქტორი გამორთულია':'არჩეული საათი ან აქტიურობის პერიოდი დაუზუსტებელია');
+    add('water_temperature','წყლის ტემპერატურა',waterTemp,'°C',rangeFit(waterTemp,f?.[7],4),.25,'წყლის ტემპერატურა არ იზომება; ჰაერის ტემპერატურით არ იცვლება');
+    const usable=components.filter(item=>item.available),weightTotal=usable.reduce((sum,item)=>sum+item.weight,0);
+    const ready=!!f&&valid(c);
+    if(ready&&weightTotal)for(const item of usable){item.normalizedWeight=item.weight/weightTotal;item.contribution=item.fit*item.normalizedWeight;}
+    const rawScore=ready&&weightTotal?Math.round(usable.reduce((sum,item)=>sum+item.fit*item.weight,0)/weightTotal):null;
     const hazardCap=[95,96,99].includes(number(c.weather_code))?20:wind>=50?25:100;
-    return Math.max(0,Math.min(100,habitat.cap,hazardCap,score));
-  };
+    const caps=[{key:'habitat',label:'დაუზუსტებელი ან შეუსაბამო ჰაბიტატი',value:habitat.cap,active:habitat.cap<100},{key:'hazard',label:'მძიმე ამინდის შეზღუდვა',value:hazardCap,active:hazardCap<100}];
+    return {model:'conditions-index',score:rawScore===null?null:Math.max(0,Math.min(100,habitat.cap,hazardCap,rawScore)),rawScore,weightTotal,components,caps,unknownReason:!f?'თევზი არჩეული არ არის':!ready?'ტემპერატურის, წნევის, ქარის, ნალექის ან ამინდის ძირითადი მონაცემი მიუწვდომელია':''};
+  }
+  window.GeoFishConditions={valid,numberOrNull:number,activityFit,explain};
+  return function(f,c={},water=null,applyTime=true){return explain(f,c,water,applyTime).score;};
+
 })();
 window.GeoWildlifeChance=function(x,context={}){
   if(!x||!x[1])return null;

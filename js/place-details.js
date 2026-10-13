@@ -28,6 +28,13 @@ const hourValue=common().numberOrNull(rawHour),mapHour=hourValue!==null&&Number.
 const showMapScore=mapScore!==null&&mapScore>=0&&mapScore<=100,showIncomingChance=incomingChance!==null&&incomingChance>=0&&incomingChance<=100;
 
 const fish=fishNames(w[6]);
+// These actions use the directory coordinates and remain usable when weather is unavailable.
+const mapButton=document.getElementById('mapBtn'),planButton=document.getElementById('planBtn');
+if(mapButton){
+  if(common().validCoordinates(w[4],w[5]))mapButton.href=`map.html?lat=${Number(w[4])}&lon=${Number(w[5])}&name=${encodeURIComponent(w[1])}`;
+  else{mapButton.href='map.html';mapButton.textContent='🗺️ რუკის გახსნა';mapButton.title='ამ ლოკაციის ზუსტი კოორდინატები ჯერ მიუწვდომელია.';}
+}
+if(planButton)planButton.href=`fishing.html?place=${encodeURIComponent(w[0])}`;
 const fishIds=String(w[6]||'').split(',').map(x=>x.trim()).filter(Boolean);document.getElementById('quickStats').innerHTML=[['🌊','ტიპი',w[2]],['📍','რეგიონი',w[3]],['🐟','თევზის სახეობები',fish.length],['⭐','პროფილი','დეტალური']].map(s=>`<div class="quick-stat"><small>${s[0]} ${esc(s[1])}</small><b>${esc(s[2])}</b></div>`).join('');
 document.getElementById('infoGrid').innerHTML=[['🌊','წყლის ტიპი',w[2]],['📍','რეგიონი',w[3]],['🐟','ძირითადი თევზები',fish.length?fish.join(' • '):'მონაცემი არ არის'],['🧭','კოორდინატები','ამინდის მონაცემებთან ერთად'],['🎣','დაგეგმვა','შესაძლებელია Fishing Planner-ით'],['🌤️','Outdoor','Live შეფასება რეალური ამინდის მიხედვით']].map(x=>infoCard(x[0],x[1],x[2])).join('');
 if(showMapScore||showIncomingChance){const snap=document.createElement('section');snap.className='container section place-origin-score-section';snap.innerHTML=`<div class="place-origin-score"><small>წინა გვერდზე ნაჩვენები საორიენტაციო ინდექსი</small><strong>${Math.round(showMapScore?mapScore:incomingChance)}/100</strong><span>${esc(mapDate)}${mapHour===null?'':` • ${String(mapHour).padStart(2,'0')}:00`}</span><em>ეს ბმულიდან მიღებული შეფასებაა. ქვემოთ ამინდი ამ ლოკაციისთვის თავიდან მოწმდება.</em></div>`;const target=document.getElementById('environment')?.closest('section');if(target)target.parentNode.insertBefore(snap,target);}
@@ -48,7 +55,6 @@ async function loadWeather(options={}){
     function renderFactors(){const row=selectedISO?common().weatherRowAt(data,selectedISO):common().currentWeatherRow(data);if(window.GNLiveFactors)GNLiveFactors.render({data,row,type:'weather',subject:null,locationName:w[1],error:!row});}
     renderFactors();
     hourly.querySelectorAll('.hour-detail').forEach(button=>button.onclick=()=>{selectedISO=button.dataset.iso;hourly.querySelectorAll('.hour-detail').forEach(item=>item.classList.toggle('active',item===button));renderFactors();});
-    document.getElementById('mapBtn').href=`map.html?lat=${geo.lat}&lon=${geo.lon}&name=${encodeURIComponent(w[1])}`;document.getElementById('planBtn').href=`fishing.html?place=${encodeURIComponent(w[0])}`;
     const tag=document.querySelector('.live-place-tag');if(tag)tag.textContent=data.__meta?.stale?'ბოლო მონაცემი':'ამინდი';
   }catch(error){
     if(token!==requestId)return;
