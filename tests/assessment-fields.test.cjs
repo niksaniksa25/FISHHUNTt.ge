@@ -92,9 +92,14 @@ test('fishing explanation shows the same score, real component weights and missi
   env.context.activityWindowScore = (f, hour) => env.context.GeoFishConditions.activityFit(f[10], hour);
   env.context.GNLiveFactors.render(state);
   const expected = env.context.GeoFishChance(state.subject, env.context.GeoNatureCommon.conditionsFromRow(state.row), state.water, true);
+  const detail = env.context.GeoFishConditions.explain(state.subject, env.context.GeoNatureCommon.conditionsFromRow(state.row), state.water, true);
   const html = env.elements.get('factorModelExplanation').innerHTML;
   assert.match(html, new RegExp('<b>' + expected + '/100</b>'));
   assert.match(html, /წონა [0-9.]+%/); assert.match(html, /წყლის ტემპერატურა არ იზომება/);
+  assert.match(html, /ფაქტორების დაფარვა:/);assert.match(html, new RegExp(detail.calibration.adjustedScore+'/100'));
+  assert.ok(html.includes((detail.calibration.coverage*100).toFixed(1)+'%'));
+  assert.match(html, /შესაბამისობა ადგენს შეზღუდვას; დამატებით ქულებს არ იძლევა/);
+  assert.ok(expected<=75,'missing measured water temperature cannot produce an almost-perfect weather-only index');
   assert.match(html, /მთვარე, Kp, ხილვადობა და წყლის დონე.*არ გამოიყენება/);
   assert.match(env.detail('Feed'), /მხოლოდ საათობრივი რეჟიმი/);
 });

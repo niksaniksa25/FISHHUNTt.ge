@@ -16,9 +16,26 @@ All five assessment panels show 20 fields, including rainfall amount separately 
 
 Fishing numbers are comparative **conditions indices out of 100**, not calibrated probabilities of catching a fish. A score of 70 does not mean a 70% chance of a catch. Catch rates also depend on effort, skill, gear, water conditions, population and access, which this website does not measure.
 
-The fishing index uses the selected species, destination, local hour and available weather. Missing core data cannot produce a score. The species' preferred water-temperature range is used only when an actual `water_temperature` measurement is supplied; air temperature is never substituted for water temperature. Optional measurements are omitted from weighted calculations when unavailable. Midnight is a valid hour, and hazardous weather cannot receive a reassuring high score.
+The fishing index uses the selected species, destination, local hour and available weather. Missing core data cannot produce a score. The species' preferred water-temperature range is used only when an actual `water_temperature` measurement is supplied; air temperature is never substituted for water temperature. Midnight is a valid hour, and hazardous weather cannot receive a reassuring high score.
 
-The list ranks descending by the current index, with unavailable results last and deterministic ties. Refresh moves existing cards, retaining selected species, filters, focus and scroll position. `GeoFishConditions.explain` is the same calculation used by `GeoFishChance`: the panel shows included weights, normalized contributions, omitted measurements and any habitat or safety cap. Informational moon/Kp/water-level fields are not falsely presented as terms in that model.
+The model is a provisional heuristic, not an empirically calibrated catch forecast. Its available-factor average is adjusted by **factor coverage**: the sum of available weights divided by all applicable weights. A missing measurement remains unknown, and does not silently turn the remaining favorable weather into a near-perfect result. The displayed index is `round(available-factor average × coverage)`, followed by habitat and hazard caps. Coverage is neither a catch probability nor a statistical confidence interval. Only an explicitly disabled time factor is excluded from the applicable denominator.
+
+| Factor | Nominal weight |
+| --- | ---: |
+| Measured water temperature | 25% |
+| Species activity period | 20% |
+| Pressure | 12% |
+| Wind | 10% |
+| Precipitation amount | 9% |
+| Weather code | 8% |
+| Wind gusts | 6% |
+| Air temperature | 5% |
+| Rain probability | 3% |
+| Humidity | 2% |
+
+Habitat confirmation grants no bonus points: it controls eligibility and the existing unconfirmed/incompatible destination caps. Unmeasured water temperature alone leaves at most 75% coverage when the time factor is applicable, so weather-only species assessments cannot appear as 90–100/100. Missing gusts, activity or other optional factors reduce coverage further. Strong gusts, thunderstorms, freezing precipitation and heavy precipitation have explicit safety limits. The explanation shows the available-factor contributions, missing factors, coverage adjustment and active caps.
+
+The fish cards and selection dropdown rank descending by the current index, with unavailable results last and deterministic catalogue-order ties. The selected hour is labelled as current conditions or a pinned forecast. Catalogue fish are ranked within their fish slots; wildlife uses a different activity model and is not compared against fish indices. The guide refreshes automatically every five minutes while visible, and refreshes on returning to the page. Refresh moves existing cards, retaining selected species, filters, focus and scroll position. Canonical fish IDs distinguish duplicate display names and remain stable when scores move. `GeoFishConditions.explain` is the same calculation used by `GeoFishChance`: the panel shows included weights, normalized contributions, omitted measurements and any habitat or safety cap. Informational moon/Kp/water-level fields are not falsely presented as terms in that model.
 
 Destination scores use that destination's forecast, rather than weather from the visitor's current city. The guide loads destination conditions on request. Unknown species/destination associations are conservative and explicitly informational. Wildlife activity indices describe typical seasonal/time patterns; they are not measured probabilities of seeing or hunting an animal.
 

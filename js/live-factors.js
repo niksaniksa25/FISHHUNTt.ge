@@ -139,11 +139,14 @@
     const score=numeric(detail.score),raw=numeric(detail.rawScore);
     const components=(detail.components||[]).map(part=>{
       const fit=numeric(part.fit),weight=numeric(part.normalizedWeight),contribution=numeric(part.contribution);
-      const metrics=part.available&&fit!==null&&weight!==null&&contribution!==null?`${fit.toFixed(1)}/100 • წონა ${(weight*100).toFixed(1)}% • ${contribution.toFixed(1)} ქულა`:part.reason||detail.unknownReason||'შეფასებისთვის აუცილებელი მონაცემი აკლია';
+      const metrics=part.available&&fit!==null&&numeric(part.weight)===0?'ადგილის შესაბამისობა ადგენს შეზღუდვას; დამატებით ქულებს არ იძლევა':part.available&&fit!==null&&weight!==null&&contribution!==null?`${fit.toFixed(1)}/100 • წონა ${(weight*100).toFixed(1)}% • ${contribution.toFixed(1)} ქულა`:part.reason||detail.unknownReason||'შეფასებისთვის აუცილებელი მონაცემი აკლია';
       return `<li><b>${esc(part.label||part.key)}</b><span>${esc(metrics)}</span></li>`;
     }).join('');
     const caps=(detail.caps||[]).filter(cap=>cap.active).map(cap=>`${cap.label}: მაქსიმუმ ${cap.value}/100`).join(' • ');
-    el.innerHTML=`<h3>თევზაობის ინდექსის შემადგენლობა</h3><p>${score===null?esc(detail.unknownReason||'შეფასების მონაცემი არასაკმარისია'):`<b>${score}/100</b> • ${esc(snapshot.subject?.[1]||'არჩეული თევზი')}${raw!==null&&score<raw?` • შეზღუდვამდე ${raw}/100`:''}`}</p><ul class="factor-model-list">${components}</ul>${caps?`<p>${esc(caps)}</p>`:''}<p>ინდექსში მხოლოდ ამ ჩამონათვალს აქვს წონა; დანარჩენი ველები საინფორმაციოა. მონაცემის გარეშე ფაქტორს წონა არ აქვს. ჰაერის ტემპერატურა წყლის გაზომვას ვერ ცვლის. მთვარე, Kp, ხილვადობა და წყლის დონე ამ მოდელის ქულაში არ გამოიყენება. /100 საორიენტაციო ინდექსია, დაჭერის პროცენტი გაზომილი არ არის.</p>`;
+    const calibration=detail.calibration,coverage=numeric(calibration?.coverage),weighted=numeric(calibration?.weightedScore),adjusted=numeric(calibration?.adjustedScore);
+    const missing=(calibration?.missing||[]).map(key=>(detail.components||[]).find(part=>part.key===key)?.label||key).join(', ');
+    const completeness=score!==null&&coverage!==null&&weighted!==null&&adjusted!==null?`<p class="factor-model-coverage"><b>ფაქტორების დაფარვა: ${(coverage*100).toFixed(1)}%</b> • ${weighted.toFixed(1)} × ${coverage.toFixed(3)} ≈ ${adjusted}/100${missing?`<br>აკლია: ${esc(missing)}`:''}<br>არასრული მონაცემები ინდექსს ამცირებს; დაფარვა დაჭერის ალბათობა არ არის.</p>`:'';
+    el.innerHTML=`<h3>თევზაობის ინდექსის შემადგენლობა</h3><p>${score===null?esc(detail.unknownReason||'შეფასების მონაცემი არასაკმარისია'):`<b>${score}/100</b> • ${esc(snapshot.subject?.[1]||'არჩეული თევზი')}${raw!==null&&score<raw?` • ხელმისაწვდომი ფაქტორების საშუალო ${raw}/100`:''}`}</p><ul class="factor-model-list">${components}</ul>${completeness}${caps?`<p>${esc(caps)}</p>`:''}<p>ინდექსში მხოლოდ ამ ჩამონათვალს აქვს წონა; დანარჩენი ველები საინფორმაციოა. არმიღებული გაზომვის შესაბამისობა უცნობად რჩება და მონაცემების დაფარვა მცირდება. ჰაერის ტემპერატურა წყლის გაზომვას ვერ ცვლის. მთვარე, Kp, ხილვადობა და წყლის დონე ამ მოდელის ქულაში არ გამოიყენება. /100 საორიენტაციო ინდექსია, დაჭერის პროცენტი გაზომილი არ არის.</p>`;
   }
   let renderRevision=0;
   function render(snapshot){

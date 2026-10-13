@@ -107,6 +107,32 @@ test('initial card rendering uses descending indices and keyboard actions retain
   cards()[2].onclick(); assert.equal(clicked.score, null, 'unknown never turns into index zero');
 });
 
+test('fish selection options reorder on live index changes without changing canonical values or selection', () => {
+  const { context, get } = fixture(), select=get('fishSelect'), fish=context.FISHES.slice(0,4);
+  Object.defineProperty(select,'options',{get:()=>select.children});
+  const prompt=context.document.createElement('option');prompt.value='';select.appendChild(prompt);
+  const options=fish.map((f,index)=>{const option=context.document.createElement('option');option.value=String(index);select.appendChild(option);return option;});
+  let scores=[20,80,null,0],changes=0;select.value='0';select.onchange=()=>changes++;
+  context.GeoFishChance=f=>scores[fish.indexOf(f)];context.refreshVisibleFishScores();
+  assert.deepEqual(select.children.map(option=>option.value),['','1','0','3','2']);
+  assert.equal(select.value,'0');assert.match(options[3].textContent,/0\/100/);assert.match(options[2].textContent,/უცნობია/);
+  scores=[90,10,70,0];context.refreshVisibleFishScores();
+  assert.deepEqual(select.children.map(option=>option.value),['','0','2','1','3']);
+  assert.equal(select.value,'0');assert.equal(changes,0);
+  assert.ok(options.every(option=>select.children.includes(option)),'existing option nodes remain in use');
+  assert.equal(options[0].dataset.fishId,fish[0][0]);
+});
+
+test('freshwater filtering includes river species and keeps the descending live order', () => {
+  const { context,get,cards }=fixture();get('fishType').value='fresh';context.renderFishSearch();
+  const actual=cards().map(card=>card.dataset.fishId);
+  const river=context.FISHES.filter(f=>f[3].includes('მდინარე'));assert.ok(river.length>0);
+  assert.ok(river.every(f=>actual.includes(f[0])));
+  assert.ok(context.FISHES.filter(f=>f[3]==='ზღვა').every(f=>!actual.includes(f[0])));
+  const expected=context.GeoFishingPlanner.rankedList(context.FISHES.filter(f=>f[3].includes('მტკნარი')||f[3].includes('მდინარე')));
+  assert.deepEqual(actual,ids(expected));
+});
+
 test('weather reordering keeps existing cards, selected identity, keyboard focus and scroll position', () => {
   const { context, cards, get, set } = fixture();
   const list = context.FISHES.slice(0, 3);

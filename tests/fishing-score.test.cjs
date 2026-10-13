@@ -45,6 +45,37 @@ test('air temperature never substitutes for a species water-temperature preferen
   assert.equal(score(cold, { ...conditions, water_temperature: null }, water), score(cold, conditions, water));
 });
 
+test('ordinary weather with missing ecological inputs cannot look like a nearly certain ideal day', () => {
+  const {context,score}=fixture(),sparse={temperature_2m:19,pressure_msl:1013,wind_speed_10m:6,precipitation:0,weather_code:0};
+  for(const fish of context.FISHES){
+    const value=score(fish,sparse);assert.ok(value>=0&&value<=45,`${fish[0]}: ${value}`);
+    assert.ok(score(fish,{...sparse,local_hour:12,relative_humidity_2m:60,precipitation_probability:20})<=70);
+  }
+});
+
+test('missing water, activity and gusts reduce confidence instead of redistributing their positive weight', () => {
+  const {context,score,fish,water}=fixture(),complete={...conditions,wind_gusts_10m:7,water_temperature:22};
+  const full=score(fish,complete,water);
+  assert.ok(full>=85&&full<=100,'favorable measured conditions can earn a high index');
+  for(const field of ['water_temperature','local_hour','wind_gusts_10m']){
+    assert.ok(score(fish,{...complete,[field]:null},water)<full,field);
+    const detail=context.GeoFishConditions.explain(fish,{...complete,[field]:null},water);
+    assert.ok(detail.calibration.coverage<1);assert.ok(detail.calibration.missing.length>0);
+  }
+  assert.ok(score(fish,{...complete,water_temperature:45},water)<score(fish,complete,water));
+  assert.equal(score(fish,conditions,water),score(fish,conditions,null),'confirmed presence does not add a free scoring bonus');
+});
+
+test('gusts produce a continuous worsening index and dangerous gusts or freezing precipitation are capped', () => {
+  const {score,fish,water}=fixture(),known={...conditions,water_temperature:22};
+  const values=[7,15,30,45,60,85].map(wind_gusts_10m=>score(fish,{...known,wind_gusts_10m},water));
+  for(let i=1;i<values.length;i++)assert.ok(values[i]<values[i-1]||values[i]===25&&values[i-1]===25,JSON.stringify(values));
+  assert.ok(values.at(-1)<=25);
+  for(const weather_code of [56,57,66,67])assert.ok(score(fish,{...known,wind_gusts_10m:7,weather_code},water)<=20);
+  for(const weather_code of [65,75,77,82,86])assert.ok(score(fish,{...known,wind_gusts_10m:7,weather_code},water)<=35);
+  assert.ok(score(fish,{...known,wind_gusts_10m:7,precipitation:12},water)<=25);
+});
+
 test('heavy precipitation, extreme wind and thunderstorms cannot improve a fishing assessment', () => {
   const { score, fish, water } = fixture();
   const rains = [0, .2, 1, 3, 6, 12].map(precipitation => score(fish, { ...conditions, precipitation }, water));

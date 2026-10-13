@@ -91,10 +91,9 @@ function rankedFishingList(list,condition=currentFishingCondition(),water=select
   const indexes=new Map((window.FISHES||[]).map((fish,index)=>[String(fish[0]),index]));
   return list.map(fish=>({fish,score:fishingNumber(chanceForFish(fish,condition,water)),catalogueIndex:indexes.get(String(fish[0]))??Number.MAX_SAFE_INTEGER})).sort(compareFishRanks);
 }
-function reorderFishingCards(ranked){
-  const box=document.getElementById('fishResults');if(!box)return;
-  const before=[...box.querySelectorAll('.fish-card[data-fish-id]')];
-  const ordered=ranked.map(entry=>entry.card);
+function reorderFishingNodes(box,ordered){
+  if(!box)return;
+  const before=[...box.children];
   if(ordered.every((card,index)=>card===before[index]))return;
   const focused=document.activeElement,restoreFocus=focused&&box.contains(focused);
   const x=window.scrollX,y=window.scrollY;
@@ -109,10 +108,26 @@ function reorderFishingCards(ranked){
   if(restoreFocus&&document.activeElement!==focused)focused.focus({preventScroll:true});
   if(window.scrollX!==x||window.scrollY!==y)window.scrollTo({left:x,top:y,behavior:'instant'});
 }
+function reorderFishingCards(ranked){
+  reorderFishingNodes(document.getElementById('fishResults'),ranked.map(entry=>entry.card));
+}
+function refreshFishingSelect(condition=currentFishingCondition()){
+  const select=document.getElementById('fishSelect');if(!select?.options?.length)return;
+  const value=select.value,options=[...select.options],byIndex=new Map(options.filter(option=>option.value!=='').map(option=>[String(option.value),option]));
+  const ranked=rankedFishingList(window.FISHES||[],condition,selectedWater),ordered=options.filter(option=>option.value==='');
+  for(const entry of ranked){
+    const option=byIndex.get(String(entry.catalogueIndex));if(!option)continue;
+    option.textContent=`${entry.fish[1]} • ${entry.score===null?'ინდექსი უცნობია':entry.score+'/100'} • ${entry.fish[3]}`;
+    option.dataset.fishId=String(entry.fish[0]);option.dataset.chance=entry.score===null?'':String(entry.score);
+    ordered.push(option);byIndex.delete(String(entry.catalogueIndex));
+  }
+  ordered.push(...byIndex.values());reorderFishingNodes(select,ordered);select.value=value;
+}
 function updateFishingRankingContext(){
   const hint=document.getElementById('fishRankingContext');if(!hint)return;
   const row=selectedHourlyRow;
-  hint.textContent=row?`${row.source==='current'?'LIVE პირობები':'არჩეული საათის პროგნოზი'} • ${selectedWater?.[1]||'არჩეული ადგილი'} • ${row.date} ${row.time} • მაღალი ინდექსიდან დაბლისკენ`:'მაღალი ინდექსიდან დაბლისკენ • უცნობი მაჩვენებლები ბოლოშია';
+  const mode=plannerWeather?.__meta?.stale?'ბოლო ხელმისაწვდომი მონაცემი':row?.source==='current'?'LIVE მიმდინარე პირობები':'არჩეული საათის პროგნოზი';
+  hint.textContent=row?`${mode} • ${selectedWater?.[1]||'არჩეული ადგილი'} • ${row.date} ${row.time} • მაღალი ინდექსიდან დაბლისკენ • ავტომატურად განახლებისას რიგიც იცვლება`:'მაღალი ინდექსიდან დაბლისკენ • უცნობი მაჩვენებლები ბოლოშია';
 }
 function refreshVisibleFishScores(){
   const condition=currentFishingCondition(),cards=[...document.querySelectorAll('#fishResults .fish-card[data-fish-id]')];
@@ -127,7 +142,7 @@ function refreshVisibleFishScores(){
     card.setAttribute('aria-label',`${entry.fish[1]} — ${score===null?'ინდექსი უცნობია':score+'/100'}`);
     ranked.push({fish:entry.fish,catalogueIndex:entry.index,score,card});
   });
-  ranked.sort(compareFishRanks);reorderFishingCards(ranked);updateFishingRankingContext();
+  ranked.sort(compareFishRanks);reorderFishingCards(ranked);refreshFishingSelect(condition);updateFishingRankingContext();
   updateSelectedFishChance();
 }
 function updateSelectedFishChance(){
@@ -507,7 +522,7 @@ async function loadLiveFishing(lat,lon,city){
 function renderFishSearch(){
   const input=document.getElementById('fishSearch'),type=document.getElementById('fishType'),count=document.getElementById('fishCount'),suggestions=document.getElementById('fishSuggestions');
   const q=input.value.trim().toLowerCase(),t=type.value;
-  const list=rankedFishingList(FISHES.filter(f=>{const hay=[f[1],f[2],f[11],f[4],f[5],f[3]].join(' ').toLowerCase();const typeOk=t==='all'||(t==='fresh'&&f[3].includes('მტკნარი'))||(t==='river'&&f[3].includes('მდინარე'))||(t==='sea'&&f[3].includes('ზღვა'));return typeOk&&(!q||hay.includes(q));})).map(entry=>entry.fish);
+  const list=rankedFishingList(FISHES.filter(f=>{const hay=[f[1],f[2],f[11],f[4],f[5],f[3]].join(' ').toLowerCase();const typeOk=t==='all'||(t==='fresh'&&(f[3].includes('მტკნარი')||f[3].includes('მდინარე')))||(t==='river'&&f[3].includes('მდინარე'))||(t==='sea'&&f[3].includes('ზღვა'));return typeOk&&(!q||hay.includes(q));})).map(entry=>entry.fish);
   count.textContent=`${list.length} სახეობა`;
   suggestions.innerHTML=q?list.slice(0,10).map((f,i)=>`<button type="button" data-i="${i}">${safeText(f[1])}</button>`).join(''):'';
   suggestions.querySelectorAll('button').forEach(b=>b.onclick=()=>selectFish(list[Number(b.dataset.i)]));
