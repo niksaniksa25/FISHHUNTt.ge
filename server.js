@@ -786,7 +786,7 @@ const server=http.createServer(async(req,res)=>{
     if(u.pathname==='/api/auth/signout'&&req.method==='POST'){
       clearSessionCookie(res,req);return json(res,200,{ok:true});
     }
-    if(u.pathname==='/api/health')return json(res,200,{ok:true,paymentProvider:'BOG',configured:Boolean(CLIENT_ID&&CLIENT_SECRET)});
+    if(u.pathname==='/api/health')return json(res,200,{ok:true,paymentProvider:'BOG',configured:Boolean(CLIENT_ID&&CLIENT_SECRET),trialConfigured:false});
     if(u.pathname==='/api/payments/pricing'&&req.method==='GET'){
       const plan=u.searchParams.get('plan')==='pro'?'pro':'plus'; const term=normalizeTerm(u.searchParams.get('term')); return json(res,200,{ok:true,plan,term,pricing:planPricing(plan),termPricing:termPricing(plan,term),terms:Object.fromEntries(Object.keys(TERM_OPTIONS).map(k=>[k,termPricing(plan,Number(k))])),plans:{plus:planPricing('plus'),pro:planPricing('pro')}});
     }
@@ -795,30 +795,13 @@ const server=http.createServer(async(req,res)=>{
       if(b.code && !result.valid) return json(res,400,{ok:false,message:'Public promo code არასწორია.'});
       return json(res,200,{ok:true,plan,...result});
     }
-    if(u.pathname==='/api/trial/create'&&req.method==='POST'){
-      const b=await body(req); const plan=b.plan==='pro'?'pro':'plus';
-      if(!BOG_TRIAL_SETUP_URL) return json(res,503,{ok:false,message:'BOG trial card-setup URL ჯერ არ არის კონფიგურირებული. ჩასვი BOG_TRIAL_SETUP_URL .env-ში.'});
-      const email=String(b.email||currentUser(req)?.email||'').trim();
-      if(!email) return json(res,400,{ok:false,message:'Trial-ისთვის ელფოსტა აუცილებელია.'});
-      const session=createTrialSession(plan,email);
-      return json(res,200,{ok:true,ref:session.ref,redirectUrl:trialUrlFor(session.ref,email,plan)});
-    }
-    if(u.pathname==='/api/trial/callback'&&req.method==='GET'){
-      const ref=u.searchParams.get('ref')||''; const status=(u.searchParams.get('status')||'').toLowerCase(); const sess=trialSessions.get(ref);
-      if(!sess) return json(res,404,{ok:false,message:'Trial session ვერ მოიძებნა.'});
-      if(['success','succeeded','approved','attached'].includes(status)){ sess.cardAttached=true; sess.cardAttachedAt=Date.now(); trialSessions.set(ref,sess); return res.writeHead(302,{Location:`/trial.html?ref=${encodeURIComponent(ref)}&attached=1`}),res.end(); }
-      return res.writeHead(302,{Location:`/trial.html?ref=${encodeURIComponent(ref)}&attached=0`}),res.end();
+    if((u.pathname==='/api/trial/create'&&req.method==='POST')||(u.pathname==='/api/trial/callback'&&req.method==='GET')||(u.pathname==='/api/trial/activate'&&req.method==='POST')){
+      // A return URL's status is not bank verification. Keep card attachment and
+      // activation unavailable until an authoritative provider check exists.
+      return json(res,503,{ok:false,code:'trial_verification_unavailable',message:'საცდელი პერიოდის გააქტიურება ჯერ მიუწვდომელია: ბანკის მიერ ბარათის მიბმის დადასტურება დაკავშირებული არ არის.'});
     }
     if(u.pathname==='/api/trial/status'&&req.method==='GET'){
       const ref=u.searchParams.get('ref')||''; const sess=trialSessions.get(ref); if(!sess) return json(res,404,{ok:false,message:'Trial session ვერ მოიძებნა.'}); return json(res,200,{ok:true,ref:sess.ref,plan:sess.plan,email:sess.email,cardAttached:sess.cardAttached,active:sess.active,createdAt:sess.createdAt,trialStartedAt:sess.trialStartedAt||null});
-    }
-    if(u.pathname==='/api/trial/activate'&&req.method==='POST'){
-      const b=await body(req); const sess=trialSessions.get(String(b.ref||''));
-      if(!sess) return json(res,404,{ok:false,message:'Trial session ვერ მოიძებნა.'});
-      if(!sess.cardAttached) return json(res,400,{ok:false,message:'Trial-ის დაწყებამდე BOG-ში ბარათის მიბმა აუცილებელია.'});
-      if(sess.active) return json(res,409,{ok:false,message:'ეს trial უკვე აქტიურია.'});
-      sess.active=true; sess.trialStartedAt=Date.now(); sess.expiresAt=Date.now()+72*60*60*1000; trialSessions.set(sess.ref,sess);
-      return json(res,200,{ok:true,plan:sess.plan,ref:sess.ref,trialStartedAt:sess.trialStartedAt,expiresAt:sess.expiresAt});
     }
     if(u.pathname==='/api/payments/bog/create-order'&&req.method==='POST'){
       const b=await body(req); const plan=b.plan==='pro'?'pro':'plus'; const term=normalizeTerm(b.termMonths); const user=currentUser(req); const out=await createBogOrder(plan,b.email||user?.email,b.promoCode,term,user); return json(res,200,out);

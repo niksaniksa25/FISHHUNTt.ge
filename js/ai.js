@@ -23,17 +23,17 @@ const AI_FISHING = [
   ['კარგი Fishing Score ნიშნავს რომ თევზაობა ნებადართულია?', 'არა. Fishing Score აღწერს პირობებს; სამართლებრივი შეზღუდვები, სახეობა, სეზონი, ადგილი და ნებადართული საშუალებები ცალკე გადაამოწმე.'],
   ['სად ვნახო თევზის აქტიური საათები?', 'აირჩიე კონკრეტული თევზი და კითხვა მისი აქტივობის შესახებ. ეს არის ტიპური საინფორმაციო დრო და არა დაჭერის გარანტია.'],
   ['რა შევამოწმო გასვლამდე?', 'გადაამოწმე მოქმედი შეზღუდვები, ამინდი, წყლის დონე, ნაპირთან მისასვლელი გზა და დაბრუნების დრო.'],
-  ['როგორ დავაფიქსირო ჩემი დაჭერა?', '„მეტი“ მენიუში გახსენი „ჩემი დაჭერები“, სადაც შეგიძლია დაჭერის ჩანაწერისა და ფოტოს დამატება.']
+  ['როგორ დავაფიქსირო ჩემი დაჭერა?', 'მენიუში გახსენი „ჩემი დაჭერები“, სადაც შეგიძლია დაჭერის ჩანაწერისა და ფოტოს დამატება. ტელეფონზე გვერდების სათაურებს მარცხნივ-მარჯვნივ გადააცურებ.']
 ];
 const AI_SITE = [
   ['როგორ მოვძებნო სახეობა?', 'გახსენი კატალოგი და გამოიყენე სახელის ძებნა და ფილტრები. ამ კითხვების ცენტრში ცალკეა თევზებისა და ველური ბუნების თემებიც.'],
   ['როგორ გამოვიყენო GPS?', 'ამინდის ან რუკის გვერდზე დააჭირე მდებარეობის ღილაკს და ბრაუზერს მიეცი მდებარეობის ნებართვა.'],
   ['რატომ არის ზოგი ფუნქცია ჩაკეტილი?', 'საიტის ნაწილი ხელმისაწვდომია Free გეგმაში, გაფართოებული ფუნქციები კი Plus ან AI Pro გეგმაში. დეტალები ნახე Premium-ის გვერდზე.'],
   ['რამდენი დღის პროგნოზია ხელმისაწვდომი?', 'Free გეგმა აჩვენებს 1 დღეს, Plus — 3 დღეს, AI Pro — 7 დღეს. ხელმისაწვდომი არჩევანი ნაჩვენებია შესაბამის გვერდზე.'],
-  ['სად ვნახო დაცული სახეობები?', '„მეტი“ მენიუში გახსენი „წითელი წიგნი“ და გადაამოწმე კონკრეტული სახეობის სტატუსი და ოფიციალური წყარო.'],
-  ['როგორ გავაგზავნო უკუკავშირი?', 'გახსენი უკუკავშირის ღილაკი, დაწერე შეტყობინება და დააჭირე გაგზავნას. წარმატება დადასტურებულია მხოლოდ სერვერის პასუხის შემდეგ.'],
+  ['სად ვნახო დაცული სახეობები?', 'მენიუში გახსენი „წითელი წიგნი“ და გადაამოწმე კონკრეტული სახეობის სტატუსი და ოფიციალური წყარო.'],
+  ['როგორ გავაგზავნო უკუკავშირი?', 'დააჭირე ქვედა მარცხენა კუთხეში 💬 უკუკავშირის ღილაკს და აღწერე პრობლემა. GitHub-ის შევსებულ ფორმაში შესვლის შემდეგ დააჭირე „Create issue“-ს — მაშინ გაიგზავნება საჯარო შეტყობინება. მონახაზი საიტზე ამავე ჩანართში შენარჩუნდება.'],
   ['როგორ მუშაობს ეს კითხვების ცენტრი?', 'ეს ცენტრი პასუხებს საიტში შენახული კითხვებიდან და სახეობების ცნობარიდან არჩევს. მიმდინარე ამინდს შესაბამის ამინდის გვერდზე გადაამოწმე.'],
-  ['სად ვნახო ბუნების შესახებ ფაქტები?', 'გახსენი „GeoNature ცოდნა“ „მეტი“ მენიუში ან ნახე დღის ფაქტი მთავარ გვერდზე.']
+  ['სად ვნახო ბუნების შესახებ ფაქტები?', 'მენიუში გახსენი „GeoNature ცოდნა“ ან ნახე დღის ფაქტი მთავარ გვერდზე.']
 ];
 const AI_FISHES = (window.FISHES || []).map(f => ({
   id:f[0], name:f[1], nameEn:f[2], water:f[3], habitat:f[4], region:f[5],
@@ -58,26 +58,35 @@ function weatherAnswer(q) {
   const s = q.toLowerCase();
   if (s.includes('წყლის ტემპ')) return 'წყლის ტემპერატურა მნიშვნელოვანია, რადგან სხვადასხვა თევზს განსხვავებული საინფორმაციო დიაპაზონი აქვს. კონკრეტული სახეობის პროფილი გამოიყენე შედარებისთვის.';
   if (s.includes('ხვალ') || s.includes('დღეს')) return 'კონკრეტული დღის Live მონაცემები ნახე ამინდის ან თევზაობის Planner-ში — აირჩიე ადგილი და შესაბამისი დღე.';
-  return 'კონკრეტული ამინდის სანახავად გახსენი „ამინდი“, მოძებნე ადგილი ან გამოიყენე GPS. იქ ნახავ მიმდინარე მონაცემებს და 7-დღიან პროგნოზს.';
+  return 'კონკრეტული ამინდის სანახავად გახსენი „ამინდი“, მოძებნე ადგილი ან გამოიყენე GPS. პროგნოზის პერიოდი გეგმაზეა დამოკიდებული: Free — 1 დღე, Plus — 3 დღე, AI Pro — 7 დღე.';
 }
 
 function findFish(q) {
   const s = q.toLowerCase();
-  return [...AI_FISHES].sort((a,b) => b.name.length-a.name.length).find(x => s.includes(x.name.toLowerCase()) || s.includes(x.nameEn.toLowerCase()));
+  return [...AI_FISHES].sort((a,b) => b.name.length-a.name.length).find(x => entityNameMatches(s,x.name) || entityNameMatches(s,x.nameEn));
 }
 
 function findWild(q) {
   const s = q.toLowerCase();
-  return [...AI_WILDLIFE].sort((a,b) => b.name.length-a.name.length).find(x => s.includes(x.name.toLowerCase()) || s.includes(x.nameEn.toLowerCase()));
+  return [...AI_WILDLIFE].sort((a,b) => b.name.length-a.name.length).find(x => entityNameMatches(s,x.name) || entityNameMatches(s,x.nameEn));
 }
 
 function findPlace(q) {
   const s = q.toLowerCase();
-  return [...AI_PLACES].sort((a,b) => b.name.length-a.name.length).find(x => s.includes(x.name.toLowerCase()));
+  return [...AI_PLACES].sort((a,b) => b.name.length-a.name.length).find(x => entityNameMatches(s,x.name));
+}
+function entityNameMatches(text,name) {
+  const full=String(name||'').trim().toLowerCase();if(!full)return false;
+  const stems=[full];if(full.length>=4&&/[ია]$/u.test(full))stems.push(full.slice(0,-1));
+  const escaped=stems.map(value=>value.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|');
+  // Match Georgian inflections without mistaking a short name such as “ბუ”
+  // for the beginning of an unrelated word such as “ბუნება”.
+  return new RegExp('(?:^|[^\\p{L}])(?:'+escaped+')(?:ს|ის|ისთვის|ისათვის|სთვის|ზე|ში|დან|ისგან|ით|თან|ისთან|ები|ების|ებზე|ებს|ისა)?(?=$|[^\\p{L}])','u').test(text);
 }
 
 function fishAnswer(f, q) {
   const s = q.toLowerCase();
+  if (isRuleQuestion(s)) return ruleAnswer(f, q);
   if (s.includes('ტემპ') || s.includes('გრადუს')) return `${f.name}-ისთვის საიტის საინფორმაციო სასურველი ტემპერატურაა <b>${esc(f.temp)}</b>.`;
   if (s.includes('წნევ') || s.includes('ქარ')) return `${f.name}-ის პროფილში მითითებული დიაპაზონებია: წნევა <b>${esc(f.pressure)}</b>, ქარი <b>${esc(f.wind)}</b>.`;
   if (s.includes('სად') && (s.includes('საქართველ') || s.includes('გვხვდება'))) return `${f.name} საქართველოში მითითებულია შემდეგ რეგიონში/წყლებში: <b>${esc(f.region)}</b>.`;
@@ -93,6 +102,7 @@ function wildLabel(w) {
 
 function wildAnswer(w, q) {
   const s = q.toLowerCase();
+  if (isRuleQuestion(s)) return ruleAnswer(w, q);
   const kind = wildLabel(w);
   if (s.includes('სეზონ') || s.includes('როდის გვხვ')) return `${w.name} ძირითადად გვხვდება: <b>${esc(w.season)}</b>.`;
   if (s.includes('აქტიურ') || s.includes('როდის')) return `${w.name}-ის აქტივობის საინფორმაციო დროა: <b>${esc(w.active)}</b>.`;
@@ -117,7 +127,7 @@ function placeAnswer(p, q) {
     return `${esc(p.name)} მდებარეობს რეგიონში <b>${esc(p.region)}</b>. ${coords}`;
   }
   if (s.includes('რუკ')) return `ლოკაციის პროფილიდან გახსენი რუკა/მარშრუტის მოქმედება. კოორდინატიანი ლოკაციები პირდაპირ რუკაზე იძებნება.`;
-  if (s.includes('ამინდ')) return `არჩეული ლოკაციის პროფილში შესაძლებელია Live ამინდისა და 7-დღიანი პროგნოზის ნახვა, როცა კოორდინატი ხელმისაწვდომია.`;
+  if (s.includes('ამინდ')) return `არჩეული ლოკაციის პროფილში მიმდინარე ამინდი და შენი გეგმის ხელმისაწვდომი პროგნოზი ჩანს, როცა ზუსტი კოორდინატი ხელმისაწვდომია.`;
   if (s.includes('აღწერ') || s.includes('რა არის')) return `<b>${esc(p.name)}</b> არის ${esc(p.type)} ${esc(p.region)}-ში. აღწერა: ${esc(p.desc)}`;
   return `<b>${esc(p.name)}</b> — ${esc(p.type)}, ${esc(p.region)}. ${esc(p.desc)}`;
 }
@@ -125,7 +135,7 @@ function placeAnswer(p, q) {
 function buildFishQuestions(f) {
   return [
     [`ეს რა თევზია?`, fishAnswer.bind(null,f)],
-    [`რა ისტორია/ცნობა აქვს ${f.name}-ს?`, fishAnswer.bind(null,f)],
+    [`რომელი შეზღუდვები მოქმედებს ${f.name}-ზე?`, fishAnswer.bind(null,f)],
     [`სად ცხოვრობს ${f.name}?`, fishAnswer.bind(null,f)],
     [`საქართველოში სად გვხვდება ${f.name}?`, fishAnswer.bind(null,f)],
     [`რა ტემპერატურა უხდება ${f.name}-ს?`, fishAnswer.bind(null,f)],
@@ -137,7 +147,7 @@ function buildFishQuestions(f) {
 function buildWildQuestions(w) {
   return [
     [`ეს რა ${wildLabel(w).toLowerCase()} არის?`, wildAnswer.bind(null,w)],
-    [`რა ისტორია/ცნობა აქვს ${w.name}-ს?`, wildAnswer.bind(null,w)],
+    [`რომელი შეზღუდვები მოქმედებს ${w.name}-ზე?`, wildAnswer.bind(null,w)],
     [`სად ცხოვრობს ${w.name}?`, wildAnswer.bind(null,w)],
     [`საქართველოში სად გვხვდება ${w.name}?`, wildAnswer.bind(null,w)],
     [`რომელ სეზონზე გვხვდება ${w.name}?`, wildAnswer.bind(null,w)],
@@ -167,6 +177,21 @@ const AI_CATEGORIES = {
   place: {label:'🌊 სათევზაო ადგილები', entity:AI_PLACES, questions:buildPlaceQuestions, count:() => 7},
   site: {label:'🌿 საიტის შესახებ', questions:() => AI_SITE.map(([q,a]) => [q,() => a]), count:() => AI_SITE.length}
 };
+function isRuleQuestion(text) {
+  return ['შეზღუდ', 'აკრძალ', 'ნებადართ', 'ნებართ', 'შეიძლება', 'ნადირობ', 'მოპოვებ'].some(word => text.includes(word));
+}
+function ruleAnswer(species, text) {
+  const rules = window.GeoWildlifeRules;
+  if (!species || !rules?.evaluate) return 'მოპოვების მოქმედი წესები გახსენი <a href="seasons.html">სეზონურ კალენდარში</a> და გადაამოწმე ოფიციალურ წყაროში.';
+  let date = text.match(/\b\d{4}-\d{2}-\d{2}\b/)?.[0] || rules.today();
+  if (text.includes('ხვალ') && !text.match(/\b\d{4}-\d{2}-\d{2}\b/)) {
+    const tomorrow = new Date(date + 'T12:00:00Z'); tomorrow.setUTCDate(tomorrow.getUTCDate() + 1); date = tomorrow.toISOString().slice(0,10);
+  }
+  const method = text.includes('გაშვებ') ? 'release' : text.includes('სარეწაო') ? 'commercial' : 'rod';
+  const result = rules.evaluate(species, {kind:species.kind, date, method});
+  const sources = (result.sources || []).map(source => `<a href="${esc(source.url)}" target="_blank" rel="noopener noreferrer">${esc(source.label)} ↗</a>`).join(' • ');
+  return `<b>${esc(result.title)}</b><br>${esc(result.message)}<br><small>${esc(species.name)} • ${esc(date)} • საქართველო</small><br><a href="seasons.html">თარიღის, ადგილისა და მეთოდის შემოწმება →</a>${sources ? '<br>' + sources : ''}`;
+}
 function initAI() {
   const list = document.getElementById('questionList');
   const msgs = document.getElementById('chatMessages');
@@ -178,6 +203,7 @@ function initAI() {
   const title = document.getElementById('aiQuestionTitle');
   const meta = document.getElementById('aiQuestionMeta');
   const status = document.getElementById('aiStatus');
+  if (!list || !msgs || !input || !tabs || !entitySelect || !search) return;
   let current = 'quick';
   let activeQs = [];
 
@@ -190,33 +216,29 @@ function initAI() {
   function setBusy(busy) {
     if (!status) return;
     status.classList.toggle('busy', busy);
-    status.textContent = busy ? '⏳ AI ამუშავებს კითხვას…' : '● AI მზადაა პასუხისთვის';
+    status.textContent = busy ? 'პასუხი ცნობარიდან…' : '● პასუხები საიტის ცნობარიდან';
   }
 
   function sendWithFeedback(text, fn) {
     if (!text) return;
     setBusy(true);
-    const typingId = `ai-typing-${Date.now()}`;
-    msgs.insertAdjacentHTML('beforeend', `<div id="${typingId}" class="assistant ai-typing"><span>AI ამუშავებს</span><i></i><i></i><i></i></div>`);
-    msgs.scrollTop = msgs.scrollHeight;
-    window.setTimeout(() => {
-      document.getElementById(typingId)?.remove();
-      const html = typeof fn === 'function' ? fn(text) : fn;
-      appendMessage(text, html);
-      setBusy(false);
-    }, 280);
+    try { appendMessage(text, typeof fn === 'function' ? fn(text) : fn); }
+    catch (_) { appendMessage(text, 'პასუხი ვერ მოიძებნა. სცადე თემისა და სახეობის არჩევა.'); }
+    finally { setBusy(false); }
   }
 
   function answer(text) {
     const raw = text.trim();
     const s = raw.toLowerCase();
     if (!raw) return '';
+    const known = [...AI_QUICK, ...AI_WEATHER, ...AI_FISHING, ...AI_SITE].find(([question]) => question.toLowerCase() === s);
+    if (known) return known[1];
     if (/^(გამარჯობა|სალამი|ჰაი|hello|hi)([!. ]*)$/i.test(raw)) return 'გამარჯობა! 👋 რით დაგეხმარო GeoNature-ზე?';
     if (s.includes('როგორ ხარ')) return 'კარგად ვარ! 😊 მადლობა რომ მკითხე.';
     if (s.includes('მადლობა') || s.includes('გმადლობ')) return 'არაფრის! ❤️ თუ რამე დაგჭირდება, მკითხე.';
     if (s.includes('მუშაობ') || s.includes('მუშაობს') || s.includes('დამეხმარ') || s.includes('რა შეგიძლია')) return 'კი, აქ ვარ და ვმუშაობ. 😊 მკითხე თევზზე, ამინდზე, ლოკაციაზე, დაგეგმვაზე ან თვითონ GeoNature საიტზე.';
     if (s.includes('ნახვამდის') || s === 'bye' || s.includes('კარგად იყავი')) return 'ნახვამდის! წარმატებულ თევზაობას და კარგ გასვლას გისურვებ! 🎣';
-    if (s.includes('ვინ ხარ')) return 'მე GeoNature AI ვარ — საიტის კითხვებისა და ბუნების/ამინდის/თევზაობის ინფორმაციის დამხმარე.';
+    if (s.includes('ვინ ხარ')) return 'ეს არის GeoNature-ის კითხვების ცენტრი — პასუხები საიტში შენახული ცნობარიდან იძებნება.';
     if (s.includes('რა შეგიძლია')) return 'შემიძლია დაგეხმარო თევზებზე, ცხოველებზე, სათევზაო ადგილებზე, ამინდზე, რუკაზე და GeoNature-ის ფუნქციებზე.';
     const f = findFish(raw);
     if (f) return fishAnswer(f, raw);
@@ -224,6 +246,11 @@ function initAI() {
     if (w) return wildAnswer(w, raw);
     const p = findPlace(raw);
     if (p) return placeAnswer(p, raw);
+    if (s.includes('feedback') || s.includes('უკუკავშირ') || s.includes('შეცდომ')) return AI_SITE.find(([question]) => question.includes('უკუკავშირ'))[1];
+    if (s.includes('შეტყობინ') || s.includes('notification')) return 'მთავარ ან პირად გვერდზე შეტყობინებებში აირჩიე თევზი და ადგილი, შემდეგ შეინახე და ჩართე. შემოწმება საიტის გახსნისას მუშაობს; დახურულ საიტზე გასაგზავნად Push სერვერია საჭირო.';
+    const selected = AI_CATEGORIES[current].entity?.[Number(entitySelect.value)];
+    if (entitySelect.value !== '' && selected) return current === 'fish' ? fishAnswer(selected, raw) : current === 'wild' ? wildAnswer(selected, raw) : placeAnswer(selected, raw);
+    if (isRuleQuestion(s)) return ruleAnswer(null, raw);
     if (s.includes('ამინდ') || s.includes('ტემპერატურ') || s.includes('ქარ') || s.includes('წნევ') || s.includes('წვიმ')) return weatherAnswer(raw);
     if (s.includes('რუკ') || s.includes('სოფელ') || s.includes('gps') || s.includes('მარშრუტ')) return 'რუკის გვერდზე შეგიძლია მოძებნო ქალაქი/სოფელი, გამოიყენო GPS და საჭიროების შემთხვევაში მარშრუტის ფუნქცია.';
     if (s.includes('საიტ') || s.includes('geonature') || s.includes('კატალოგ') || s.includes('თევზაობ')) return 'GeoNature-ის მთავარ მენიუში გაქვს კატალოგი, ამინდი, რუკა, თევზაობა, სათევზაო ადგილები, AI და „ერთად“.';
@@ -288,6 +315,7 @@ function initAI() {
     btn.onclick = () => {
       tabs.querySelectorAll('[data-ai-cat]').forEach(x => x.classList.remove('active'));
       btn.classList.add('active');
+      tabs.querySelectorAll('[data-ai-cat]').forEach(tab => tab.setAttribute('aria-pressed', String(tab === btn)));
       current = btn.dataset.aiCat;
       search.value = '';
       populateEntities(current);
@@ -297,19 +325,18 @@ function initAI() {
 
   entitySelect.onchange = renderQuestions;
   search.oninput = renderQuestions;
-  document.getElementById('aiSend').onclick = () => {
+  const sendInput = () => {
     const t = input.value.trim();
-    if (t) appendMessage(t, answer(t));
+    if (t) sendWithFeedback(t, () => answer(t));
     input.value = '';
   };
+  document.getElementById('aiSend').onclick = sendInput;
   input.onkeydown = e => {
-    if (e.key === 'Enter') {
-      const t = input.value.trim();
-      if (t) sendWithFeedback(t, () => answer(t));
-      input.value = '';
-    }
+    if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); sendInput(); }
   };
 
   populateEntities('quick');
   renderQuestions();
+  setBusy(false);
+  tabs.querySelectorAll('[data-ai-cat]').forEach(tab => tab.setAttribute('aria-pressed', String(tab.dataset.aiCat === current)));
 }

@@ -68,11 +68,11 @@ test('hunting honors midnight and cannot score missing core weather or promising
 });
 function mapEnvironment(){
   const env=browser(['mapDate','mapHour','mapLiveLabel','mapInfo','mapRefresh','mapLiveToggle','routeInfo','clearRoute']),markers=[];
-  const map={setView(){return this;},removeLayer(){},invalidateSize(){},fitBounds(){},getCenter(){return {lat:42,lng:43};}};
-  env.context.L={map:()=>map,tileLayer:()=>({addTo(){}}),divIcon:options=>options,marker:(coords,options)=>{const marker={coords,options,icon:options?.icon,addTo(){markers.push(this);return this;},setLatLng(){},setIcon(icon){this.icon=icon;},bindPopup(html){this.popup=html;return this;},openPopup(){return this;}};return marker;}};
+  const map={setView(){return this;},on(){return this;},removeLayer(){},invalidateSize(){},fitBounds(){},getCenter(){return {lat:42,lng:43};}};
+  env.context.L={map:()=>map,tileLayer:()=>({addTo(){}}),divIcon:options=>options,marker:(coords,options)=>{const marker={coords,options,icon:options?.icon,addTo(){markers.push(this);return this;},on(){return this;},setLatLng(){},setIcon(icon){this.icon=icon;},bindPopup(html){this.popup=html;return this;},openPopup(){return this;}};return marker;}};
   const cache=new Map();env.context.sessionStorage={getItem:key=>cache.get(key)||null,setItem:(key,value)=>cache.set(key,value)};
   env.context.WATERS=[['one','Lake','lake','region',42,43],['two','River','river','region',41,44]];
-  env.load('js/common.js');env.context.GeoNatureCommon.zonedDateTime=()=>({date:'2026-10-13',hour:8});env.load('js/map.js');
+  env.load('js/common.js');env.context.GeoNatureCommon.zonedDateTime=()=>({date:'2026-10-13',hour:8});env.context.GeoNatureCommon.weatherObservationTime=()=>Date.now();env.load('js/map.js');
   return {...env,markers};
 }
 test('map never invents scores or reuses another hour after a failed request',async()=>{

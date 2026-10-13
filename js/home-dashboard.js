@@ -91,6 +91,8 @@
     const text=state.loading?'◌ იტვირთება…':unavailable?'○ მონაცემი მიუწვდომელია':old?'○ ძველი მონაცემი':!state.live?'○ შეჩერებულია':forecast?'○ პროგნოზი':'● LIVE';
     setText('homeLiveState',text);setText('assessmentLiveState',text);
     const toggleText=state.live?'ავტოგანახლება: ჩართულია':'ავტოგანახლება: გამორთულია';setText('homeLiveToggle',toggleText);setText('assessmentLiveToggle',toggleText);
+    ['homeLiveToggle','assessmentLiveToggle'].forEach(id=>$(id)?.setAttribute?.('aria-pressed',String(state.live)));
+    if($('homeNow'))$('homeNow').disabled=state.loading||state.followNow;
     document.body.dataset.live=state.live&&!state.loading&&!unavailable&&!old&&!forecast?'1':'0';
     const header=$('headerLivePill');if(header){header.dataset.live=document.body.dataset.live;const label=header.querySelector('span');if(label)label.textContent=text.replace(/^[●○◌]\s*/,'');}
   }
@@ -109,28 +111,31 @@
     box.innerHTML=dates.map(date=>{const best=bestRow(rowsForBest(date));if(!best)return '';const [label,key]=scoreBand(best.s);return `<button class="home-day ${key}" data-date="${date}"><small>${new Date(date+'T12:00:00').toLocaleDateString('ka-GE',{weekday:'short'})}</small><b>${Number(date.slice(8,10))}</b><span>${best.s}</span><em>${label} • ${best.r.time}</em></button>`;}).join('');
     box.querySelectorAll('.home-day').forEach(button=>button.onclick=()=>selectDay(button.dataset.date));
   }
-  async function load(){
+  async function load(options={}){
     const request=++state.request,lat=state.lat,lon=state.lon;
     state.loading=true;renderMode();['homeRefresh','assessmentRefresh'].forEach(id=>{if($(id))$(id).disabled=true;});
     try{
-      const data=await openMeteo(lat,lon);if(request!==state.request)return;
+      const data=await openMeteo(lat,lon,{force:options.force===true});if(request!==state.request)return;
       if(!data?.hourly?.time?.length)throw new Error('Hourly weather unavailable');
       state.data=data;state.error=false;renderDates();renderWeek();renderHours();renderSelected();
       const stamp=data.__meta?.updatedAt;const at=number(stamp)!==null?new Date(Number(stamp)):new Date();
-      const options={hour:'2-digit',minute:'2-digit'};if(data.timezone)options.timeZone=data.timezone;
-      let time;try{time=at.toLocaleTimeString('ka-GE',options);}catch(_){time=at.toLocaleTimeString('ka-GE',{hour:'2-digit',minute:'2-digit'});}
+      const timeOptions={hour:'2-digit',minute:'2-digit'};if(data.timezone)timeOptions.timeZone=data.timezone;
+      let time;try{time=at.toLocaleTimeString('ka-GE',timeOptions);}catch(_){time=at.toLocaleTimeString('ka-GE',{hour:'2-digit',minute:'2-digit'});}
       setText('homeUpdated',`${stale()?'ბოლო ხელმისაწვდომი მონაცემი':'განახლდა'} ${time} • Open-Meteo`);
     }catch(error){
       if(request!==state.request)return;state.error=true;console.warn('Home weather unavailable',error);setText('homeUpdated',state.data?'განახლება ვერ მოხერხდა • ნაჩვენებია ბოლო მონაცემი':'ამინდის მონაცემები დროებით მიუწვდომელია');if(state.data)renderSelected();else renderUnavailable();
     }finally{if(request===state.request){state.loading=false;['homeRefresh','assessmentRefresh'].forEach(id=>{if($(id))$(id).disabled=false;});renderMode();}}
   }
   function stop(){if(state.timer){clearInterval(state.timer);state.timer=null;}}
-  function start(){stop();if(state.live)state.timer=setInterval(load,300000);}
+  function start(){stop();if(state.live)state.timer=setInterval(()=>{if(!document.hidden)return load();},300000);}
   function bind(){
-    ['homeRefresh','assessmentRefresh'].forEach(id=>$(id)?.addEventListener('click',load));
+    ['homeRefresh','assessmentRefresh'].forEach(id=>$(id)?.addEventListener('click',()=>load({force:true})));
+    $('homeNow')?.addEventListener('click',()=>{state.followNow=true;state.date='';state.hour='';if(state.data){renderDates();renderHours();renderSelected();}return load({force:true});});
     const toggle=()=>{state.live=!state.live;if(state.live){state.followNow=true;state.hour='';start();load();}else{stop();renderMode();renderSelected();}};
     ['homeLiveToggle','assessmentLiveToggle'].forEach(id=>$(id)?.addEventListener('click',toggle));
-    $('homeLocation')?.addEventListener('change',event=>{const [lat,lon,city]=event.target.value.split(',');if(number(lat)===null||number(lon)===null)return;state.lat=Number(lat);state.lon=Number(lon);state.city=city||'არჩეული ადგილი';state.data=null;state.error=false;state.followNow=true;state.date='';state.hour='';setText('homeCity',state.city);setText('homeLiveTitle',state.city);if($('homeHourlyStrip'))$('homeHourlyStrip').innerHTML='';if($('homeWeekStrip'))$('homeWeekStrip').innerHTML='';renderUnavailable();load();});
+    $('homeLocation')?.addEventListener('change',event=>{const [lat,lon,city]=event.target.value.split(',');if(number(lat)===null||number(lon)===null)return;state.lat=Number(lat);state.lon=Number(lon);state.city=city||'არჩეული ადგილი';state.data=null;state.error=false;state.followNow=true;state.date='';state.hour='';setText('homeCity',state.city);setText('homeLiveTitle',state.city);if($('homeHourlyStrip'))$('homeHourlyStrip').innerHTML='';if($('homeWeekStrip'))$('homeWeekStrip').innerHTML='';renderUnavailable();load({force:true});});
+    document.addEventListener('visibilitychange',()=>{if(!document.hidden&&state.live)load();});
+    window.addEventListener?.('online',()=>{if(state.live)load({force:true});});
     renderMode();start();
   }
   window.GeoNatureHome={load,stop,start};

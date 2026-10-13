@@ -25,8 +25,9 @@
     if (window.__GN_API_CONFIG_LOADED) { resolve(); return; }
     const script = document.createElement('script');
     script.src = new URL('js/api-config.js', document.baseURI).href;
-    script.onload = resolve;
-    script.onerror = resolve;
+    const timer = setTimeout(resolve, 7000);
+    script.onload = () => { clearTimeout(timer); resolve(); };
+    script.onerror = () => { clearTimeout(timer); resolve(); };
     document.head.appendChild(script);
   });
   function apiBase() { let base = String(window.GN_API_BASE_URL || '').trim(); while (base.endsWith('/')) base = base.slice(0, -1); return base; }

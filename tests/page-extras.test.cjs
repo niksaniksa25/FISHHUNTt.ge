@@ -16,6 +16,16 @@ test('moon cards follow a selected future date and the periodic timer preserves 
   assert.equal(before,env.context.GeoNatureMoon.phase(Date.parse('2026-12-22T22:00:00Z')).age.toFixed(1)+' დღე');
   env.intervals[0]();assert.equal(env.nodes.get('homeMoonAge').textContent,before);
 });
+test('waxing and waning use the physical lunar half-cycle rather than display labels',()=>{
+  const env=script('moon.js'),epoch=Date.parse('2000-01-06T18:14:00Z');
+  for(const [age,waxing] of [[.5,true],[14,true],[16,false],[29,false]])assert.equal(env.context.GeoNatureMoon.phase(epoch+age*86400000).waxing,waxing);
+});
+test('homepage extras mount on the default GitHub Pages directory URL using the weather DOM hook',()=>{
+  const mounted=[],env=script('geo-extras.js');env.context.location.pathname='/FISHHUNTt.ge/';
+  env.nodes.set('homeLiveTitle',{});env.nodes.set('homePremiumOffer',{after:element=>mounted.push(element)});
+  env.context.document.createElement=()=>({after:element=>mounted.push(element)});
+  env.listeners.get('DOMContentLoaded')();assert.equal(mounted.length,2);assert.equal(mounted[0].id,'gnExtraHome');assert.equal(mounted[1].id,'gnNotificationCenter');
+});
 test('Best Moment considers the selected dates and uses canonical scores without an optimistic fallback',()=>{
   const env=script('geo-page-extras.js');env.context.selectedFish=['fish','Fish'];env.context.selectedWater=['lake'];env.context.GNPremium={maxForecastDays:()=>2};env.nodes.set('startDate',{value:'2026-10-14'});
   env.context.plannerWeather={hourly:{time:['2026-10-13T08:00','2026-10-14T08:00','2026-10-15T08:00']}};

@@ -4,6 +4,7 @@
   const FALLBACK_FOREST_IMAGE='assets/avatars/photo/forest.jpg';
   const BIRDS=new Set(['ტყის ბუ','შაშვი','მწყერი','ქორი','ოქროს არწივი','მეჭვავია','არწივი','კაკაბი']);
   const clamp=(n,a=0,b=100)=>Math.max(a,Math.min(b,Math.round(Number(n)||0)));
+  let returnFocusZone=null;
 
   function scoreZone(z){
     const names=z[4]||[];
@@ -57,7 +58,7 @@
       if(!z)return;
       loadForestImage(z,c.querySelector('img'));
       c.addEventListener('click',()=>openZone(z,true));
-      c.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openZone(z,true)}});
+      c.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openZone(z,true);const profile=document.getElementById('forestProfile');profile.tabIndex=-1;profile.focus({preventScroll:true});}});
     });
     document.getElementById('forestCount').textContent=list.length+' ზონა';
   }
@@ -91,7 +92,7 @@
     else history.pushState({forestZone:zoneId||null},'',url);
   }
 
-  function showList(){
+  function showList(restoreFocus=false){
     const section=document.getElementById('forestExplorerSection');
     const heading=document.getElementById('forestListHeading');
     const toolbar=document.getElementById('forestToolbar');
@@ -102,6 +103,7 @@
     if(toolbar)toolbar.hidden=false;
     if(grid)grid.hidden=false;
     if(profile){profile.hidden=true;profile.innerHTML='';}
+    if(restoreFocus){const card=[...grid.querySelectorAll('.forest-card')].find(item=>item.dataset.id===returnFocusZone);(card||document.getElementById('forestSearch'))?.focus({preventScroll:true});}
   }
 
   function openZone(z,updateUrl){
@@ -112,7 +114,7 @@
     const grid=document.getElementById('forestGrid');
     const profile=document.getElementById('forestProfile');
     if(!profile)return;
-    if(updateUrl)syncUrl(z[0]);
+    if(updateUrl){returnFocusZone=z[0];syncUrl(z[0]);}
     section?.classList.add('forest-detail-mode');
     if(heading)heading.hidden=true;
     if(toolbar)toolbar.hidden=true;
@@ -123,10 +125,10 @@
     profile.querySelector('#forestBack')?.addEventListener('click',()=>{
       if(updateUrl&&history.state?.forestZone===z[0]){
         history.back();
-        showList();
+        showList(true);
       }else{
         syncUrl(null);
-        showList();
+        showList(true);
       }
       document.getElementById('forestExplorerSection')?.scrollIntoView({behavior:'smooth',block:'start'});
     });

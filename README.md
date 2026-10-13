@@ -10,6 +10,8 @@ Current conditions, selected-hour forecasts, stale data and unavailable measurem
 
 Shared responsive layouts are in `css/responsive.css`, with separate `css/responsive-ios.css` and `css/responsive-android.css` platform adjustments. `js/device-responsive.js` applies device classes and visible-viewport sizing; `css/nature-theme.css` supplies the shared forest/river palette.
 
+`css/ui-polish.css` is the final shared design layer with a dedicated phone layout. The homepage puts places, weather and planning before supporting content. `js/ui-shell.js` provides the local page/species/place finder, section shortcuts, a return-to-top control and expandable factor explanations; all 20 factor values remain visible. Every full page has a main landmark, skip link, description and accessible names for its search/planner fields. Mobile page titles retain their independent horizontal navigation; content cards stay in ordinary grids.
+
 The season calendar, species profiles and planning tools show restrictions separately from activity forecasts. See [the source versions and legal coverage](docs/WILDLIFE-RULES.md); an activity score does not establish permission to catch or hunt.
 
 Feedback saves to the Node API when it is hosted. On GitHub Pages, submitting opens a prefilled public GitHub issue in the same tab; the visitor signs in and presses Create issue there. Unsent drafts are preserved. See [feedback behavior and deployment](DEPLOYMENT-FEEDBACK.md).
@@ -29,6 +31,8 @@ On phones and tablets, all page titles appear in one horizontally scrollable hea
 
 ### Premium term purchases
 1 month at standard current plan price; 3 months 10% off; 6 months 15% off; 12 months 25% off. Server calculates final amount and sends the selected term to BOG.
+
+On static hosting, checkout, donation payments and trial activation show their unavailable state before submission. Plan restrictions are preserved. Trial creation, card callbacks and activation also return `503` on the Node server until authoritative bank verification is implemented; a `status=success` return URL cannot attach a card or grant a trial. Setting `BOG_TRIAL_SETUP_URL` alone is insufficient.
 
 
 ## New Premium Smart Tools

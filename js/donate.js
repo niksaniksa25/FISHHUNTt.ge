@@ -5,6 +5,9 @@
   // window.GN_API_BASE_URL to the deployed HTTPS backend origin before this script.
   const API_BASE = String(window.GN_API_BASE_URL || document.querySelector('meta[name="gn-api-base"]')?.content || '').replace(/\/+$/, '');
   const apiUrl = (path) => API_BASE + path;
+  const staticOnly=!API_BASE&&(location.protocol==='file:'||String(location.hostname||'').toLowerCase().endsWith('.github.io'));
+  const unavailable='დონაცია ჯერ მიუწვდომელია: გადახდის სერვისი არ არის დაკავშირებული. თანხა არ ჩამოგეჭრება.';
+  let checkoutBusy=false;
   const presetAmounts = [1, 2, 5, 10, 25];
   let selectedAmount = 5;
   let customSelected = false;
@@ -71,8 +74,8 @@
 
   customToggle?.addEventListener('click', () => {
     customSelected = !customSelected;
-    if (customSelected) customAmount?.focus();
     updateAmountUI();
+    if (customSelected) customAmount?.focus();
     setStatus('');
   });
 
@@ -123,7 +126,7 @@
       const small = document.createElement('small');
       const date = Number(row.lastDonatedAt);
       const dateText = Number.isFinite(date) && date > 0
-        ? new Intl.DateTimeFormat('ka-GE', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(date))
+        ? new Intl.DateTimeFormat('ka-GE', { dateStyle: 'medium', timeStyle: 'short', timeZone:'Asia/Tbilisi' }).format(new Date(date))
         : 'დადასტურებული დონაცია';
       small.textContent = (Number(row.donationCount || 1) > 1 ? Number(row.donationCount) + ' დონაცია • ' : '') + dateText;
       const money = document.createElement('b');
@@ -136,6 +139,7 @@
   }
 
   async function loadLeaderboard() {
+    if(staticOnly){if(countEl)countEl.textContent='—';if(totalDonationsEl)totalDonationsEl.textContent='—';renderEmpty('დონაციის სერვისი ჯერ მიუწვდომელია','დადასტურებული დონაციების სია გამოჩნდება გადახდის სერვისის დაკავშირების შემდეგ.','♡');return;}
     if (leaderboardBusy) return;
     leaderboardBusy = true;
     try {
@@ -156,11 +160,12 @@
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) loadLeaderboard();
   });
-  setInterval(() => {
+  if(!staticOnly)setInterval(() => {
     if (!document.hidden) loadLeaderboard();
   }, 20000);
 
   async function checkReturnedOrder(orderId) {
+    if(staticOnly){setStatus('გადახდის სტატუსის შემოწმება მიუწვდომელია. ამ გვერდზე დაბრუნება გადახდის დადასტურებას არ ნიშნავს.');return;}
     for (let attempt = 0; attempt < 5; attempt += 1) {
       try {
         const response = await fetch(apiUrl('/api/donations/status?order=' + encodeURIComponent(orderId)), { cache: 'no-store', credentials: 'omit' });
@@ -185,6 +190,8 @@
 
   form?.addEventListener('submit', async (event) => {
     event.preventDefault();
+    if(checkoutBusy)return;
+    if(staticOnly){setStatus(unavailable,'error');return;}
     const amount = getAmount();
     if (!Number.isFinite(amount) || amount < 1 || amount > 5000 || Math.abs(amount * 100 - Math.round(amount * 100)) >= 0.000001) {
       setStatus('აირჩიე თანხა 1 ₾-დან 5,000 ₾-მდე (მაქსიმუმ ორი ათწილადი).', 'error');
@@ -192,6 +199,7 @@
       return;
     }
     const displayName = String($('donorName')?.value || '').trim().replace(/\s+/g, ' ').slice(0, 30);
+    checkoutBusy=true;
     submitButton.disabled = true;
     const oldLabel = submitButton.innerHTML;
     submitButton.textContent = 'გადახდის გვერდი მზადდება…';
@@ -208,15 +216,19 @@
         throw new Error(data.message || 'დონაციის სისტემა ჯერ არ არის სრულად კონფიგურირებული.');
       }
       setStatus('ახლა გადაგიყვანთ ბანკის უსაფრთხო გადახდის გვერდზე…');
-      window.location.assign(data.checkoutUrl);
+      const checkout=new URL(String(data.checkoutUrl),document.baseURI);
+      if(checkout.protocol!=='https:')throw Error('ბანკის უსაფრთხო მისამართი ვერ დადასტურდა.');
+      window.location.assign(checkout.href);
     } catch (error) {
       setStatus(error.message || 'დონაციის შექმნა ვერ მოხერხდა. სცადე მოგვიანებით.', 'error');
+      checkoutBusy=false;
       submitButton.innerHTML = oldLabel;
       submitButton.disabled = false;
     }
   });
 
   updateAmountUI();
+  if(staticOnly){if(submitButton){submitButton.disabled=true;submitButton.textContent='დონაცია დროებით მიუწვდომელია';}if(refreshButton)refreshButton.disabled=true;setStatus(unavailable);}
   loadLeaderboard();
 
   const query = new URLSearchParams(window.location.search);

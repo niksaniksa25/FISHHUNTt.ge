@@ -4,8 +4,9 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const source = fs.readFileSync(require.resolve('../js/analytics-feedback.js'), 'utf8');
 
-function fixture({ github = true, reply, blockedNavigation = false, clipboard, draft } = {}) {
+function fixture({ github = true, reply, blockedNavigation = false, clipboard, draft, configLoaded = true } = {}) {
   const events = {}, requests = [], navigations = [], storage = new Map();
+  const configurationTimeouts = [];
   if (draft) storage.set('gn_feedback_draft_v1', JSON.stringify(draft));
   let active;
   function element(tag = 'div') {
@@ -47,9 +48,12 @@ function fixture({ github = true, reply, blockedNavigation = false, clipboard, d
     },
   };
   const context = {
-    document, URL, URLSearchParams, AbortController, setTimeout, clearTimeout,
+    document, URL, URLSearchParams, AbortController, setTimeout: (callback,delay) => {
+      if (delay === 7000) { configurationTimeouts.push(callback); return 0; }
+      return setTimeout(callback,delay);
+    }, clearTimeout,
     navigator: { clipboard }, crypto: { randomUUID: () => 'feedback-visitor-fixture-123456' },
-    __GN_API_CONFIG_LOADED: true, GN_API_BASE_URL: '',
+    __GN_API_CONFIG_LOADED: configLoaded, GN_API_BASE_URL: '',
     localStorage: { getItem: () => null, setItem() {} },
     sessionStorage: { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key) },
     location: {
@@ -70,7 +74,7 @@ function fixture({ github = true, reply, blockedNavigation = false, clipboard, d
   const fab = body.children[1], overlay = body.children[2];
   return {
     message, email, emailLabel, category, submit, status, form, fab, overlay, background, help,
-    requests, navigations, storage, events,
+    requests, navigations, storage, events, configurationTimeouts,
     async ready() { await Promise.resolve(); await Promise.resolve(); },
     async send(text = 'ტელეფონზე ღილაკი არ იხსნება') { message.value = text; await form.listeners.submit({ preventDefault() {} }); },
     get link() { return status.children[1]?.children[0]; },
@@ -91,6 +95,14 @@ test('static feedback opens a prefilled issue in one action and retains the unse
   assert.equal(app.requests.length, 0);
   assert.equal(JSON.parse(app.storage.get('gn_feedback_draft_v1')).message, app.message.value);
   assert.ok(app.status.children[0].textContent.includes('ჯერ არ გაგზავნილა'));
+});
+
+test('a stalled configuration script cannot leave static feedback disabled indefinitely', async () => {
+  const app=fixture({configLoaded:false}),sending=app.send('configuration request never finished');
+  assert.equal(app.submit.disabled,true);assert.equal(app.configurationTimeouts.length,1);
+  app.configurationTimeouts[0]();await sending;
+  assert.equal(app.submit.disabled,false);assert.equal(app.navigations.length,1);
+  assert.equal(JSON.parse(app.storage.get('gn_feedback_draft_v1')).message,'configuration request never finished');
 });
 
 test('public GitHub delivery explains its final submit step and does not validate an unused email', async () => {

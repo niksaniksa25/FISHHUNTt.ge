@@ -48,12 +48,13 @@
     control.value=mode==='fish'?fishMethod:huntArea;
   }
   function monthLabel(n){return MONTHS[n-1]||'';}
+  function activityMonth(){return selectedMonth==='all'?(Number(selectedDate.slice(5,7))||currentMonth):Number(selectedMonth);}
   function monthTags(months,peak){
     if(!months.length)return '<span class="season-month-tag">თვეები მითითებული არ არის</span>';
     return months.map(n=>'<span class="season-month-tag'+(peak.includes(n)?' peak':'')+'">'+esc(monthLabel(n))+'</span>').join('');
   }
   function fishCard(f){
-    const month=selectedMonth==='all'?currentMonth:Number(selectedMonth),active=f.months.includes(month);
+    const month=activityMonth(),active=f.months.includes(month);
     const headline=!f.months.length?'აქტივობის თვეები დაზუსტებული არ არის':active?'არჩეულ თვეში აქტიურობა მოსალოდნელია':'არჩეულ თვეში აქტივობა შედარებით დაბალია';
     const row=(window.FISHES||[]).find(row=>row[0]===f.id)||Object.assign({kind:'fish'},f);
     return '<article class="season-card"><div class="season-card-top"><div><h3>'+esc(f.name)+'</h3><div class="season-latin">'+esc(f.group)+'</div></div><span class="season-type-badge">🎣 თევზი</span></div>'+legalMarkup(row,'fish')+'<div class="season-status"><strong>'+esc(headline)+'</strong>ზოგადი ბუნებრივი აქტივობა; ამინდი და წყალსატევი შედეგს ცვლის.</div><div><div class="season-card-label">ზოგადი აქტივობის თვეები</div><div class="season-months">'+monthTags(f.months,f.peak)+'</div></div><p class="season-card-note">'+esc(f.note)+'</p><a class="btn ghost" href="species.html?id='+encodeURIComponent(f.id)+'">სახეობის პროფილი →</a></article>';
@@ -66,15 +67,15 @@
     if(text.includes('შემოდგომა'))[9,10,11].forEach(n=>out.add(n));
     if(text.includes('ზამთარი'))[12,1,2].forEach(n=>out.add(n));
     if(text.includes('მიგრაცი')||text.includes('სეზონურად'))[3,4,5,8,9,10].forEach(n=>out.add(n));
-    if(!out.size) return MONTHS.map((_,i)=>i+1);
+    if(!out.size)return [];
     return Array.from(out).sort((a,b)=>a-b);
   }
   function wildlifeCard(row){
     const type=row[0]==='bird'?'ფრინველი':row[0]==='mammal'?'ძუძუმწოვარი':row[0]==='reptile'?'ქვეწარმავალი':'ველური ბუნება';
     const season=String(row[7]||'სეზონურობა დაზუსტებული არ არის');
     const months=wildlifeMonths(season);
-    const month=selectedMonth==='all'?currentMonth:Number(selectedMonth);
-    const headline=months.includes(month)?'არჩეულ თვეში ხილვადობა/აქტივობა მოსალოდნელია':'არჩეულ თვეში სეზონური აქტივობა შედარებით დაბალია';
+    const month=activityMonth();
+    const headline=!months.length?'სეზონური აქტივობის თვეები დაზუსტებული არ არის':months.includes(month)?'არჩეულ თვეში ხილვადობა/აქტივობა მოსალოდნელია':'არჩეულ თვეში სეზონური აქტივობა შედარებით დაბალია';
     return '<article class="season-card"><div class="season-card-top"><div><h3>'+esc(row[1])+'</h3><div class="season-latin">'+esc(row[2]||'')+' '+(row[3]?'• '+esc(row[3]):'')+'</div></div><span class="season-type-badge">🦌 '+esc(type)+'</span></div>'+legalMarkup(row)+'<div class="season-status"><strong>'+esc(headline)+'</strong>ეს შეფასება ბუნებრივ აქტივობას აღწერს. მოპოვების წესი ზემოთ, გასვლის ზუსტი თარიღით მოწმდება.</div><div><div class="season-card-label">ბუნებაში ხილვადობა / სეზონური აქტივობა</div><div class="season-months">'+monthTags(months,[])+'</div></div><p class="season-card-note"><b>ბუნებრივი აქტივობა:</b> '+esc(season)+'.</p><p class="season-card-note">'+esc(row[5]||'ჰაბიტატი გადაამოწმე სახეობის პროფილში.')+'</p><a class="btn ghost" href="species.html?id='+encodeURIComponent(row[1])+'">სახეობის პროფილი →</a></article>';
   }
   function render(){
@@ -111,6 +112,7 @@
     $('seasonSubheading').textContent=subheading;
     $('seasonResults').innerHTML=cards.join('');
     $('seasonResultCount').textContent=cards.length+' ჩანაწერი';
+    $('seasonActiveMonth').textContent='აქტივობის თვე: '+monthLabel(activityMonth())+(selectedMonth==='all'?' • გასვლის თარიღით':' • შეზღუდვები მოწმდება გასვლის თარიღით');
     $('seasonEmpty').hidden=cards.length>0;
     document.querySelectorAll('[data-mode]').forEach(btn=>{
       const active=btn.dataset.mode===mode;
@@ -118,7 +120,7 @@
       btn.setAttribute('aria-selected',active?'true':'false');
     });
     document.querySelectorAll('[data-month]').forEach(btn=>{
-      btn.classList.toggle('active',String(btn.dataset.month)===String(selectedMonth));
+      const active=String(btn.dataset.month)===String(selectedMonth);btn.classList.toggle('active',active);btn.setAttribute('aria-pressed',String(active));
     });
   }
   function setup(){
@@ -127,7 +129,7 @@
     contextControls();
     $('seasonRuleDate').addEventListener('change',e=>{selectedDate=e.target.value;render();});
     $('seasonRuleContext').addEventListener('change',e=>{if(mode==='fish')fishMethod=e.target.value;else huntArea=e.target.value;render();});
-    $('seasonActiveMonth').textContent='მიმდინარე თვე: '+monthLabel(currentMonth);
+    $('seasonActiveMonth').textContent='აქტივობის თვე: '+monthLabel(activityMonth());
     const monthSelect=$('seasonMonth');
     MONTHS.forEach((name,i)=>{const option=document.createElement('option');option.value=String(i+1);option.textContent=name;monthSelect.appendChild(option);});
     const strip=$('seasonMonthStrip');

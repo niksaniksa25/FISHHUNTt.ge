@@ -17,14 +17,14 @@
   function huntPlaceCard(p,score,i,entry={}){const img=window.GeoImage?.placeholder?GeoImage.placeholder(`${p[1]} • ${p[3]}`,'nature'):'';const species=String(p[6]||'').split(',').slice(0,5);return `<article class="fg-card fg-hunt-place fg-clickable" tabindex="0" data-hunt-place="${esc(p[0])}"><div class="fg-card-image-wrap"><img class="fg-card-image fg-hunt-place-image" loading="lazy" src="${img}" alt="${esc(p[1])}"><span class="fg-rank">${score===null?'ინფორმაცია':'TOP '+(i+1)}</span><span class="fg-image-score">გარე პირობები ${scoreText(score)}</span></div><div class="fg-card-body"><div class="fg-top"><div><div class="fg-sub">${esc(p[2])} • ${esc(p[3])}</div><h3>${esc(p[1])}</h3></div>${chanceHtml(score,'გარე პირობები')}</div><p class="fg-desc">${esc(p[7])}</p><div class="fg-tag-row">${species.map(x=>`<span class="fg-tag">🦌 ${esc(x)}</span>`).join('')}</div>${destinationWeatherControl(p,entry,'hunting')}<div class="fg-card-link">ნადირობის ცენტრში გახსნა →</div></div></article>`;}
   function animalCard(x,score,i){const kind=x[0]==='bird'?'ფრინველი':x[0]==='mammal'?'ცხოველი':'ქვეწარმავალი';const img=window.GeoImage?.placeholder?GeoImage.placeholder(x[1],x[0]==='bird'?'bird':x[0]==='mammal'?'animal':'nature'):'';return `<article class="fg-card fg-clickable" tabindex="0" data-species="${esc(x[1])}"><div class="fg-card-image-wrap"><img class="fg-card-image" loading="lazy" src="${img}" alt="${esc(x[1])}"><span class="fg-rank">${score===null?'ინფორმაცია':'TOP '+(i+1)}</span><span class="fg-image-score">აქტიურობა ${scoreText(score)}</span></div><div class="fg-card-body"><div class="fg-top"><div><h3>${esc(x[1])}</h3><div class="fg-sub">${esc(x[2])} • ${esc(kind)}</div></div>${chanceHtml(score,'ტიპური აქტიურობა')}</div><div class="fg-bar"><span style="width:${score??0}%"></span></div><div class="fg-meta"><div><small>აქტიური პერიოდი</small><b>${esc(x[8])}</b></div><div><small>სეზონი</small><b>${esc(x[7])}</b></div></div></div></article>`;}
   function currentCondition(data){const current=data?.current;return current?{...current,local_hour:numeric(String(current.time||'').slice(11,13))}:{};}
-  async function getWeather(){
+  async function getWeather(options={}){
     let lat=41.7151,lon=44.8271,label='თბილისი';
     try{
-      if(navigator.geolocation){const pos=await new Promise(resolve=>navigator.geolocation.getCurrentPosition(resolve,()=>resolve(null),{timeout:2500,maximumAge:300000}));if(pos?.coords){lat=pos.coords.latitude;lon=pos.coords.longitude;label='ჩემი მდებარეობა';}}
-      const data=await openMeteo(lat,lon);return {weather:currentCondition(data),label,data};
+      if(navigator.geolocation){const pos=await new Promise(resolve=>navigator.geolocation.getCurrentPosition(resolve,()=>resolve(null),{timeout:2500,maximumAge:300000}));if(pos?.coords&&window.GeoNatureCommon.validCoordinates(pos.coords.latitude,pos.coords.longitude)){lat=pos.coords.latitude;lon=pos.coords.longitude;label='ჩემი მდებარეობა';}}
+      const data=await openMeteo(lat,lon,options);return {weather:currentCondition(data),label,data};
     }catch(error){return {weather:{},label:`${label} • ამინდი მიუწვდომელია`,data:null};}
   }
-  function hasCoordinates(item){return numeric(item?.[4])!==null&&numeric(item?.[5])!==null;}
+  function hasCoordinates(item){return !!item&&window.GeoNatureCommon.validCoordinates(item[4],item[5]);}
   function destinationWeatherControl(place,entry,kind){
     if(!hasCoordinates(place))return '<small class="muted">ზუსტი კოორდინატები და ადგილობრივი ამინდი მიუწვდომელია.</small>';
     const context=entry.weatherTime?`<small class="muted">${esc(entry.weatherTime.replace('T',' '))} • ${entry.stale?'ბოლო ხელმისაწვდომი მოდელური ამინდი':'Open-Meteo მოდელური ამინდი'}</small>`:'';
@@ -41,30 +41,57 @@
     if(kind==='fishing')renderPlaces();else renderHuntPlaces();
   }
   function bindDestinationWeather(){document.querySelectorAll('[data-destination-weather]').forEach(button=>{button.onclick=event=>{event.stopPropagation();const kind=button.dataset.destinationKind,entries=kind==='fishing'?allPlaces:allHuntPlaces,entry=entries.find(item=>(item.w||item.p)[0]===button.dataset.destinationWeather);if(entry)loadDestination(entry,kind);};button.onkeydown=event=>event.stopPropagation();});}
-  function bindImages(){document.querySelectorAll('#fgPlaceGrid .fg-place-image').forEach(img=>{const c=img.closest('[data-place]');if(!c)return;const w=(window.WATERS||[]).find(v=>v[0]===c.dataset.place);if(!w)return;const load=()=>window.GeoImage?.resolvePlaceImage?.(w[1],w[3],w[2])?.then(src=>{if(src)img.src=src}).catch(()=>{});if('IntersectionObserver' in window){const ob=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){load();ob.unobserve(img)}}),{rootMargin:'250px'});ob.observe(img)}else load();});document.querySelectorAll('#fgFishGrid .fg-card-image').forEach(img=>{const c=img.closest('[data-fish]'),f=(window.FISHES||[]).find(v=>v[0]===c?.dataset.fish);if(!f)return;window.GeoImage?.resolveSpeciesImage?.(f[1],f[11],f[2]).then(src=>{if(src)img.src=src}).catch(()=>{})});document.querySelectorAll('#fgAnimalGrid .fg-card-image').forEach(img=>{const c=img.closest('[data-species]'),x=(typeof WILDLIFE!=='undefined'?WILDLIFE:[]).find(v=>v[1]===c?.dataset.species);if(!x)return;window.GeoImage?.resolveSpeciesImage?.(x[1],x[3],x[2]).then(src=>{if(src)img.src=src}).catch(()=>{})});}
+  let guideImageObserver=null;
+  const guideImageLoaders=new WeakMap();
+  function bindImages(){
+    guideImageObserver?.disconnect();guideImageObserver=null;
+    const load=img=>{const loader=guideImageLoaders.get(img);if(!loader||!img.isConnected||img.dataset.imageRequested)return;img.dataset.imageRequested='true';loader().then(src=>{if(img.isConnected&&src)img.src=src;}).catch(()=>{});};
+    if(typeof window.IntersectionObserver==='function')guideImageObserver=new window.IntersectionObserver(entries=>{for(const entry of entries){if(!entry.isIntersecting)continue;guideImageObserver.unobserve(entry.target);load(entry.target);}},{rootMargin:'300px'});
+    document.querySelectorAll('.fg-card-image').forEach(img=>{
+      img.decoding='async';
+      const card=img.closest('.fg-clickable');if(!card)return;
+      const d=card.dataset;let loader;
+      if(d.place){const w=(window.WATERS||[]).find(v=>v[0]===d.place);if(w)loader=()=>GeoImage.resolvePlaceImage(w[1],w[3],w[2]);}
+      else if(d.huntPlace){const p=(window.HUNT_PLACES||[]).find(v=>v[0]===d.huntPlace);if(p)loader=()=>GeoImage.resolveNatureImage(p[1],p[1]);}
+      else if(d.fish){const f=(window.FISHES||[]).find(v=>v[0]===d.fish);if(f)loader=()=>GeoImage.resolveSpeciesImage(f[1],f[11],f[2]);}
+      else if(d.species){const x=(typeof WILDLIFE!=='undefined'?WILDLIFE:[]).find(v=>v[1]===d.species);if(x)loader=()=>GeoImage.resolveSpeciesImage(x[1],x[3],x[2]);}
+      if(!loader||img.dataset.imageRequested)return;guideImageLoaders.set(img,loader);
+      if(guideImageObserver)guideImageObserver.observe(img);else load(img);
+    });
+  }
   function bindClicks(){document.querySelectorAll('#fgPlaceGrid .fg-clickable').forEach(c=>{const entry=allPlaces.find(v=>v.w[0]===c.dataset.place),go=()=>location.href=`place-details.html?id=${encodeURIComponent(c.dataset.place)}${entry?.score===null||entry?.score===undefined?'':'&chance='+encodeURIComponent(entry.score)}`;c.onclick=go;c.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go()}}});document.querySelectorAll('#fgFishGrid .fg-clickable').forEach(c=>{const f=(window.FISHES||[]).find(v=>v[0]===c.dataset.fish),entry=allFish.find(v=>v.f[0]===c.dataset.fish),go=()=>location.href=`species.html?id=${encodeURIComponent(f?.[2]||f?.[1]||c.dataset.fish)}${entry?.score===null||entry?.score===undefined?'':'&chance='+encodeURIComponent(entry.score)}`;c.onclick=go;c.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go()}}});document.querySelectorAll('#fgAnimalGrid .fg-clickable').forEach(c=>{const entry=allAnimals.find(v=>v.x[1]===c.dataset.species),go=()=>location.href=`species.html?id=${encodeURIComponent(c.dataset.species)}${entry?.score===null||entry?.score===undefined?'':'&chance='+encodeURIComponent(entry.score)}`;c.onclick=go;c.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go()}}});document.querySelectorAll('#fgHuntPlaceGrid .fg-clickable').forEach(c=>{const p=(window.HUNT_PLACES||[]).find(v=>v[0]===c.dataset.huntPlace),go=()=>location.href=`hunting.html?region=${encodeURIComponent(p?.[8]||p?.[3]||'თბილისი')}`;c.onclick=go;c.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go()}}});}
   let allPlaces=[],allFish=[],allAnimals=[];
   let allHuntPlaces=[];
-  function renderHuntPlaces(){const q=(document.getElementById('fgHuntPlaceSearch')?.value||'').trim().toLowerCase(),type=document.getElementById('fgHuntPlaceType')?.value||'all';const list=allHuntPlaces.filter(x=>(type==='all'||x.p[2]===type)&&(!q||(x.p[1]+' '+x.p[3]+' '+x.p[7]).toLowerCase().includes(q)));const box=document.getElementById('fgHuntPlaceGrid');if(!box)return;box.innerHTML=list.map((x,i)=>huntPlaceCard(x.p,x.score,i,x)).join('')||'<div class="empty">სანადირო/ბუნებაზე დაკვირვების ადგილი ვერ მოიძებნა.</div>';document.querySelectorAll('#fgHuntPlaceGrid .fg-hunt-place-image').forEach(img=>{const c=img.closest('[data-hunt-place]'),p=(window.HUNT_PLACES||[]).find(v=>v[0]===c?.dataset.huntPlace);if(!p)return;const load=()=>window.GeoImage?.resolveNatureImage?.(p[1],p[1])?.then(src=>{if(src)img.src=src}).catch(()=>{});if('IntersectionObserver' in window){const ob=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){load();ob.unobserve(img)}}),{rootMargin:'200px'});ob.observe(img)}else load()});bindClicks();bindDestinationWeather();}
+  function renderHuntPlaces(){const q=(document.getElementById('fgHuntPlaceSearch')?.value||'').trim().toLowerCase(),type=document.getElementById('fgHuntPlaceType')?.value||'all';const list=allHuntPlaces.filter(x=>(type==='all'||x.p[2]===type)&&(!q||(x.p[1]+' '+x.p[3]+' '+x.p[7]).toLowerCase().includes(q)));const box=document.getElementById('fgHuntPlaceGrid');if(!box)return;box.innerHTML=list.map((x,i)=>huntPlaceCard(x.p,x.score,i,x)).join('')||'<div class="empty">სანადირო/ბუნებაზე დაკვირვების ადგილი ვერ მოიძებნა.</div>';bindImages();bindClicks();bindDestinationWeather();}
   function renderPlaces(){const q=(document.getElementById('fgPlaceSearch')?.value||'').trim().toLowerCase(),type=document.getElementById('fgType')?.value||'all';const list=allPlaces.filter(x=>(type==='all'||x.w[2]===type)&&(!q||(x.w[1]+' '+x.w[3]+' '+x.w[7]).toLowerCase().includes(q)));const box=document.getElementById('fgPlaceGrid');box.innerHTML=list.map((x,i)=>placeCard(x.w,x.score,i,x)).join('')||'<div class="empty">სათევზაო ადგილი ვერ მოიძებნა.</div>';bindImages();bindClicks();bindDestinationWeather();}
   function renderFish(){const q=(document.getElementById('fgSearch')?.value||'').trim().toLowerCase(),type=document.getElementById('fgFishType')?.value||'all';const list=allFish.filter(x=>(type==='all'||String(x.f[3]).includes(type))&&(!q||(x.f[1]+' '+x.f[2]+' '+x.f[3]).toLowerCase().includes(q)));const box=document.getElementById('fgFishGrid');box.innerHTML=list.map((x,i)=>fishCard(x.f,x.score,i)).join('')||'<div class="empty">თევზი ვერ მოიძებნა.</div>';bindImages();bindClicks();bindDestinationWeather();}
-  async function init(){
-    const {weather,label,data}=await getWeather();
-    allFish=(window.FISHES||[]).map(f=>({f,score:GeoFishChance(f,weather)})).sort((a,b)=>(b.score??-1)-(a.score??-1));
+  function init(){
+    allFish=(window.FISHES||[]).map(f=>({f,score:null}));
     allPlaces=(window.WATERS||[]).map(w=>({w,score:null}));
-    const wildlife=typeof WILDLIFE!=='undefined'?WILDLIFE:[],context={local_hour:weather.local_hour,date:data?.current?.time?.slice(0,10)};
-    allAnimals=wildlife.map(x=>({x,score:window.GeoWildlifeChance?window.GeoWildlifeChance(x,context):null})).sort((a,b)=>(b.score??-1)-(a.score??-1));
+    const wildlife=typeof WILDLIFE!=='undefined'?WILDLIFE:[];
+    allAnimals=wildlife.map(x=>({x,score:null}));
     allHuntPlaces=(window.HUNT_PLACES||[]).map(p=>({p,score:null}));
-    document.getElementById('fgLocation').textContent=label;
-    document.getElementById('fgOverall').textContent=scoreText(window.outdoorScore?window.outdoorScore(weather):null);
     document.getElementById('fgFishCount').textContent=allFish.length;document.getElementById('fgPlaceCount').textContent=allPlaces.length;document.getElementById('fgAnimalCount').textContent=allAnimals.length;
-    renderPlaces();renderFish();document.getElementById('fgAnimalGrid').innerHTML=allAnimals.map((entry,i)=>animalCard(entry.x,entry.score,i)).join('');renderHuntPlaces();bindImages();bindClicks();
-    const status=document.getElementById('fgStatus');
-    if(status){const temp=numeric(weather.temperature_2m);status.textContent=`${label} • ${temp===null?'—':Math.round(temp)+'°'} • ${data?.__meta?.stale?'ბოლო ხელმისაწვდომი მოდელური ამინდი':data?'ამინდის მოდელის მიმდინარე მონაცემი':'მონაცემი მიუწვდომელია'}`;}
-    document.getElementById('fgPlaceSearch')?.addEventListener('input',renderPlaces);document.getElementById('fgType')?.addEventListener('change',renderPlaces);document.getElementById('fgSearch')?.addEventListener('input',renderFish);document.getElementById('fgFishType')?.addEventListener('change',renderFish);document.getElementById('fgHuntPlaceSearch')?.addEventListener('input',renderHuntPlaces);document.getElementById('fgHuntPlaceType')?.addEventListener('change',renderHuntPlaces);document.getElementById('fgRefresh')?.addEventListener('click',()=>location.reload());
-    // Remote destinations need their own forecast. Missing coordinates remain
-    // informational entries, with no borrowed weather or fabricated score.
-    bindDestinationWeather();
+    function renderAll(){renderPlaces();renderFish();document.getElementById('fgAnimalGrid').innerHTML=allAnimals.map((entry,i)=>animalCard(entry.x,entry.score,i)).join('');renderHuntPlaces();bindImages();bindClicks();bindDestinationWeather();}
+    // The directory and filters are ready immediately, even when GPS or the
+    // weather provider is slow. Scores stay unknown until conditions arrive.
+    renderAll();
+    document.getElementById('fgPlaceSearch')?.addEventListener('input',renderPlaces);document.getElementById('fgType')?.addEventListener('change',renderPlaces);document.getElementById('fgSearch')?.addEventListener('input',renderFish);document.getElementById('fgFishType')?.addEventListener('change',renderFish);document.getElementById('fgHuntPlaceSearch')?.addEventListener('input',renderHuntPlaces);document.getElementById('fgHuntPlaceType')?.addEventListener('change',renderHuntPlaces);
+    const button=document.getElementById('fgRefresh'),status=document.getElementById('fgStatus');let refreshing=false;
+    async function refresh(options={}){
+      if(refreshing)return;refreshing=true;if(button){button.disabled=true;button.setAttribute('aria-busy','true');}if(status){status.setAttribute('role','status');status.textContent='ამინდის პირობები იტვირთება… ცნობარში ძებნა უკვე შეგიძლია.';}
+      const {weather,label,data}=await getWeather(options),context={local_hour:weather.local_hour,date:data?.current?.time?.slice(0,10)};
+      allFish.forEach(entry=>entry.score=GeoFishChance(entry.f,weather));allFish.sort((a,b)=>(b.score??-1)-(a.score??-1));
+      allAnimals.forEach(entry=>entry.score=window.GeoWildlifeChance?window.GeoWildlifeChance(entry.x,context):null);allAnimals.sort((a,b)=>(b.score??-1)-(a.score??-1));
+      document.getElementById('fgLocation').textContent=label;document.getElementById('fgOverall').textContent=scoreText(window.outdoorScore?window.outdoorScore(weather):null);
+      const focused=document.activeElement,card=focused?.closest?.('.fg-clickable'),keys=['place','fish','species','huntPlace'],identity=card&&keys.find(key=>card.dataset[key]),scrollX=window.scrollX,scrollY=window.scrollY;
+      renderAll();
+      if(card&&identity){const replacement=[...document.querySelectorAll('.fg-clickable')].find(item=>item.dataset[identity]===card.dataset[identity]);replacement?.focus({preventScroll:true});if(window.scrollX!==scrollX||window.scrollY!==scrollY)window.scrollTo({left:scrollX,top:scrollY,behavior:'instant'});}
+      if(status){const temp=numeric(weather.temperature_2m);status.textContent=`${label} • ${temp===null?'—':Math.round(temp)+'°'} • ${data?.__meta?.stale?'ბოლო ხელმისაწვდომი მოდელური ამინდი':data?'ამინდის მოდელის მიმდინარე მონაცემი':'მონაცემი მიუწვდომელია — განახლება თავიდან სცადე'}`;}
+      refreshing=false;if(button){button.disabled=false;button.setAttribute('aria-busy','false');}
+    }
+    if(button)button.onclick=()=>refresh({force:true});
+    refresh();
   }
   document.addEventListener('DOMContentLoaded',init);
 })();

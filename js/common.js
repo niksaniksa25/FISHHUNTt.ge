@@ -19,7 +19,6 @@ function weatherRowAt(data,iso){
   const index=data?.hourly?.time?.indexOf(iso)??-1;if(index<0)return null;
   const row={iso,time:iso.slice(11,16),date:iso.slice(0,10),local_hour:numberOrNull(iso.slice(11,13)),source:'forecast'};
   for(const [key,field] of Object.entries(WEATHER_ROW_FIELDS))row[key]=numberOrNull(data.hourly[field]?.[index]);
-  if(row.apparent_temperature===null)row.apparent_temperature=row.temperature;
   row.apparent=row.apparent_temperature;
   return row;
 }
@@ -37,7 +36,6 @@ function currentWeatherRow(data){
   for(const [key,field] of Object.entries(WEATHER_ROW_FIELDS)){
     if(Object.hasOwn(data.current,field)||!['rainProb','visibility'].includes(key))row[key]=numberOrNull(data.current[field]);
   }
-  if(row.apparent_temperature===null)row.apparent_temperature=row.temperature;
   row.apparent=row.apparent_temperature;
   return row;
 }
@@ -159,7 +157,14 @@ function outdoorScore(c){
   return Math.max(0,Math.min(cap,Math.round(4+96*Math.pow(Math.max(0,Math.min(100,raw))/100,1.22))));
 }
 function pressureStatus(p){if(p<995)return ['დაბალი წნევა','დაბალი წნევა ხშირად ცვლის პირობებს; სხვა ფაქტორებთან ერთად შეაფასე.'];if(p>1025)return ['მაღალი წნევა','მაღალი წნევისას ამინდი ხშირად უფრო სტაბილურია, მაგრამ სხვა პირობებიც მნიშვნელოვანია.'];return ['ნორმალური დიაპაზონი','წნევა საშუალო დიაპაზონშია; შეადარე ტემპერატურას, ქარს და ნალექს.']}
-function setPressureGauge(value,needleId,valueId,statusId,adviceId){const p=numberOrNull(value);const v=document.getElementById(valueId),stEl=document.getElementById(statusId),adEl=document.getElementById(adviceId);if(p===null){if(v)v.textContent='—';if(stEl)stEl.textContent='მონაცემი მიუწვდომელია';if(adEl)adEl.textContent='წნევის მონაცემს ველოდებით.';return;}const pct=Math.max(0,Math.min(1,(p-960)/80));const deg=-90+180*pct;const n=document.getElementById(needleId);if(n)n.style.transform=`translateX(-50%) rotate(${deg}deg)`;if(v)v.textContent=Math.round(p);const [st,ad]=pressureStatus(p);if(stEl)stEl.textContent=st;if(adEl)adEl.textContent=ad}
+function setPressureGauge(value,needleId,valueId,statusId,adviceId){
+  const p=numberOrNull(value),needle=document.getElementById(needleId),display=document.getElementById(valueId),status=document.getElementById(statusId),advice=document.getElementById(adviceId);
+  if(needle)needle.hidden=p===null;
+  if(p===null){if(display)display.textContent='—';if(status)status.textContent='მონაცემი მიუწვდომელია';if(advice)advice.textContent='წნევის მონაცემს ველოდებით.';return;}
+  const pct=Math.max(0,Math.min(1,(p-960)/80));if(needle)needle.style.transform=`translateX(-50%) rotate(${-90+180*pct}deg)`;
+  if(display)display.textContent=Math.round(p);
+  const [label,text]=pressureStatus(p);if(status)status.textContent=label;if(advice)advice.textContent=text;
+}
 const pendingWeatherRequests=new Map();
 function validCoordinates(lat,lon){const a=numberOrNull(lat),b=numberOrNull(lon);return a!==null&&b!==null&&Math.abs(a)<=90&&Math.abs(b)<=180;}
 function validateForecast(data){
@@ -255,6 +260,7 @@ async function initWeatherPage(lat,lon,city){
   function clearWeather(message){
     for(const id of ['weatherTemp','weatherScore','wFeels','wPressure','wHumidity','wWind','wGust','wRain','gnGoScore'])set(id,'—');
     set('weatherIcon','—');set('weatherDesc',message);set('weatherSourceStatus','Open-Meteo • მონაცემი მიუწვდომელია');set('gnGoText',message);
+    setPressureGauge(null,'weatherPressureNeedle','weatherPressureValue','weatherPressureStatus','weatherPressureAdvice');
     for(const id of ['weatherDaily','weatherHourlyStrip','weatherHourlySelected'])if(get(id))get(id).replaceChildren();
     if(get('weatherHourSelect'))get('weatherHourSelect').replaceChildren();
     if(window.GNLiveFactors)GNLiveFactors.render({data:null,row:null,type:'weather',locationName:activeCity,live:false,error:true});
@@ -285,6 +291,7 @@ async function initWeatherPage(lat,lon,city){
     }catch{if(token===searchId)results.textContent='ძებნა ვერ შესრულდა. სცადე ხელახლა.';}
   }
   if(get('weatherSearchBtn'))get('weatherSearchBtn').onclick=search;
+  if(get('weatherNow'))get('weatherNow').onclick=()=>{trackCurrent=true;renderSelected();load(activeLat,activeLon,activeCity,{force:true});};
   if(get('weatherSearch'))get('weatherSearch').onkeydown=event=>{if(event.key==='Enter'){event.preventDefault();search();}};
   if(get('weatherGps'))get('weatherGps').onclick=()=>{
     if(!navigator.geolocation){set('weatherDesc','ამ ბრაუზერში GPS მიუწვდომელია. გამოიყენე ძებნა.');return;}

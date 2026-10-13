@@ -8,7 +8,7 @@
     if(document.getElementById(id))return;
     const anchor=document.getElementById(kind==='fish'?'fishingPlus':'huntingPlus');if(!anchor)return;
     const article=document.createElement('article');article.id=id;article.className='panel gn-card gn-smart-page-guide';
-    article.innerHTML=`<div class="row-between"><div><span class="eyebrow">SMART MOMENT</span><h2>${title}</h2><p class="muted">საუკეთესო საათი იყენებს Planner-ის იმავე მოდელს და არჩეულ ${kind==='fish'?'თევზს, ადგილსა':'სახეობას, რეგიონსა'} და თარიღს.</p></div><a class="btn primary" href="ai.html">🤖 AI Guide</a></div><div id="${id}Body" class="gn-smart-guide-body">Planner-ის მონაცემებს ველოდებით…</div>`;
+    article.innerHTML=`<div class="row-between"><div><span class="eyebrow">SMART MOMENT</span><h2>${title}</h2><p class="muted">საუკეთესო საათი იყენებს Planner-ის იმავე მოდელს და არჩეულ ${kind==='fish'?'თევზს, ადგილსა':'სახეობას, რეგიონსა'} და თარიღს.</p></div><a class="btn primary" href="ai.html">კითხვების ცენტრი →</a></div><div id="${id}Body" class="gn-smart-guide-body">Planner-ის მონაცემებს ველოდებით…</div>`;
     anchor.appendChild(article);
   }
   function recommendations(kind){
@@ -42,6 +42,7 @@
   window.GeoNaturePageExtras={recommendations,renderFishing:()=>render('fish'),renderHunt:()=>render('hunt')};
   document.addEventListener('DOMContentLoaded',()=>{
     if(location.pathname.endsWith('fishing.html')){document.addEventListener('gn:fishingUpdated',()=>render('fish'));render('fish');}
-    if(location.pathname.endsWith('hunting.html')){document.addEventListener('gn:huntingUpdated',()=>render('hunt'));setInterval(()=>{if(!document.hidden)render('hunt');},1500);render('hunt');}
+    if(location.pathname.endsWith('hunting.html')){document.addEventListener('gn:huntingUpdated',()=>render('hunt'));render('hunt');}
+    window.addEventListener?.('gn:premium-ready',()=>{if(location.pathname.endsWith('fishing.html'))render('fish');if(location.pathname.endsWith('hunting.html'))render('hunt');});
   });
 })();

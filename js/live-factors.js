@@ -56,7 +56,7 @@
     else if(age<20.3022798){label='კლებადი გიბუსი';icon='🌖';phaseIndex=5;}
     else if(age<23.9936034){label='ბოლო მეოთხედი';icon='🌗';phaseIndex=6;}
     else {label='კლებადი ნამგალა';icon='🌘';phaseIndex=7;}
-    const waxing=phaseIndex>0&&phaseIndex<4;
+    const waxing=phase<.5;
     const quarter=synodic/4;
     const majors=[{age:0,label:'ახალი მთვარე',icon:'🌑'},{age:quarter,label:'პირველი მეოთხედი',icon:'🌓'},{age:2*quarter,label:'სავსე მთვარე',icon:'🌕'},{age:3*quarter,label:'ბოლო მეოთხედი',icon:'🌗'}];
     let next=majors.find(x=>x.age>age+1e-6),daysTo;

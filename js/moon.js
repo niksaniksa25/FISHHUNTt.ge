@@ -19,7 +19,7 @@
     const days=next?next.age-age:SYN-age;
     if(!next) next=majors[0];
     const nextDate=new Date(d.getTime()+days*86400000);
-    return {date:d,age,illum,label,icon,index,waxing:index>0&&index<4,nextLabel:next.label,nextIcon:next.icon,nextDate,daysToNext:days};
+    return {date:d,age,illum,label,icon,index,waxing:p<.5,nextLabel:next.label,nextIcon:next.icon,nextDate,daysToNext:days};
   }
   const set=(id,val)=>{const e=document.getElementById(id);if(e)e.textContent=val};
   const fmt=d=>new Date(d).toLocaleDateString('ka-GE',{day:'numeric',month:'long',timeZone:'Asia/Tbilisi'});

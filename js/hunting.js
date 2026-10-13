@@ -3,6 +3,21 @@ let selectedHuntChance=null;
 let huntWeather=null;
 let selectedHuntRuleArea='unknown';
 let huntPlannerSeq=0,huntLiveSeq=0,huntSelectedRow=null;
+let huntCardImageObserver=null;
+const huntCardImageSubjects=new WeakMap();
+
+function prepareHuntCardImages(){
+  huntCardImageObserver?.disconnect();huntCardImageObserver=null;
+  if(typeof window.IntersectionObserver!=='function')return;
+  huntCardImageObserver=new window.IntersectionObserver(entries=>{
+    for(const entry of entries){if(!entry.isIntersecting)continue;huntCardImageObserver.unobserve(entry.target);const x=huntCardImageSubjects.get(entry.target);if(x)loadHuntCardImage(entry.target,x);}
+  },{rootMargin:'400px'});
+}
+function loadHuntCardImage(card,x){
+  const img=card.querySelector('img');if(!card.isConnected||!img||card.dataset.imageRequested)return;
+  card.dataset.imageRequested='true';
+  huntImage(x,src=>{if(card.isConnected&&img.isConnected)img.src=src;});
+}
 
 function updateHuntRules(){
   const profile=document.getElementById('huntProfile'),rules=window.GeoWildlifeRules;
@@ -94,8 +109,8 @@ function huntScoreForDay(data,i){
   return values.length?Math.round(values.reduce((a,b)=>a+b,0)/values.length):null;
 }
 function renderHuntCards(list){
-  const box=document.getElementById('huntResults');box.innerHTML='';
-  list.slice(0,100).forEach(x=>{const card=document.createElement('article');card.className='fish-card';card.tabIndex=0;const chance=window.GeoWildlifeChance?window.GeoWildlifeChance(x):null;const chanceHtml=window.GeoChanceUI?.markup?window.GeoChanceUI.markup(chance,'აქტივობის ინდექსი'):`<span class="fish-chance">${Number.isFinite(chance)?chance+'/100':'—'}</span>`;card.innerHTML=`<div class="hunt-card-top"><img class="fish-img" loading="lazy" alt="${hs(x[1])}"><div class="hunt-card-chance">${chanceHtml}</div></div><div class="fish-card-body"><div class="fish-card-title-row"><div><span class="tag">${hs(x[4])}</span><h3>${hs(x[1])}</h3></div></div><p>${hs(x[2])} • ${hs(x[5])}</p><div class="fish-card-meta"><span>📍 ${hs(x[6])}</span><span>🕒 ${hs(x[8])}</span></div></div>`;huntImage(x,src=>{const img=card.querySelector('img');if(img)img.src=src});card.dataset.chance=String(chance);card.onclick=()=>selectHunt(x,chance);card.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();selectHunt(x,chance)}};box.appendChild(card)});
+  const box=document.getElementById('huntResults');prepareHuntCardImages();box.innerHTML='';
+  list.forEach(x=>{const card=document.createElement('article');card.className='fish-card';card.tabIndex=0;card.setAttribute('role','button');card.setAttribute('aria-label',x[1]+' — პროფილისა და პირობების ნახვა');const chance=window.GeoWildlifeChance?window.GeoWildlifeChance(x):null;const chanceHtml=window.GeoChanceUI?.markup?window.GeoChanceUI.markup(chance,'აქტივობის ინდექსი'):`<span class="fish-chance">${Number.isFinite(chance)?chance+'/100':'—'}</span>`;card.innerHTML=`<div class="hunt-card-top"><img class="fish-img" loading="lazy" alt="${hs(x[1])}"><div class="hunt-card-chance">${chanceHtml}</div></div><div class="fish-card-body"><div class="fish-card-title-row"><div><span class="tag">${hs(x[4])}</span><h3>${hs(x[1])}</h3></div></div><p>${hs(x[2])} • ${hs(x[5])}</p><div class="fish-card-meta"><span>📍 ${hs(x[6])}</span><span>🕒 ${hs(x[8])}</span></div></div>`;card.dataset.chance=String(chance);card.onclick=()=>selectHunt(x,chance);card.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();selectHunt(x,chance);const profile=document.getElementById('huntProfile');profile.tabIndex=-1;profile.focus({preventScroll:true});}};box.appendChild(card);huntCardImageSubjects.set(card,x);if(huntCardImageObserver)huntCardImageObserver.observe(card);else loadHuntCardImage(card,x);});
   if(!list.length)box.innerHTML='<div class="empty">ამ ძებნით ცხოველი ან ფრინველი ვერ მოიძებნა.</div>';
 }
 function renderHuntSearch(){
@@ -103,7 +118,7 @@ function renderHuntSearch(){
   const all=(window.HUNTING_WILDLIFE||[]).filter(x=>x[0]!=='reptile');
   const list=all.filter(x=>(type==='all'||x[0]===type)&&(!q||x.join(' ').toLowerCase().includes(q)));
   document.getElementById('huntCount').textContent=`${list.length} სახეობა`;
-  const s=document.getElementById('huntSuggestions');s.innerHTML=list.slice(0,10).map((x,i)=>`<button data-i="${i}">${hs(x[1])}</button>`).join('');s.querySelectorAll('button').forEach(b=>b.onclick=()=>selectHunt(list[Number(b.dataset.i)]));
+  const s=document.getElementById('huntSuggestions');s.innerHTML=q?list.slice(0,10).map((x,i)=>`<button type="button" data-i="${i}">${hs(x[1])}</button>`).join(''):'';s.querySelectorAll('button').forEach(b=>b.onclick=()=>selectHunt(list[Number(b.dataset.i)]));
   renderHuntCards(list);
 }
 function syncHuntRegions(preferCompatible=true){const el=document.getElementById('huntRegion');if(!el)return;let first=-1;[...el.options].forEach((o,i)=>{const region=HUNT_REGIONS[i],ok=!selectedHunt||huntLocationCompatibility(selectedHunt,region)>=72;o.disabled=!ok;o.textContent=ok?region[0]:region[0]+' — არ მუშაობს ამ სახეობაზე';if(ok&&first<0)first=i});if(preferCompatible&&selectedHunt){const cur=el.selectedIndex;if(!HUNT_REGIONS[cur]||huntLocationCompatibility(selectedHunt,HUNT_REGIONS[cur])<72){if(first>=0)el.value=HUNT_REGIONS[first][0]}}}
@@ -134,6 +149,8 @@ async function loadHuntLive(options={}){
     if(seq!==huntLiveSeq)return;
     for(const id of ['huntLiveTemp','huntLiveScore','huntLivePressure','huntLiveWind','huntLiveHumidity','huntLiveRain'])set(id,'—');
     set('huntLiveDesc','ამინდის განახლება ვერ მოხერხდა.');set('huntLiveTime','მონაცემი მიუწვდომელია');
+    setPressureGauge(null,'huntPressureNeedle','huntPressureValue','huntPressureStatus','huntPressureAdvice');
+    if(!selectedHunt)window.GNLiveFactors?.render({data:null,row:null,type:'weather',locationName:region[0],error:true});
     throw error;
   }
 }
@@ -151,27 +168,38 @@ function renderHuntDays(data,start,days){
 }
 async function runHuntPlanner(options={}){
   window.GNPremium?.applyDayLimit(document.getElementById('huntDays'));updateHuntRules();
-  if(!selectedHunt)return;
+  if(!selectedHunt){document.getElementById('huntBestCallout').textContent='ჯერ აირჩიე ცხოველი ან ფრინველი ზემოთ მოცემული ძებნიდან.';return;}
   const seq=++huntPlannerSeq,subject=selectedHunt,region=HUNT_REGIONS.find(r=>r[0]===document.getElementById('huntRegion').value)||HUNT_REGIONS[0];
-  const start=document.getElementById('huntStartDate').value||window.GeoNatureCommon?.localDateISO?.();
+  const dateInput=document.getElementById('huntStartDate');
+  if(!dateInput.value)dateInput.value=window.GeoNatureCommon?.localDateISO?.();
+  const start=dateInput.value;
   const days=Math.min(Number(document.getElementById('huntDays').value||1),window.GNPremium?.maxForecastDays?.()||1);
   huntWeather=null;huntSelectedRow=null;
+  const button=document.getElementById('huntPlanBtn'),dayCards=document.getElementById('huntDayCards');
+  if(button){button.disabled=true;button.setAttribute?.('aria-busy','true');}
+  dayCards.setAttribute?.('aria-busy','true');dayCards.innerHTML='<div class="loading-box" role="status">არჩეული სახეობისა და რეგიონის პროგნოზი იტვირთება…</div>';
+  document.getElementById('huntHourlyStrip').innerHTML='';document.getElementById('huntHourlySelected').innerHTML='<div class="loading-box">საათობრივი პირობები ახლდება…</div>';document.getElementById('huntBestCallout').textContent='პირობების შეფასება ახლდება…';
+  window.GNLiveFactors?.render({data:null,row:null,subject,type:'hunting',locationName:region[0]});
   try{
     const data=await openMeteo(region[1],region[2],{force:options.force===true});
     if(seq!==huntPlannerSeq||subject!==selectedHunt||document.getElementById('huntRegion').value!==region[0]||document.getElementById('huntStartDate').value!==start)return;
     huntWeather=data;renderHuntDays(data,start,days);renderHuntHourly(data,start);
   }catch(error){
     if(seq!==huntPlannerSeq)return;
-    huntWeather=null;document.getElementById('huntDayCards').innerHTML='<div class="empty">პროგნოზის ჩატვირთვა ვერ მოხერხდა. შეამოწმე ინტერნეტი.</div>';
+    huntWeather=null;huntSelectedRow=null;document.getElementById('huntDayCards').innerHTML='<div class="empty">პროგნოზის ჩატვირთვა ვერ მოხერხდა. შეამოწმე ინტერნეტი.</div><button type="button" class="btn ghost" id="retryHuntPlanner">↻ თავიდან ცდა</button>';
+    document.getElementById('retryHuntPlanner')?.addEventListener('click',()=>runHuntPlanner({force:true}).catch(console.warn));
     document.getElementById('huntHourlyStrip').innerHTML='';document.getElementById('huntHourlySelected').innerHTML='<div class="empty">საათობრივი მონაცემი მიუწვდომელია.</div>';document.getElementById('huntBestCallout').textContent='შეფასება მიუწვდომელია.';
     document.dispatchEvent(new CustomEvent('gn:huntingUpdated'));window.GNHourlyAccess?.refresh?.();
+    window.GNLiveFactors?.render({data:null,row:null,subject,type:'hunting',locationName:region[0],error:true});
     throw error;
+  }finally{
+    if(seq===huntPlannerSeq){if(button){button.disabled=false;button.setAttribute?.('aria-busy','false');}dayCards.setAttribute?.('aria-busy','false');}
   }
 }
 async function initHuntingPage(){
   const region=document.getElementById('huntRegion');region.innerHTML=HUNT_REGIONS.map(x=>`<option>${hs(x[0])}</option>`).join('');const requestedRegion=new URLSearchParams(location.search).get('region')||'';region.value=HUNT_REGIONS.some(r=>r[0]===requestedRegion)?requestedRegion:'თბილისი';syncHuntRegions(false);
   const d=document.getElementById('huntStartDate'),today=new Date();const todayIso=window.GeoWildlifeRules?.today(today)||window.GeoNatureCommon?.localDateISO?.(today)||today.toLocaleDateString('sv-SE');d.value=todayIso;d.min=d.value;const maxD=new Date(today.getTime()+15*86400000);d.max=window.GeoWildlifeRules?.today(maxD)||window.GeoNatureCommon?.localDateISO?.(maxD)||maxD.toLocaleDateString('sv-SE');
-  document.getElementById('huntSearchInput').oninput=renderHuntSearch;document.getElementById('huntType').onchange=renderHuntSearch;document.getElementById('huntClear').onclick=()=>{document.getElementById('huntSearchInput').value='';document.getElementById('huntType').value='all';renderHuntSearch()};document.getElementById('huntPlanBtn').onclick=()=>runHuntPlanner().catch(console.warn);region.onchange=()=>{loadHuntLive().catch(console.warn);runHuntPlanner().catch(console.warn)};d.onchange=()=>runHuntPlanner().catch(console.warn);document.getElementById('huntDays').onchange=()=>runHuntPlanner().catch(console.warn);document.getElementById('huntTomorrow').onclick=()=>{const x=new Date((d.value||window.GeoNatureCommon?.localDateISO?.()||new Date().toLocaleDateString('sv-SE'))+'T12:00:00Z');x.setUTCDate(x.getUTCDate()+1);d.value=x.toISOString().slice(0,10);document.getElementById('huntDays').value='1';runHuntPlanner().catch(console.warn)};
+  document.getElementById('huntSearchInput').oninput=renderHuntSearch;document.getElementById('huntType').onchange=renderHuntSearch;document.getElementById('huntClear').onclick=()=>{document.getElementById('huntSearchInput').value='';document.getElementById('huntType').value='all';renderHuntSearch();document.getElementById('huntSearchInput').focus({preventScroll:true});};document.getElementById('huntPlanBtn').onclick=()=>runHuntPlanner().catch(console.warn);region.onchange=()=>{loadHuntLive().catch(console.warn);runHuntPlanner().catch(console.warn)};d.onchange=()=>runHuntPlanner().catch(console.warn);document.getElementById('huntDays').onchange=()=>runHuntPlanner().catch(console.warn);document.getElementById('huntTomorrow').onclick=()=>{const x=new Date((d.value||window.GeoNatureCommon?.localDateISO?.()||new Date().toLocaleDateString('sv-SE'))+'T12:00:00Z');x.setUTCDate(x.getUTCDate()+1);const next=x.toISOString().slice(0,10);if(next>d.max)return;d.value=next;document.getElementById('huntDays').value='1';runHuntPlanner().catch(console.warn)};
   renderHuntSearch();await loadHuntLive().catch(console.warn);
   if(window.GNLiveFactors)window.GNLiveFactors.bind({liveDefault:true,refresh:async(options)=>{const jobs=[loadHuntLive(options)];if(selectedHunt)jobs.push(runHuntPlanner(options));const results=await Promise.allSettled(jobs);const failed=results.find(result=>result.status==='rejected');if(failed)throw failed.reason;}});
 }

@@ -19,7 +19,7 @@
       const started=Number(localStorage.getItem('gn_trial_started_at')||0);
       const verified=localStorage.getItem('gn_trial_card_verified')==='1';
       const trial=localStorage.getItem('gn_trial_plan')||'';
-      if(verified && started && (Date.now()-started)<TRIAL_MS && PLANS[trial]!==undefined && trial!=='free') return trial;
+      if(verified && started>0 && Date.now()>=started && (Date.now()-started)<TRIAL_MS && PLANS[trial]!==undefined && trial!=='free') return trial;
       if(started && (Date.now()-started)>=TRIAL_MS){
         localStorage.removeItem('gn_trial_started_at');
         localStorage.removeItem('gn_trial_plan');
@@ -41,8 +41,10 @@
     }catch(_){return 'free';}
   }
   async function syncAdminState(){
+    const base=String(window.GN_API_BASE_URL||document.querySelector('meta[name="gn-api-base"]')?.content||'').replace(/\/+$/,'');
+    if(!base&&(location.protocol==='file:'||String(location.hostname||'').toLowerCase().endsWith('.github.io')))return adminUnlocked();
     try{
-      const r=await fetch('/api/admin/me',{credentials:'include',cache:'no-store'});
+      const r=await fetch(base+'/api/admin/me',{credentials:'include',cache:'no-store'});
       if(r.ok){const d=await r.json(); if(d.admin){localStorage.setItem('gn_admin_local','1'); return true;}
         if(localStorage.getItem('gn_admin_local')==='1') localStorage.removeItem('gn_admin_local');
       }
@@ -51,12 +53,15 @@
   }
   function setPlan(plan){
     if(PLANS[plan]===undefined) return false;
-    try{localStorage.setItem('gn_plan',plan);localStorage.setItem('gn_plan_updated_at',new Date().toISOString());}catch(_){ }
+    try{localStorage.setItem('gn_plan',plan);localStorage.setItem('gn_plan_updated_at',new Date().toISOString());const expiry=Number(localStorage.getItem('gn_plan_expires_at')||0);if(plan==='free'||(expiry>0&&expiry<=Date.now()))localStorage.removeItem('gn_plan_expires_at');}catch(_){return false;}
+    document.documentElement.dataset.gnPlan=currentPlan();
+    window.dispatchEvent(new CustomEvent('gn:premium-ready',{detail:{plan:currentPlan(),admin:adminUnlocked()}}));
     return true;
   }
   function has(required){return PLANS[currentPlan()]>=PLANS[required];}
   function maxForecastDays(){return PLAN_INFO[currentPlan()].days;}
   function formatPlan(required){return PLAN_INFO[required]?.name||required;}
+  function staticDeployment(){const base=String(window.GN_API_BASE_URL||document.querySelector('meta[name="gn-api-base"]')?.content||'').trim();return !base&&(location.protocol==='file:'||String(location.hostname||'').toLowerCase().endsWith('.github.io'));}
   function pricingUrl(required){return `premium.html?plan=${encodeURIComponent(required)}`;}
 
   function showToast(message,required='plus'){
@@ -65,7 +70,7 @@
       t=document.createElement('div');t.id='gnPremiumToast';t.className='gn-premium-toast';
       document.body.appendChild(t);
     }
-    t.innerHTML=`<div><b>🔒 ${formatPlan(required)} ფუნქცია</b><span>${message}</span></div><a href="${pricingUrl(required)}">ნახე ფასები →</a>`;
+    t.innerHTML=`<div><b>🔒 ${formatPlan(required)} ფუნქცია</b><span>${message}${staticDeployment()?' გეგმის გააქტიურება ამჟამად მიუწვდომელია.':''}</span></div><a href="${pricingUrl(required)}">გეგმების ნახვა →</a>`;
     requestAnimationFrame(()=>t.classList.add('show'));
     clearTimeout(showToast._timer);showToast._timer=setTimeout(()=>t.classList.remove('show'),5500);
   }
@@ -100,8 +105,8 @@
       if(mt && !mt.querySelector('.gn-lock')){
         const lock=document.createElement('span');lock.className='gn-lock';lock.textContent=`🔒 ${required==='plus'?'Plus':'AI Pro'}`;mt.appendChild(lock);
       }
-      link.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();showToast(`ეს ფუნქცია გახსნილია ${formatPlan(required)} გეგმით.`,required);},true);
     }
+    link.addEventListener('click',e=>{if(has(required))return;e.preventDefault();e.stopPropagation();showToast(`ეს ფუნქცია გახსნილია ${formatPlan(required)} გეგმით.`,required);},true);
   }
 
   function applyNavGates(){
@@ -136,6 +141,12 @@
     [...document.body.children].forEach(el=>{if(el!==header&&el!==footer&&el.tagName!=='SCRIPT')el.style.display='none';});
     const gate=document.createElement('main');gate.className='gn-premium-gate';
     gate.innerHTML=`<div class="gn-premium-gate-card"><div class="gn-premium-icon">${required==='pro'?'🤖':'⭐'}</div><span class="eyebrow">GEONATURE PREMIUM</span><h1>ეს ფუნქცია ${formatPlan(required)}-შია</h1><p>${required==='pro'?'AI, 7-დღიანი პროგნოზები, რუკაზე ნებისმიერი ქალაქი/საათი და აღჭურვილობის ჩექლისტი AI Pro-ის ნაწილია.':'Plus ხსნის „მეტი“ მენიუს გაფართოებულ ნაწილს, 3-დღიან პროგნოზს, GeoNature ცოდნას, Together-ს და მთვარე & ღამის ცას.'}</p><div class="gn-gate-price"><b>${PLAN_INFO[required].price}</b><span>თვეში</span></div><div class="gn-gate-actions"><a class="btn primary" href="${pricingUrl(required)}">ნახე გეგმები და გადახდა →</a><a class="btn ghost" href="index.html">მთავარზე დაბრუნება</a></div></div></main>`;
+    if(staticDeployment()){
+      const card=gate.querySelector('.gn-premium-gate-card'),text=card?.querySelector('p'),actions=card?.querySelector('.gn-gate-actions');
+      if(text)text.textContent=`ეს გვერდი ${formatPlan(required)} გეგმის ნაწილია. გააქტიურება ამჟამად მიუწვდომელია, რადგან გადახდის სერვისი ჯერ არ არის დაკავშირებული. შეგიძლია გამოიყენო უფასო ინსტრუმენტები.`;
+      if(actions)actions.innerHTML='<a class="btn primary" href="fishing.html">თევზაობის დაგეგმვა</a><a class="btn ghost" href="weather.html">ამინდის ნახვა</a><a class="btn ghost" href="catalog.html">სახეობების კატალოგი</a>';
+      if(card)card.insertAdjacentHTML('beforeend',`<p class="muted"><a href="${pricingUrl(required)}">გეგმის ფუნქციები და ფასები →</a></p>`);
+    }
     document.body.insertBefore(gate,footer||null);
   }
 
@@ -161,7 +172,7 @@
   }
 
   function bindPricing(){
-    document.querySelectorAll('[data-buy-plan]').forEach(btn=>btn.addEventListener('click',e=>{e.preventDefault();startCheckout(btn.dataset.buyPlan)}));
+    document.querySelectorAll('[data-buy-plan]').forEach(btn=>{if(btn.dataset.gnPricingBound)return;btn.dataset.gnPricingBound='1';btn.addEventListener('click',e=>{e.preventDefault();startCheckout(btn.dataset.buyPlan)});});
     document.querySelectorAll('[data-demo-plan]').forEach(btn=>btn.addEventListener('click',e=>{
       e.preventDefault();
       if(location.hostname!=='localhost' && location.protocol!=='file:') return showToast('სატესტო გააქტიურება გამორთულია ონლაინ რეჟიმში.');
@@ -178,17 +189,6 @@
     window.dispatchEvent(new CustomEvent('gn:premium-ready',{detail:{plan:currentPlan(),admin:adminUnlocked()}}));
   }
 
-  window.GNPremium={PLANS,PLAN_INFO,CHECKOUT_URLS,currentPlan,setPlan,has,maxForecastDays,formatPlan,pricingUrl,showToast,applyDayLimit,limitItems,startCheckout,trialPlan,adminUnlocked,syncAdminState};
+  window.GNPremium={PLANS,PLAN_INFO,CHECKOUT_URLS,currentPlan,setPlan,has,maxForecastDays,formatPlan,pricingUrl,showToast,applyDayLimit,limitItems,startCheckout,trialPlan,adminUnlocked,syncAdminState,staticDeployment};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
-
-
-document.addEventListener('DOMContentLoaded',function(){
-  document.querySelectorAll('[data-buy-plan]').forEach(function(btn){
-    btn.addEventListener('click',function(e){
-      e.preventDefault();
-      const plan=btn.getAttribute('data-buy-plan')==='pro'?'pro':'plus';
-      window.location.href='payment.html?plan='+plan;
-    });
-  });
-});

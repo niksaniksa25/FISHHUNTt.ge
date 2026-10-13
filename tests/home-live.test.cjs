@@ -16,14 +16,14 @@ function weather(time = '2026-10-13T12:15', temperature = 27) {
 }
 function harness() {
   let clock = Date.parse('2026-10-13T08:15:00Z'), response = weather();
-  const elements = new Map(), listeners = new Map(), timers = new Map(), snapshots = [];
+  const elements = new Map(), listeners = new Map(), timers = new Map(), snapshots = [], requests = [];
   const node = id => {
-    if (!elements.has(id)) elements.set(id, { id, textContent: '', innerHTML: '', value: '', dataset: {}, disabled: false, classList: { toggle() {} }, handlers: {}, addEventListener(event, callback) { this.handlers[event] = callback; }, querySelectorAll() { return []; }, querySelector() { return null; } });
+    if (!elements.has(id)) elements.set(id, { id, textContent: '', innerHTML: '', value: '', dataset: {}, disabled: false, attributes: {}, setAttribute(name,value) { this.attributes[name]=value; }, classList: { toggle() {} }, handlers: {}, addEventListener(event, callback) { this.handlers[event] = callback; }, querySelectorAll() { return []; }, querySelector() { return null; } });
     return elements.get(id);
   };
   class Clock extends Date { constructor(...args) { super(...(args.length ? args : [clock])); } static now() { return clock; } }
   const document = { body: { dataset: {} }, getElementById: node, querySelectorAll() { return []; }, addEventListener(event, callback) { if (!listeners.has(event)) listeners.set(event, []); listeners.get(event).push(callback); } };
-  const context = vm.createContext({ document, Date: Clock, console: { warn() {} }, location: { pathname: '/index.html' }, setInterval(callback) { const id = timers.size + 1; timers.set(id, callback); return id; }, clearInterval(id) { timers.delete(id); }, setTimeout, localStorage: { getItem() { return null; } }, codeMeta: code => [code === 0 ? '☀️' : '☁️', code === 0 ? 'მოწმენდილი' : 'ღრუბლიანი'], openMeteo: async (lat, lon) => typeof response === 'function' ? response(lat, lon) : response });
+  const context = vm.createContext({ document, Date: Clock, console: { warn() {} }, location: { pathname: '/index.html' }, setInterval(callback) { const id = timers.size + 1; timers.set(id, callback); return id; }, clearInterval(id) { timers.delete(id); }, setTimeout, localStorage: { getItem() { return null; } }, codeMeta: code => [code === 0 ? '☀️' : '☁️', code === 0 ? 'მოწმენდილი' : 'ღრუბლიანი'], openMeteo: async (lat, lon, options) => { requests.push(options); return typeof response === 'function' ? response(lat, lon) : response; } });
   context.window = context;
   context.GNPremium = { maxForecastDays: () => 3 };
   context.GeoNatureCommon = {
@@ -34,7 +34,7 @@ function harness() {
   context.GNLiveFactors = { render: value => snapshots.push(value) };
   for (const file of ['home-dashboard.js', 'geo-extras.js']) vm.runInContext(fs.readFileSync(path.join(__dirname, '../js', file), 'utf8'), context, { filename: file });
   const flush = async () => { await new Promise(resolve => setImmediate(resolve)); };
-  return { context, node, timers, snapshots, flush, setResponse(value) { response = value; }, setClock(iso) { clock = Date.parse(iso); }, async start() { for (const callback of listeners.get('DOMContentLoaded') || []) await callback(); }, async event(id, type) { await node(id).handlers[type]?.({ target: node(id) }); await flush(); }, async interval() { await [...timers.values()][0]?.(); } };
+  return { context, node, timers, snapshots, requests, flush, setResponse(value) { response = value; }, setClock(iso) { clock = Date.parse(iso); }, async start() { for (const callback of listeners.get('DOMContentLoaded') || []) await callback(); }, async event(id, type) { await node(id).handlers[type]?.({ target: node(id) }); await flush(); }, async documentEvent(type) { for(const callback of listeners.get(type)||[]) await callback(); await flush(); }, async interval() { await [...timers.values()][0]?.(); } };
 }
 
 test('homepage now uses current observations and one score across its weather panels', async () => {
@@ -127,4 +127,26 @@ test('provider daylight context reaches the home score and best-moment calculati
   page.setResponse(data); await page.start();
   assert.equal(page.node('homeScore').textContent, 10); assert.equal(page.node('outdoorScoreValue').textContent, 10);
   assert.match(page.node('homeBestHour').textContent, /10\/100/); assert.match(page.node('gnBestMomentToday').innerHTML, /<b>10<\/b>/);
+});
+
+test('returning to now restores current measurements and manual refresh bypasses the gateway cache', async () => {
+  const page = harness(); await page.start();
+  page.node('homeDateSelect').value='2026-10-14';page.node('homeDateSelect').onchange();
+  page.node('homeHourSelect').value='18:00';page.node('homeHourSelect').onchange();
+  assert.equal(page.node('homeNow').disabled,false);
+  await page.event('homeRefresh','click');assert.equal(page.requests.at(-1).force,true);
+  assert.equal(page.node('homeDateSelect').value,'2026-10-14','refresh preserves an explicitly selected forecast');
+  await page.event('homeNow','click');assert.equal(page.node('homeDateSelect').value,'2026-10-13');
+  assert.equal(page.node('homeMainTemp').textContent,'27.0°C');assert.equal(page.requests.at(-1).force,true);
+  assert.equal(page.node('homeNow').disabled,true);
+});
+
+test('hidden pages pause polling and resume with fresh data while toggle state is accessible', async () => {
+  const page=harness();await page.start();const count=page.requests.length;
+  page.context.document.hidden=true;await page.interval();assert.equal(page.requests.length,count);
+  page.context.document.hidden=false;await page.documentEvent('visibilitychange');assert.equal(page.requests.length,count+1);
+  assert.equal(page.node('homeLiveToggle').attributes['aria-pressed'],'true');
+  await page.event('homeLiveToggle','click');assert.equal(page.node('homeLiveToggle').attributes['aria-pressed'],'false');
+  page.context.document.hidden=true;page.context.document.hidden=false;await page.documentEvent('visibilitychange');
+  assert.equal(page.requests.length,count+1,'paused weather stays paused when the page becomes visible');
 });

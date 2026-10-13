@@ -58,7 +58,7 @@
     const notify=document.createElement('section');
     notify.id='gnNotificationCenter';notify.className='container section panel gn-extra-card';
     notify.innerHTML='<span class="eyebrow">SMART NOTIFICATIONS</span><h2>🔔 შენთვის მორგებული შეტყობინებები</h2><p class="muted">აირჩიე თევზი, ადგილი, საჭიროების შემთხვევაში საათი და მინიმალური ქულა.</p><div class="muted">შეტყობინებების პარამეტრები იტვირთება…</div>';
-    const anchor=document.getElementById('homePremiumOffer')||document.getElementById('quickExplorer')||document.querySelector('.hero');
+    const anchor=document.getElementById('homeLive')||document.getElementById('homePremiumOffer')||document.getElementById('quickExplorer')||document.querySelector('.hero');
     insertAfter(anchor,host);insertAfter(host,notify);
   }
   function renderHome(data,row,options={}){
@@ -83,7 +83,7 @@
   function addDashboardExtras(){
     const root=document.getElementById('gnDashboard');if(!root||document.getElementById('gnPersonalInsights'))return;
     const host=document.createElement('div');host.id='gnPersonalInsights';host.className='gn-dashboard-extras';
-    host.innerHTML=`<section class="panel gn-extra-card"><div class="row-between"><div><span class="eyebrow">PERSONAL GEONATURE</span><h2>🧠 შენი სტატისტიკა და რჩევა</h2></div><a class="btn ghost" href="fishing.html">ახალი გასვლის დაგეგმვა →</a></div><div id="gnPersonalInsightsGrid" class="gn-insight-grid"></div></section><section class="panel gn-extra-card"><div class="row-between"><div><span class="eyebrow">🤖 SMART GUIDE</span><h2>AI Guide</h2></div><a class="btn primary" href="ai.html">AI-ს კითხვა →</a></div><p class="muted">AI დაგეხმარება კონკრეტულ თევზზე, ადგილზე, ამინდზე ან გასვლის გეგმაზე. Pro გეგმაში მიიღებ გაფართოებულ AI ინსტრუმენტებს.</p></section>`;
+    host.innerHTML=`<section class="panel gn-extra-card"><div class="row-between"><div><span class="eyebrow">PERSONAL GEONATURE</span><h2>🧠 შენი სტატისტიკა და რჩევა</h2></div><a class="btn ghost" href="fishing.html">ახალი გასვლის დაგეგმვა →</a></div><div id="gnPersonalInsightsGrid" class="gn-insight-grid"></div></section><section class="panel gn-extra-card"><div class="row-between"><div><span class="eyebrow">საიტის გზამკვლევი</span><h2>კითხვების ცენტრი</h2></div><a class="btn primary" href="ai.html">კითხვების ნახვა →</a></div><p class="muted">მოიძიე საიტში შენახული პასუხები სახეობებზე, ადგილებზე, ამინდსა და გასვლის დაგეგმვაზე. მიმდინარე მონაცემები ამინდის გვერდზე გადაამოწმე.</p></section>`;
     root.appendChild(host); renderPersonalInsights();
   }
   function renderPersonalInsights(){
@@ -96,7 +96,7 @@
   }
   window.GeoNatureExtras={renderHome,renderPersonalInsights};
   document.addEventListener('DOMContentLoaded',()=>{
-    if(location.pathname.endsWith('index.html')||location.pathname==='/'||location.pathname===''){addHomeExtras();}
+    if(document.getElementById('homeLiveTitle')){addHomeExtras();}
     if(location.pathname.endsWith('dashboard.html')){setTimeout(addDashboardExtras,600);document.addEventListener('geonature:state',()=>{setTimeout(addDashboardExtras,250);setTimeout(renderPersonalInsights,300)})}
   });
 })();

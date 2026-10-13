@@ -3,7 +3,7 @@
   const destinations=[
     ['index.html','მთავარი'],['weather.html','ამინდი'],['catalog.html','კატალოგი'],
     ['map.html','რუკა'],['fishing.html','🎣 თევზაობა'],['hunting.html','🦌 ნადირობა'],
-    ['ai.html','🤖 AI'],['donate.html','♡ დონაცია'],
+    ['ai.html','კითხვები'],['donate.html','♡ დონაცია'],
     ['fishing-places.html','სათევზაო ადგილები'],['fishing-guide.html','სად წავიდეთ სათევზაოდ'],
     ['fishing-guide.html#fgHuntPlacesSection','სანადირო ადგილები'],['field-kit.html','აღჭურვილობა'],
     ['catch-log.html','ჩემი დაჭერები'],['together.html','ერთად გასვლა'],['dashboard.html','ჩემი GeoNature'],
@@ -77,7 +77,7 @@
     window.addEventListener('hashchange',()=>refreshLinks(true));
     new MutationObserver(()=>{
       refreshLinks(false);
-      document.body?.classList.toggle('gn-header-profile-open',Boolean(nav.querySelector('.gn-profile-panel:not([hidden])')));
+      document.body?.classList.toggle('gn-header-profile-open',Boolean(document.querySelector('.gn-profile-panel:not([hidden])')));
     }).observe(nav,{childList:true,subtree:true,attributes:true,attributeFilter:['href','hidden']});
     trigger.addEventListener('click',event=>{
       event.preventDefault();

@@ -41,3 +41,14 @@ test('clearing a pending photo invalidates it and saving waits for compression',
 test('stored photo markup cannot inject a new image attribute',()=>{
   const f=fixture(JSON.stringify([{id:'1',species:'კობრი',photo:'x" onerror="alert(1)'}]));assert.equal(f.elements.catchList.innerHTML.includes('<img'),false);
 });
+
+test('clearing a catch form restores the current Georgia date and time',()=>{
+  const f=fixture();f.elements.catchDate.value='';f.elements.catchTime.value='';f.elements.clearCatch.onclick();
+  assert.equal(f.elements.catchDate.value,'2026-10-13');assert.equal(f.elements.catchTime.value,'01:30');
+});
+test('negative measurements and impossible dates do not create saved catch records',()=>{
+  const f=fixture();f.elements.catchSpecies.value='კობრი';
+  for(const[weight,length,date]of [['-1','','2026-10-13'],['','-1','2026-10-13'],['1','','2026-02-30']]){
+    f.elements.catchWeight.value=weight;f.elements.catchLength.value=length;f.elements.catchDate.value=date;f.submit();assert.equal(f.stored.length,0);
+  }
+});

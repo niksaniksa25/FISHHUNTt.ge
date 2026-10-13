@@ -42,9 +42,24 @@ test('Georgia date and hour remain correct across the UTC midnight boundary',()=
 test('current observations and hourly forecasts use their own measurements and preserve nulls',()=>{
   const c=client(),data=forecast(),row=c.weatherRowAt(data,'2026-10-13T12:00'),current=c.currentWeatherRow(data);
   assert.equal(row.temperature,20);assert.equal(row.pressure,null);assert.equal(row.source,'forecast');
+  assert.equal(row.apparent_temperature,null,'missing apparent temperature is not invented from air temperature');
   assert.equal(current.temperature,18);assert.equal(current.time,'12:15');assert.equal(current.source,'current');assert.equal(current.rainProb,35);
+  assert.equal(current.apparent_temperature,null);
   data.current.wind_speed_10m=null;assert.equal(c.currentWeatherRow(data).wind,null);
   assert.equal(c.weatherRowAt(data,'2026-10-13T00:00'),null);
+});
+
+test('a location change clears the previous pressure gauge until the new forecast arrives',async()=>{
+  const c=client(),nodes=new Map();for(const id of ['weatherGps','weatherPressureNeedle','weatherPressureValue','weatherPressureStatus','weatherPressureAdvice'])nodes.set(id,{style:{},textContent:''});
+  c.document.getElementById=id=>nodes.get(id)||null;c.document.querySelectorAll=()=>[];
+  c.window.addEventListener=()=>{};c.window.dispatchEvent=()=>{};c.CustomEvent=class{};
+  c.navigator={geolocation:{getCurrentPosition:success=>success({coords:{latitude:42,longitude:45}})}};
+  const data=forecast();data.current.pressure_msl=1022;c.openMeteo=async()=>data;
+  await c.initWeatherPage(41,44,'თბილისი');assert.equal(nodes.get('weatherPressureValue').textContent,1022);
+  let complete;c.openMeteo=()=>new Promise(resolve=>{complete=resolve;});nodes.get('weatherGps').onclick();
+  assert.equal(nodes.get('weatherPressureValue').textContent,'—');assert.equal(nodes.get('weatherPressureNeedle').hidden,true);
+  data.current.pressure_msl=1008;complete(data);await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(nodes.get('weatherPressureValue').textContent,1008);assert.equal(nodes.get('weatherPressureNeedle').hidden,false);
 });
 test('invalid location coordinates cannot trigger a Gulf of Guinea weather request',async()=>{
   let requests=0;const c=client(async()=>{requests++;});

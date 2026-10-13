@@ -12,7 +12,7 @@ let data, assets, child, base, cookie, feedbackId;
 async function start() {
   child = spawn(process.execPath, ['server.js'], {
     cwd: repo,
-    env: { ...process.env, HOST: '127.0.0.1', PORT: '0', GEONATURE_DATA_DIR: data, GEONATURE_ADMIN_PANEL_PASSWORD: password },
+    env: { ...process.env, HOST: '127.0.0.1', PORT: '0', GEONATURE_DATA_DIR: data, GEONATURE_ADMIN_PANEL_PASSWORD: password, BOG_TRIAL_SETUP_URL:'https://example.invalid/card?ref={ref}' },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   base = await new Promise((resolve, reject) => {
@@ -52,6 +52,17 @@ after(async () => {
   await stop();
   if (assets) await fs.rm(assets, { recursive: true, force: true });
   if (data) await fs.rm(data, { recursive: true, force: true });
+});
+
+test('unsigned trial success callbacks cannot attach a card or activate a plan', async () => {
+  const health=await api('/api/health');assert.equal(health.value.trialConfigured,false);
+  const created=await api('/api/trial/create',{email:'trial@example.invalid',plan:'plus'},503);
+  assert.equal(created.value.code,'trial_verification_unavailable');assert.equal(created.value.redirectUrl,undefined);
+  for(const status of ['success','succeeded','approved','attached']){
+    const callback=await api('/api/trial/callback?ref=forged&status='+status,undefined,503);
+    assert.equal(callback.value.ok,false);assert.equal(callback.response.headers.get('location'),null);
+  }
+  const activated=await api('/api/trial/activate',{ref:'forged'},503);assert.equal(activated.value.ok,false);
 });
 
 test('public pages and assets remain usable while private source is denied', async () => {

@@ -102,3 +102,15 @@ test('failed local profile persistence reports an error and leaves the saved acc
   await assert.rejects(first.auth.request('/profile', { method: 'PATCH', body: JSON.stringify({ displayName: 'Not Saved', avatarId: 'free-fish', backgroundId: 'bg-forest' }) }), /quota/);
   assert.equal((await first.auth.me()).displayName, '');
 });
+
+test('concurrent local registrations preserve both distinct users and reject duplicate email races', async () => {
+  const first=app();
+  const results=await Promise.allSettled([
+    first.auth.request('/signup',post(credentials)),
+    first.auth.request('/signup',post(credentials)),
+    first.auth.request('/signup',post({...credentials,email:'other@example.test'}))
+  ]);
+  assert.equal(results.filter(result=>result.status==='fulfilled').length,2);
+  const users=JSON.parse(first.local.getItem(usersKey));
+  assert.equal(users.length,2);assert.equal(new Set(users.map(user=>user.email)).size,2);
+});

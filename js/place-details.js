@@ -18,7 +18,16 @@ function forecastHtml(data){return(data.daily?.time||[]).slice(0,window.GNPremiu
   return `<article class="place-day"><b>${esc(fmtDate(date))}</b><span>${meta[0]}</span><strong>${fmt(d.temperature_2m_max?.[i],'°',0)} / ${fmt(d.temperature_2m_min?.[i],'°',0)}</strong><small>${esc(meta[1])}</small><small>☔ ${fmt(d.precipitation_probability_max?.[i],'%',0)}</small><small>💨 ${fmt(d.wind_speed_10m_max?.[i],' კმ/სთ',0)}</small><em>საუკეთესო საათის ინდექსი: ${best===null?'—':best+'/100'}</em></article>`;
 }).join('');}
 function hourlyHtml(data,date){return common().hourlyRows(data,date).map(row=>{const meta=codeMeta(row.code),score=displayedOutdoorScore(common().conditionsFromRow(row));return `<button type="button" class="hour-detail" data-iso="${esc(row.iso)}"><small>${esc(row.time)}</small><span>${meta[0]}</span><b>${fmt(row.temperature,'°')}</b><em>${fmt(row.wind,' კმ/სთ')}</em><strong>${score??'—'}</strong></button>`;}).join('');}
-async function init(){const w=findPlace(),nameEl=document.getElementById('placeName');if(!w){nameEl.textContent='ლოკაცია ვერ მოიძებნა';return}document.title=`GeoNature • ${w[1]}`;document.getElementById('placeTags').innerHTML=`<span class="catalog-tag">${esc(w[2])}</span><span class="catalog-tag">${esc(w[3])}</span><span class="catalog-tag live-place-tag">ამინდი მოწმდება</span>`;nameEl.textContent=w[1];document.getElementById('placeLead').textContent=w[7]||'საქართველოს წყალსატევის საინფორმაციო ლოკაცია.';
+function showMissingPlace(){
+  document.title='GeoNature • ლოკაცია ვერ მოიძებნა';
+  document.getElementById('placeName').textContent='ლოკაცია ვერ მოიძებნა';
+  document.getElementById('placeLead').innerHTML='ეს ბმული ცნობარში არსებულ ადგილს არ ემთხვევა. <a class="btn ghost" href="fishing-places.html">ადგილის მოძებნა →</a>';
+  document.getElementById('environment').innerHTML='<div class="empty">აირჩიე ადგილი ცნობარიდან, რომ მისი რუკა და ამინდის პირობები ნახო.</div>';
+  document.getElementById('weatherRefresh').disabled=true;
+  for(const id of ['infoGrid','history','fishLinks','assessmentFactors','forecast','hourly','mapBtn'])document.getElementById(id)?.closest?.('section')?.setAttribute('hidden','');
+  const image=document.getElementById('heroImg');image.src=GeoImage.placeholder('სათევზაო ადგილები','water');image.alt='სათევზაო ადგილები';
+}
+async function init(){const w=findPlace(),nameEl=document.getElementById('placeName');if(!w){showMissingPlace();return;}document.title=`GeoNature • ${w[1]}`;document.getElementById('placeTags').innerHTML=`<span class="catalog-tag">${esc(w[2])}</span><span class="catalog-tag">${esc(w[3])}</span><span class="catalog-tag live-place-tag">ამინდი მოწმდება</span>`;nameEl.textContent=w[1];document.getElementById('placeLead').textContent=w[7]||'საქართველოს წყალსატევის საინფორმაციო ლოკაცია.';
 const queryParams=new URLSearchParams(location.search);
 const mapScore=common().numberOrNull(queryParams.get('score')),incomingChance=common().numberOrNull(queryParams.get('chance'));
 const rawDate=queryParams.get('date')||'',rawHour=queryParams.get('hour');
@@ -43,7 +52,7 @@ document.getElementById('history').textContent=`${w[1]} არის ${w[3]}-ი
 document.getElementById('facts').innerHTML=[`ლოკაციის ტიპი: ${w[2]}.`,`რეგიონი: ${w[3]}.`,`საინფორმაციო აღწერა: ${w[7]||'მოცემული წყლის მონაკვეთი.'}`,`დაკავშირებული თევზები: ${fish.length?fish.join(', '):'სია არ არის'}.`,`Outdoor Score ეფუძნება მიმდინარე გარემო პირობებს.`].map(x=>`<li>${esc(x)}</li>`).join('');
 document.getElementById('fishLinks').innerHTML=fish.length?fishIds.map(id=>{const f=(window.FISHES||[]).find(v=>v[0]===id);const n=f?.[1]||id;const key=f?.[2]||f?.[1]||id;return `<a class="fish-link" href="species.html?id=${encodeURIComponent(key)}">🐟 ${esc(n)} <span>→</span></a>`}).join(''):'<p class="muted">ამ ლოკაციისთვის თევზის სია მითითებული არ არის.</p>';
 
-const ph=GeoImage.placeholder(`${w[1]} • ${w[3]}`,w[2]==='მდინარე'||w[2]==='ზღვა'?'water':'nature');document.getElementById('heroImg').src=ph;GeoImage.resolvePlaceImage(w[1],w[3],w[2]).then(src=>{document.getElementById('heroImg').src=src}).catch(()=>{});
+const ph=GeoImage.placeholder(`${w[1]} • ${w[3]}`,w[2]==='მდინარე'||w[2]==='ზღვა'?'water':'nature');document.getElementById('heroImg').src=ph;document.getElementById('heroImg').alt=w[1];GeoImage.resolvePlaceImage(w[1],w[3],w[2]).then(src=>{document.getElementById('heroImg').src=src}).catch(()=>{});
 let selectedISO='',requestId=0;
 async function loadWeather(options={}){
   const token=++requestId,box=document.getElementById('environment');box.innerHTML='<div class="loading-box">ამინდი იტვირთება…</div>';
