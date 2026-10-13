@@ -23,7 +23,8 @@
   }
   function allCatches(s=state()){
     let records=[];try{const parsed=JSON.parse(localStorage.getItem('gn_catches')||'[]');if(Array.isArray(parsed))records=parsed.filter(item=>item&&typeof item==='object'&&typeof item.species==='string');}catch{}
-    return [...s.catches.map(item=>({...item,source:'planner'})),...records.map(item=>({...item,fish:item.species,source:'catch-log'}))].sort((a,b)=>Number(a.createdAt||a.id||0)-Number(b.createdAt||b.id||0));
+    const planner=Array.isArray(s?.catches)?s.catches.filter(item=>item&&typeof item==='object'):[];
+    return [...planner.map(item=>({...item,source:'planner'})),...records.map(item=>({...item,fish:item.species,source:'catch-log'}))].sort((a,b)=>Number(a.createdAt||a.id||0)-Number(b.createdAt||b.id||0));
   }
   function displayState(){const s=state(),catches=allCatches(s),badges=new Set(s.badges);if(catches.length)badges.add('first-catch');if(catches.length>=5)badges.add('five-catches');return {...s,catches,badges:[...badges]};}
   function save(s){localStorage.setItem(KEY,JSON.stringify(s));document.dispatchEvent(new CustomEvent('geonature:state'));syncXpToServer(s);}

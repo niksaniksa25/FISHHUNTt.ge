@@ -57,3 +57,13 @@ test('personal insights use the same combined catch records as the dashboard',()
   const box={innerHTML:''};env.nodes.set('gnPersonalInsightsGrid',box);env.saved.set('geonature_plus_v1',JSON.stringify({catches:[],xp:10}));
   env.context.GeoNatureExtras.renderPersonalInsights();assert.match(box.innerHTML,/ლოქო • 2.5 კგ/);assert.match(box.innerHTML,/თბილისის ზღვა/);assert.doesNotMatch(box.innerHTML,/Catch Log ჯერ ცარიელია/);
 });
+test('fresh and malformed dashboard storage renders personal insights through the actual shared catch helper',()=>{
+  const env=script('geonature-plus.js');vm.runInContext(fs.readFileSync(path.join(__dirname,'../js/geo-extras.js'),'utf8'),env.context);
+  const box={innerHTML:''};env.nodes.set('gnPersonalInsightsGrid',box);
+  env.context.GeoNatureExtras.renderPersonalInsights();assert.match(box.innerHTML,/Catch Log ჯერ ცარიელია/);
+  for(const stored of [{},null,{catches:{}},{catches:[null,'bad']}]){
+    env.saved.set('geonature_plus_v1',JSON.stringify(stored));env.saved.set('gn_catches',JSON.stringify([{species:'ლოქო',weight:2.5}]));
+    env.context.GeoNatureExtras.renderPersonalInsights();assert.match(box.innerHTML,/ლოქო • 2.5 კგ/);assert.doesNotMatch(box.innerHTML,/Catch Log ჯერ ცარიელია/);
+  }
+  assert.equal(env.context.GeoNaturePlus.allCatches(null).length,1);
+});
