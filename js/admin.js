@@ -1,12 +1,24 @@
 (function(){
   'use strict';
   const $=id=>document.getElementById(id);
-  function apiBase(){let base=String(window.GN_API_BASE_URL||'').trim();while(base.endsWith('/'))base=base.slice(0,-1);return base;}
+  function apiBase(){let base=String(window.GN_ADMIN_WORKER_ORIGIN||window.GN_API_BASE_URL||'').trim();while(base.endsWith('/'))base=base.slice(0,-1);return base;}
+  const cloudAdmin=()=>Boolean(String(window.GN_ADMIN_WORKER_ORIGIN||'').trim());
+  const tokenKey='gn_worker_admin_token';
+  function savedToken(){
+    try{return sessionStorage.getItem(tokenKey)||localStorage.getItem(tokenKey)||'';}
+    catch{return '';}
+  }
+  function clearSavedToken(){
+    try{sessionStorage.removeItem(tokenKey);localStorage.removeItem(tokenKey);localStorage.removeItem('gn_admin_local');}
+    catch{}
+  }
   let serverAvailable=true;
   async function req(path,opt={}){
-    const options={credentials:'include',headers:{'Content-Type':'application/json',...(opt.headers||{})},...opt};
+    const token=cloudAdmin()?savedToken():'';
+    const options={credentials:cloudAdmin()?'omit':'include',
+      headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{}),...(opt.headers||{})},...opt};
     const base=apiBase();
-    if(!base && String(location.hostname||'').toLowerCase().endsWith('.github.io')) throw new Error('Admin/Feedback API არ არის მიბმული. ჩაწერე Node სერვერის HTTPS მისამართი js/api-config.js-ში.');
+    if(!base && String(location.hostname||'').toLowerCase().endsWith('.github.io')) throw new Error('Admin API არ არის მიბმული. დააკავშირე უსაფრთხო სერვერი js/api-config.js-ში.');
     const r=await fetch(base+'/api/admin'+path,options);
     let d={};try{d=await r.json()}catch{}
     if(!r.ok)throw new Error(d.message||'Admin request failed');
@@ -17,10 +29,17 @@
   function statusLabel(s){return s==='resolved'?'გასწორებული':s==='read'?'წაკითხული':'ახალი'}
   function showPanel(local=false){$('adminLogin').classList.add('hidden');$('adminPanel').classList.remove('hidden');$('adminSystemNotice').hidden=!local;if(local){$('adminSystemNotice').classList.add('admin-local-warning');$('adminSystemNotice').textContent='LOCAL PREVIEW: სერვერი მიუწვდომელია. Feedback-ის შენახვა, რეალური ვიზიტების სტატისტიკა და გაყიდვების მონაცემები გამოჩნდება მხოლოდ START_GeoNature.bat-ით გაშვებული Node სერვერისას.';$('adminStats').innerHTML=['ვიზიტორები','გვერდის ნახვები','რეგისტრაციები','შესვლები','შესყიდვები','შემოსავალი','Premium','შეკვეთები'].map(x=>`<div><b>—</b><span>${x}</span></div>`).join('');$('adminFeedback').innerHTML='<div class="admin-empty">სერვერთან დაკავშირება ვერ მოხერხდა — შენახული შეტყობინებები ხელმისაწვდომი არ არის.</div>';$('adminPurchaseSummary').innerHTML='';$('adminPurchases').innerHTML='';$('adminUsers').innerHTML='<div class="mini-row"><b>Local preview</b><span>სტატისტიკა მიუწვდომელია</span><span>ADMIN</span></div>';}}
   function renderStats(s){
+    if(s.statsUnavailable){
+      const note=$('adminSystemNotice');
+      note.hidden=false;
+      note.classList.add('admin-local-warning');
+      note.textContent='Cloudflare-ზე Admin და Feedback მუშაობს. ვიზიტორების, ანგარიშების და BOG გაყიდვების ძველი Node სტატისტიკა ამ Worker-ში არ ინახება; ამ მონაცემებს არ ვიგონებთ.';
+    }
+    const unavailable=s.statsUnavailable;
     const cards=[['ვიზიტორები',s.uniqueVisitors??0,'ბრაუზერის ანონიმური ID'],['გვერდის ნახვები',s.pageViews??0,'ყველა აღრიცხული გვერდი'],['მოწვევის ბმულის გახსნა',s.inviteOpensTotal??0,'გაზიარებული ?ref= ბმულები'],['რეგისტრაციები',s.registrations??s.users??0,'ანგარიშები'],['შესვლები',s.logins??0,'წარმატებული ავტორიზაციები'],['შესყიდვები',s.purchases??0,'დადასტურებული გადახდები'],['შემოსავალი',`${Number(s.revenue||0).toFixed(2)} ₾`,'დადასტურებული BOG გადახდები'],['Premium მომხმარებლები',s.activePlans??0,'აქტიური ფასიანი გეგმა'],['შეკვეთის მცდელობები',s.orders??0,'შექმნილი შეკვეთები']];
-    $('adminStats').innerHTML=cards.map(([label,value,note])=>`<div><b>${esc(value)}</b><span>${esc(label)}</span><small>${esc(note)}</small></div>`).join('');
+    $('adminStats').innerHTML=cards.map(([label,value,note])=>`<div><b>${esc(unavailable?'—':value)}</b><span>${esc(label)}</span><small>${esc(unavailable?'სერვერი არ არის მიბმული':note)}</small></div>`).join('');
     const pp=s.purchasesByPlan||{};
-    $('adminPurchaseSummary').innerHTML=`<div><b>${esc(pp.plus||0)}</b><span>GeoNature Plus</span></div><div><b>${esc(pp.pro||0)}</b><span>AI Pro</span></div><div><b>${Number(s.revenue||0).toFixed(2)} ₾</b><span>ჯამური დადასტურებული თანხა</span></div>`;
+    $('adminPurchaseSummary').innerHTML=unavailable?'<div class="admin-empty">გაყიდვების მონაცემები ამ სერვერზე არ არის ხელმისაწვდომი.</div>':`<div><b>${esc(pp.plus||0)}</b><span>GeoNature Plus</span></div><div><b>${esc(pp.pro||0)}</b><span>AI Pro</span></div><div><b>${Number(s.revenue||0).toFixed(2)} ₾</b><span>ჯამური დადასტურებული თანხა</span></div>`;
     const purchases=s.recentPurchases||[];
     $('adminPurchases').innerHTML=purchases.map(p=>`<div class="mini-row"><b>${esc(p.plan==='pro'?'AI Pro':'Plus')} • ${esc(p.termMonths||1)} თვე</b><span>${Number(p.amount||0).toFixed(2)} ₾</span><span>${esc(date(p.at))}</span></div>`).join('')||'<div class="admin-empty">ჯერ დადასტურებული შესყიდვები არ არის.</div>';
     $('adminUsers').innerHTML=(s.recent||[]).map(u=>`<div class="mini-row"><b>${esc(u.email)}</b><span>${esc(u.plan||'free')}</span><span>${esc(u.role||'user')}</span></div>`).join('')||'<div class="admin-empty">ჯერ ანგარიშები არ არის.</div>';
@@ -65,21 +84,37 @@
     catch(e){if(!serverAvailable)return;serverAvailable=false;$('adminSystemNotice').hidden=false;$('adminSystemNotice').classList.add('admin-local-warning');$('adminSystemNotice').textContent='სერვერთან კავშირი დაკარგულია. ახალი შეტყობინებები/მონაცემები ვერ ჩაიტვირთა; გადაამოწმე START_GeoNature.bat და სცადე განახლება.';console.warn(e);}
   }
   async function checkAdmin(){
-    try{const m=await req('/me');if(m.admin){showPanel(false);await reloadAll();return true;}return false;}
-    catch(_){return false;}
+    if(cloudAdmin()&&!savedToken()){clearSavedToken();return false;}
+    try{
+      const m=await req('/me');
+      if(m.admin){
+        try{localStorage.setItem('gn_admin_local','1');}catch{}
+        showPanel(false);await reloadAll();return true;
+      }
+    }catch(_){}
+    if(cloudAdmin())clearSavedToken();
+    return false;
   }
   $('adminLoginBtn').onclick=async()=>{
     const msg=$('adminMsg');msg.textContent='მოწმდება…';msg.className='auth-message';const pwd=$('adminPassword').value;
     try{
-      await req('/login',{method:'POST',body:JSON.stringify({password:pwd,remember:$('adminRemember').checked})});
-      try{localStorage.removeItem('gn_admin_local');localStorage.setItem('gn_admin_unlocked_at',String(Date.now()));}catch{}
+      const remember=$('adminRemember').checked;
+      const result=await req('/login',{method:'POST',body:JSON.stringify({password:pwd,remember})});
+      if(cloudAdmin()){
+        if(!/^[0-9a-f]{64}$/.test(result.token||''))throw new Error('სერვერმა სესია ვერ დაადასტურა.');
+        if(remember){localStorage.setItem(tokenKey,result.token);sessionStorage.removeItem(tokenKey);}
+        else{sessionStorage.setItem(tokenKey,result.token);localStorage.removeItem(tokenKey);}
+        localStorage.setItem('gn_admin_local','1');
+      }
+      try{localStorage.setItem('gn_admin_unlocked_at',String(Date.now()));}catch{}
+      $('adminPassword').value='';
       msg.textContent='ACCESS GRANTED';msg.className='auth-message success';showPanel(false);await reloadAll();
     }catch(e){
       msg.textContent=e.message||'Admin access failed';
       msg.className='auth-message error';
     }
   };
-  $('adminLogout').onclick=async()=>{try{await req('/logout',{method:'POST',body:'{}'})}catch{}try{localStorage.removeItem('gn_admin_local');localStorage.removeItem('gn_admin_unlocked_at')}catch{}location.reload()};
+  $('adminLogout').onclick=async()=>{try{await req('/logout',{method:'POST',body:'{}'})}catch{}clearSavedToken();try{localStorage.removeItem('gn_admin_unlocked_at')}catch{}location.reload()};
   $('refreshFeedback').onclick=()=>reloadFeedback().catch(e=>alert(e.message));
   $('refreshStats').onclick=()=>reloadAll();
   $('refreshActivity')?.addEventListener('click',()=>reloadAll());
@@ -90,6 +125,6 @@
     try{await req('/feedback/status',{method:'PATCH',body:JSON.stringify({id:btn.dataset.feedbackId,status:btn.dataset.feedbackStatus})});await reloadFeedback();}
     catch(err){alert(err.message||'სტატუსის შეცვლა ვერ მოხერხდა.');btn.disabled=false;}
   });
-  checkAdmin().then(ok=>{if(!ok&&!String(location.hostname||'').toLowerCase().endsWith('.github.io')){try{if(localStorage.getItem('gn_admin_local')==='1')showPanel(true);}catch{}}});
+  checkAdmin().then(ok=>{if(!ok&&!cloudAdmin()&&!String(location.hostname||'').toLowerCase().endsWith('.github.io')){try{if(localStorage.getItem('gn_admin_local')==='1')showPanel(true);}catch{}}});
   setInterval(()=>{if(!$('adminPanel').classList.contains('hidden')&&serverAvailable)reloadAll();},45000);
 })();
