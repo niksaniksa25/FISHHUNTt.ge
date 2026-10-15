@@ -28,7 +28,13 @@
     return '';
   }
   function adminUnlocked(){
-    try{return localStorage.getItem('gn_admin_local')==='1';}catch(_){return false;}
+    try{
+      if(String(window.GN_ADMIN_WORKER_ORIGIN||'').trim()){
+        const token=sessionStorage.getItem('gn_worker_admin_token')||localStorage.getItem('gn_worker_admin_token');
+        return Boolean(token && localStorage.getItem('gn_admin_local')==='1');
+      }
+      return localStorage.getItem('gn_admin_local')==='1';
+    }catch(_){return false;}
   }
   function currentPlan(){
     try{
@@ -41,6 +47,19 @@
     }catch(_){return 'free';}
   }
   async function syncAdminState(){
+    const worker=String(window.GN_ADMIN_WORKER_ORIGIN||'').trim().replace(/\/+$/,'');
+    if(worker){
+      let token='';
+      try{token=sessionStorage.getItem('gn_worker_admin_token')||localStorage.getItem('gn_worker_admin_token')||'';}catch(_){}
+      if(!/^[0-9a-f]{64}$/.test(token)){try{localStorage.removeItem('gn_admin_local')}catch(_){}return false;}
+      try{
+        const response=await fetch(worker+'/api/admin/me',{headers:{Authorization:'Bearer '+token},cache:'no-store'});
+        const data=response.ok?await response.json():{};
+        if(data.admin){localStorage.setItem('gn_admin_local','1');return true;}
+      }catch(_){}
+      try{localStorage.removeItem('gn_admin_local');localStorage.removeItem('gn_worker_admin_token');sessionStorage.removeItem('gn_worker_admin_token');}catch(_){}
+      return false;
+    }
     const base=String(window.GN_API_BASE_URL||document.querySelector('meta[name="gn-api-base"]')?.content||'').replace(/\/+$/,'');
     if(!base&&(location.protocol==='file:'||String(location.hostname||'').toLowerCase().endsWith('.github.io')))return adminUnlocked();
     try{
