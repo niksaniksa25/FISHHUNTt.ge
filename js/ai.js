@@ -306,9 +306,12 @@ function initAI() {
   }
 
   function serverUrl(path) {
-    const base = String(window.GN_API_BASE_URL || '').trim().replaceAll('\\', '/').replace(/\/+$/, '');
-    // GitHub Pages must connect to the separate HTTPS Node API.
+    // AI can use the free, independently hosted Worker without changing other APIs.
+    const worker = String(window.GN_AI_WORKER_ORIGIN || '').trim().replace(/\/+$/, '');
+    const base = worker || String(window.GN_API_BASE_URL || '').trim().replace(/\/+$/, '');
+    // GitHub Pages must connect to a separate HTTPS API or Worker.
     if (location.hostname.endsWith('github.io') && !base) return '';
+    if (worker && !/^https:\/\/[a-z0-9.-]+(?::\d+)?$/i.test(worker)) return '';
     return base + path;
   }
   function addChatBubble(kind, content) {
@@ -384,6 +387,6 @@ function initAI() {
 
   populateEntities('quick');
   renderQuestions();
-  if (status) status.textContent = '● FishHunt AI • რეალური მოდელი';
+  if (status) status.textContent = serverUrl('/api/ai/chat') ? '● FishHunt AI • კავშირი მზადაა შესამოწმებლად' : '○ AI სერვერი გასააქტიურებელია';
   tabs.querySelectorAll('[data-ai-cat]').forEach(tab => tab.setAttribute('aria-pressed', String(tab.dataset.aiCat === current)));
 }
