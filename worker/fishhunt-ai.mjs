@@ -85,7 +85,12 @@ export default {
     }
     if (url.pathname === "/api/health" && request.method === "GET") {
       return json({ok:true,service:"FishHunt AI",configured:Boolean(env.GEMINI_API_KEY),
-        adminConfigured:Boolean(env.ADMIN_KV && String(env.ADMIN_PASSWORD||"").length>=12)},200,origin,allowed);
+        adminConfigured:Boolean(env.ADMIN_KV && String(env.ADMIN_PASSWORD||"").length>=12),
+        analyticsConfigured:Boolean(env.ADMIN_KV)},200,origin,allowed);
+    }
+    if (url.pathname === "/api/analytics/visit") {
+      try {return await recordVisitor(request,env,origin,allowed);}
+      catch(error){console.error("Analytics visit failed:",error.name);return json({ok:false,message:"ვიზიტის დაფიქსირება ამჟამად ვერ მოხერხდა."},503,origin,allowed);}
     }
     if (url.pathname.startsWith("/api/admin/") || url.pathname === "/api/feedback") {
       try {return await handleAdminApi(request,env,url,origin,allowed);}
@@ -265,13 +270,24 @@ async function handleAdminApi(req,env,url,origin,allowed){
     return adminReply({ok:true},200,origin,true);
   }
   if(route==="/api/admin/stats"&&req.method==="GET"){
-    // This Worker does not record BOG payments or anonymous visits.
-    // Always disclose missing sources instead of inventing analytics.
+    // Count real browser-originated analytics events in KV (no invented values).
+    // Never mistake this for verified human identities or payment data.
+    const now=Date.now();
+    const today=georgiaDay(now),yesterday=georgiaDay(now-86400000);
+    const [todayCount,yesterdayCount,allTimeCount]=await Promise.all([
+      countAnalyticsKeys(env.ADMIN_KV,"analytics:day:"+today+":"),
+      countAnalyticsKeys(env.ADMIN_KV,"analytics:day:"+yesterday+":"),
+      countAnalyticsKeys(env.ADMIN_KV,"analytics:unique:")
+    ]);
     return adminReply({ok:true,stats:{
-      uniqueVisitors:null,pageViews:null,registrations:null,logins:null,
+      visitorsToday:todayCount,visitorsYesterday:yesterdayCount,
+      uniqueVisitors:allTimeCount,analyticsDay:today,
+      // No Node API, purchases, or user database is attached to this Worker.
+      pageViews:null,registrations:null,logins:null,
       purchases:null,revenue:null,activePlans:null,orders:null,
       recent:[],recentPurchases:[],recentPageViews:[],recentInviteOpens:[],
-      purchasesByPlan:{},statsUnavailable:true
+      purchasesByPlan:{},statsUnavailable:true,visitorAnalyticsAvailable:true,
+      analyticsLimited:todayCount===null||yesterdayCount===null||allTimeCount===null
     }},200,origin,true);
   }
   if(route==="/api/admin/feedback"&&req.method==="GET"){
@@ -295,4 +311,55 @@ async function handleAdminApi(req,env,url,origin,allowed){
     return adminReply({ok:true,item:updated},200,origin,true);
   }
   return adminReply({ok:false,message:"Not found"},404,origin,true);
+}
+
+
+// Anonymous visit counting begins only once the updated Worker is deployed.
+// Uses Asia/Tbilisi calendar days, and one KV record per visitor/day plus
+// one per never-before-seen visitor (not raw IPs, names, or emails).
+const visitLimits=new Map();
+function georgiaDay(ms) {
+  const parts=new Intl.DateTimeFormat("en-US",{
+    timeZone:"Asia/Tbilisi",year:"numeric",month:"2-digit",day:"2-digit"
+  }).formatToParts(new Date(ms));
+  const get=type=>parts.find(p=>p.type===type).value;
+  return get("year")+"-"+get("month")+"-"+get("day");
+}
+async function countAnalyticsKeys(store,prefix) {
+  let cursor=undefined,total=0;
+  // Never silently report truncated counts as exact.
+  for(let page=0;page<10;page++){
+    const result=await store.list({prefix,limit:1000,...(cursor?{cursor}:{})});
+    total+=result.keys.length;
+    if(result.list_complete===true)return total;
+    if(!result.cursor)return null;
+    cursor=result.cursor;
+  }
+  return null;
+}
+async function recordVisitor(req,env,origin,allowed) {
+  if(!allowed)return json({ok:false,message:"Origin not permitted"},403,origin,false);
+  if(req.method!=="POST")return json({ok:false,message:"Method not allowed"},405,origin,true);
+  if(!env.ADMIN_KV)return json({ok:false,message:"Analytics storage not configured"},503,origin,true);
+  if(inMemoryLimit(visitLimits,req,90,3600000))
+    return json({ok:false,message:"Too many visit requests"},429,origin,true);
+  const data=await jsonInput(req,1024);
+  const visitorId=typeof data?.visitorId==="string"?data.visitorId:"";
+  const page=typeof data?.path==="string"?data.path:"";
+  if(!/^[A-Za-z0-9_-]{16,80}$/.test(visitorId)||
+     !/^\/FISHHUNTt\.ge\/[A-Za-z0-9_./-]{0,160}$/.test(page)||
+     page.includes(".."))
+    return json({ok:false,message:"Invalid visit"},400,origin,true);
+  const hash=await sha256(visitorId);
+  const day=georgiaDay(Date.now());
+  const dayKey="analytics:day:"+day+":"+hash;
+  // Two writes on a visitor's first day; just one on subsequent days.
+  // KV Free plan has daily write/read limits; counters are not fabricated on failure.
+  const existing=await env.ADMIN_KV.get(dayKey);
+  if(existing)return json({ok:true,recorded:false},200,origin,true);
+  await env.ADMIN_KV.put(dayKey,"1",{expirationTtl:400*86400});
+  const uniqueKey="analytics:unique:"+hash;
+  const ever=await env.ADMIN_KV.get(uniqueKey);
+  if(!ever)await env.ADMIN_KV.put(uniqueKey,"1");
+  return json({ok:true,recorded:true},201,origin,true);
 }
