@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 /* GeoNature Live Assessment Factors
  * Exact display values come from the same hourly/current weather payload used by the page.
  * Kp is read live from NOAA SWPC when available; moon illumination is calculated astronomically.
@@ -261,4 +259,3 @@
   }
   window.GNLiveFactors={render,bind,rowAt,moonPhase,fetchKp,pressureTrend,forecastInstant,fields};
 })();
->>>>>>> aecf3d59363952da10b96a17adebfee618d2cbd1
