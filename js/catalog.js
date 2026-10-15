@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 const WILDLIFE = window.HUNTING_WILDLIFE || [];
 function initCatalog(){
   const search=document.getElementById('catalogSearch'),type=document.getElementById('catalogType'),results=document.getElementById('catalogResults'),suggest=document.getElementById('catalogSuggestions'),count=document.getElementById('catalogCount');
@@ -62,4 +60,3 @@ function initCatalog(){
   window.GeoCatalogRanking={refresh:refreshWeather};
   render();refreshWeather();setInterval(()=>{if(!document.hidden)return refreshWeather();},300000);
 }
->>>>>>> aecf3d59363952da10b96a17adebfee618d2cbd1
