@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 window.FISHES=[
 ['carp','კობრი','Common carp','მტკნარი','ტბები, წყალსაცავები, ნელი მდინარეები','აღმოსავლეთი, ქართლისა და კახეთის წყალსატევები','1–20+ კგ','18–26°C','1000–1025 hPa','5–15 კმ/სთ','დილა • საღამო','Cyprinus carpio'],
 ['crucian','კარასი','Prussian carp','მტკნარი','ტბები, წყალსაცავები, მცირე ტბორები','აღმოსავლეთი და ცენტრალური საქართველო','0.1–2 კგ','16–27°C','995–1025 hPa','0–12 კმ/სთ','დილა • საღამო','Carassius gibelio'],
@@ -343,4 +341,3 @@ window.GeoWildlifeChance=function(x,context={}){
   const totalWeight=terms.reduce((sum,[,weight])=>sum+weight,0),score=Math.round(terms.reduce((sum,[value,weight])=>sum+value*weight,0)/totalWeight-penalty);
   return Math.max(0,Math.min([95,96,99].includes(code)?25:100,score));
 };
->>>>>>> aecf3d59363952da10b96a17adebfee618d2cbd1
