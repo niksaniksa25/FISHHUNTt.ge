@@ -21,7 +21,9 @@
     if(!base && String(location.hostname||'').toLowerCase().endsWith('.github.io')) throw new Error('Admin API არ არის მიბმული. დააკავშირე უსაფრთხო სერვერი js/api-config.js-ში.');
     const r=await fetch(base+'/api/admin'+path,options);
     let d={};try{d=await r.json()}catch{}
-    if(!r.ok)throw new Error(d.message||'Admin request failed');
+    if(!r.ok)throw new Error(d.message||(r.status===404&&cloudAdmin()
+      ?'Worker-ის ძველი კოდია. განაახლე Cloudflare-ში worker/fishhunt-ai.mjs და დააჭირე Deploy.'
+      :'Admin request failed'));
     return d;
   }
   function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
