@@ -6,7 +6,7 @@ window.GN_API_BASE_URL = ''; // Replace the empty string with the public HTTPS N
 // Optional free Gemini Cloudflare Worker for FishHunt AI ONLY.
 // Paste the worker's https://YOUR-NAME.workers.dev origin after deployment.
 // Do not paste GEMINI_API_KEY or any secret into this file.
-window.GN_AI_WORKER_ORIGIN = '';
+window.GN_AI_WORKER_ORIGIN = 'https://fishhunt-ai.bsloveer25.workers.dev';
 window.GN_API_BASE_URL = String(window.GN_API_BASE_URL || '').trim();
 while (window.GN_API_BASE_URL.endsWith('/')) window.GN_API_BASE_URL = window.GN_API_BASE_URL.slice(0, -1);
 window.__GN_API_CONFIG_LOADED = true;
