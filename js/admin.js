@@ -31,22 +31,47 @@
   function statusLabel(s){return s==='resolved'?'გასწორებული':s==='read'?'წაკითხული':'ახალი'}
   function showPanel(local=false){$('adminLogin').classList.add('hidden');$('adminPanel').classList.remove('hidden');$('adminSystemNotice').hidden=!local;if(local){$('adminSystemNotice').classList.add('admin-local-warning');$('adminSystemNotice').textContent='LOCAL PREVIEW: სერვერი მიუწვდომელია. Feedback-ის შენახვა, რეალური ვიზიტების სტატისტიკა და გაყიდვების მონაცემები გამოჩნდება მხოლოდ START_GeoNature.bat-ით გაშვებული Node სერვერისას.';$('adminStats').innerHTML=['ვიზიტორები','გვერდის ნახვები','რეგისტრაციები','შესვლები','შესყიდვები','შემოსავალი','Premium','შეკვეთები'].map(x=>`<div><b>—</b><span>${x}</span></div>`).join('');$('adminFeedback').innerHTML='<div class="admin-empty">სერვერთან დაკავშირება ვერ მოხერხდა — შენახული შეტყობინებები ხელმისაწვდომი არ არის.</div>';$('adminPurchaseSummary').innerHTML='';$('adminPurchases').innerHTML='';$('adminUsers').innerHTML='<div class="mini-row"><b>Local preview</b><span>სტატისტიკა მიუწვდომელია</span><span>ADMIN</span></div>';}}
   function renderStats(s){
-    if(s.statsUnavailable){
-      const note=$('adminSystemNotice');
-      note.hidden=false;
-      note.classList.add('admin-local-warning');
-      note.textContent='Cloudflare-ზე Admin და Feedback მუშაობს. ვიზიტორების, ანგარიშების და BOG გაყიდვების ძველი Node სტატისტიკა ამ Worker-ში არ ინახება; ამ მონაცემებს არ ვიგონებთ.';
+    const unavailable=Boolean(s.statsUnavailable);
+    const analytics=Boolean(s.visitorAnalyticsAvailable);
+    const notice=$('adminSystemNotice');
+    if(unavailable){
+      notice.hidden=false;
+      notice.classList.add('admin-local-warning');
+      notice.textContent=analytics
+        ? 'Cloudflare ითვლის უნიკალურ ბრაუზერებს საქართველოს დროით. დათვლა იწყება ახალი Worker-ის გამოქვეყნების შემდეგ. ანგარიშები, გვერდის ნახვები და BOG გადახდები ამ Worker-ში არ ინახება.'
+        : 'ვიზიტორების დათვლა ჯერ არ არის ჩართული. ანგარიშების და BOG გაყიდვების მონაცემები ამ Worker-ში არ ინახება.';
     }
-    const unavailable=s.statsUnavailable;
-    const cards=[['ვიზიტორები',s.uniqueVisitors??0,'ბრაუზერის ანონიმური ID'],['გვერდის ნახვები',s.pageViews??0,'ყველა აღრიცხული გვერდი'],['მოწვევის ბმულის გახსნა',s.inviteOpensTotal??0,'გაზიარებული ?ref= ბმულები'],['რეგისტრაციები',s.registrations??s.users??0,'ანგარიშები'],['შესვლები',s.logins??0,'წარმატებული ავტორიზაციები'],['შესყიდვები',s.purchases??0,'დადასტურებული გადახდები'],['შემოსავალი',`${Number(s.revenue||0).toFixed(2)} ₾`,'დადასტურებული BOG გადახდები'],['Premium მომხმარებლები',s.activePlans??0,'აქტიური ფასიანი გეგმა'],['შეკვეთის მცდელობები',s.orders??0,'შექმნილი შეკვეთები']];
-    $('adminStats').innerHTML=cards.map(([label,value,note])=>`<div><b>${esc(unavailable?'—':value)}</b><span>${esc(label)}</span><small>${esc(unavailable?'სერვერი არ არის მიბმული':note)}</small></div>`).join('');
+    const cards=[
+      ...(analytics?[
+        ['დღეს შემოსული',s.visitorsToday,'უნიკალური ბრაუზერები • საქართველოს დრო',true],
+        ['გუშინ შემოსული',s.visitorsYesterday,'უნიკალური ბრაუზერები • საქართველოს დრო',true]
+      ]:[]),
+      ['ვიზიტორები მთლიანობაში',s.uniqueVisitors,'უნიკალური ბრაუზერები • დათვლის დაწყებიდან',analytics||!unavailable],
+      ['გვერდის ნახვები',s.pageViews,'ყველა აღრიცხული გვერდი',!unavailable],
+      ['მოწვევის ბმულის გახსნა',s.inviteOpensTotal,'გაზიარებული ?ref= ბმულები',!unavailable],
+      ['რეგისტრაციები',s.registrations??s.users,'ანგარიშები',!unavailable],
+      ['შესვლები',s.logins,'წარმატებული ავტორიზაციები',!unavailable],
+      ['შესყიდვები',s.purchases,'დადასტურებული გადახდები',!unavailable],
+      ['შემოსავალი',s.revenue!=null?Number(s.revenue).toFixed(2)+' ₾':null,'დადასტურებული BOG გადახდები',!unavailable],
+      ['Premium მომხმარებლები',s.activePlans,'აქტიური ფასიანი გეგმა',!unavailable],
+      ['შეკვეთის მცდელობები',s.orders,'შექმნილი შეკვეთები',!unavailable]
+    ];
+    $('adminStats').innerHTML=cards.map(([label,value,note,available])=>'<div><b>'+esc(available&&value!=null?value:'—')+'</b><span>'+esc(label)+'</span><small>'+esc(available?note:'მონაცემთა წყარო არ არის დაკავშირებული')+'</small></div>').join('');
     const pp=s.purchasesByPlan||{};
-    $('adminPurchaseSummary').innerHTML=unavailable?'<div class="admin-empty">გაყიდვების მონაცემები ამ სერვერზე არ არის ხელმისაწვდომი.</div>':`<div><b>${esc(pp.plus||0)}</b><span>GeoNature Plus</span></div><div><b>${esc(pp.pro||0)}</b><span>AI Pro</span></div><div><b>${Number(s.revenue||0).toFixed(2)} ₾</b><span>ჯამური დადასტურებული თანხა</span></div>`;
+    $('adminPurchaseSummary').innerHTML=unavailable?'<div class="admin-empty">გაყიდვების მონაცემები ამ სერვერზე არ არის ხელმისაწვდომი.</div>':
+      '<div><b>'+esc(pp.plus||0)+'</b><span>GeoNature Plus</span></div><div><b>'+esc(pp.pro||0)+'</b><span>AI Pro</span></div><div><b>'+Number(s.revenue||0).toFixed(2)+' ₾</b><span>ჯამური დადასტურებული თანხა</span></div>';
     const purchases=s.recentPurchases||[];
-    $('adminPurchases').innerHTML=purchases.map(p=>`<div class="mini-row"><b>${esc(p.plan==='pro'?'AI Pro':'Plus')} • ${esc(p.termMonths||1)} თვე</b><span>${Number(p.amount||0).toFixed(2)} ₾</span><span>${esc(date(p.at))}</span></div>`).join('')||'<div class="admin-empty">ჯერ დადასტურებული შესყიდვები არ არის.</div>';
-    $('adminUsers').innerHTML=(s.recent||[]).map(u=>`<div class="mini-row"><b>${esc(u.email)}</b><span>${esc(u.plan||'free')}</span><span>${esc(u.role||'user')}</span></div>`).join('')||'<div class="admin-empty">ჯერ ანგარიშები არ არის.</div>';
+    $('adminPurchases').innerHTML=unavailable?'<div class="admin-empty">შესყიდვების რეალური ბაზა არ არის დაკავშირებული.</div>':
+      (purchases.map(p=>'<div class="mini-row"><b>'+esc(p.plan==='pro'?'AI Pro':'Plus')+' • '+esc(p.termMonths||1)+' თვე</b><span>'+Number(p.amount||0).toFixed(2)+' ₾</span><span>'+esc(date(p.at))+'</span></div>').join('')||'<div class="admin-empty">ჯერ დადასტურებული შესყიდვები არ არის.</div>');
+    $('adminUsers').innerHTML=unavailable?'<div class="admin-empty">მომხმარებლების ანგარიშების ბაზა არ არის დაკავშირებული.</div>':
+      ((s.recent||[]).map(u=>'<div class="mini-row"><b>'+esc(u.email)+'</b><span>'+esc(u.plan||'free')+'</span><span>'+esc(u.role||'user')+'</span></div>').join('')||'<div class="admin-empty">ჯერ ანგარიშები არ არის.</div>');
     renderRecentActivity(s.recentPageViews||[],s.recentInviteOpens||[]);
+    if(unavailable){
+      $('adminPageViews').innerHTML='<div class="admin-empty">ითვლება უნიკალური ვიზიტორების რაოდენობა. ინდივიდუალური გვერდების ისტორია ამ Worker-ში არ ინახება.</div>';
+      $('adminReferrals').innerHTML='<div class="admin-empty">მოწვევის ბმულების ისტორია ამ Worker-ში არ ინახება.</div>';
+    }
   }
+
   const adminAvatars={
     'free-fish':'assets/avatars/photo/fish.jpg','free-leaf':'assets/avatars/photo/forest.jpg','free-camp':'assets/avatars/photo/sunset.jpg',
     'free-fox':'assets/avatars/photo/fox.jpg','free-wave':'assets/avatars/photo/lake.jpg','free-ranger':'assets/avatars/photo/rod-close.jpg',
