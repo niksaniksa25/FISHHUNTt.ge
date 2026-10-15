@@ -206,6 +206,8 @@ function initAI() {
   if (!list || !msgs || !input || !tabs || !entitySelect || !search) return;
   let current = 'quick';
   let activeQs = [];
+  const chatHistory = [];
+  let pendingAI = false;
 
   function appendMessage(userText, answerHtml) {
     const safeUser = esc(userText);
@@ -303,9 +305,54 @@ function initAI() {
     });
   }
 
-  function sendQuestion(q, fn) {
+  function serverUrl(path) {
+    const base = String(window.GN_API_BASE_URL || '').trim().replace(/\\/$/, '');
+    // GitHub Pages must connect to the separate HTTPS Node API.
+    if (location.hostname.endsWith('github.io') && !base) return '';
+    return base + path;
+  }
+  function addChatBubble(kind, content) {
+    const bubble = document.createElement('div');
+    bubble.className = kind;
+    bubble.textContent = content;
+    msgs.appendChild(bubble);
+    msgs.scrollTop = msgs.scrollHeight;
+    return bubble;
+  }
+  async function askRealAI(text) {
+    if (!text || pendingAI) return;
+    const endpoint = serverUrl('/api/ai/chat');
+    addChatBubble('user', text);
+    const responseBubble = addChatBubble('assistant', 'ვფიქრობ…');
+    pendingAI = true;
+    const sendButton = document.getElementById('aiSend');
+    if (sendButton) sendButton.disabled = true;
+    if (status) {status.classList.add('busy'); status.textContent = '● FishHunt AI ფიქრობს…';}
+    try {
+      if (!endpoint) throw new Error('AI სერვერის მისამართი ჯერ არ არის მითითებული.');
+      const selected = AI_CATEGORIES[current].entity?.[Number(entitySelect.value)];
+      const reply = await fetch(endpoint, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({message: text, history: chatHistory.slice(-8), context: {category: current, entity: selected?.name || ''}})
+      });
+      let data = {};
+      try {data = await reply.json();} catch {}
+      if (!reply.ok || !data.ok || !data.answer) throw new Error(data.message || 'AI-სთან კავშირი ვერ შედგა.');
+      responseBubble.textContent = data.answer;
+      chatHistory.push({role: 'user', content: text}, {role: 'assistant', content: data.answer});
+      if (chatHistory.length > 16) chatHistory.splice(0, chatHistory.length - 16);
+    } catch (error) {
+      responseBubble.textContent = error.message || 'AI-სთან კავშირი ვერ შედგა.';
+    } finally {
+      pendingAI = false;
+      if (sendButton) sendButton.disabled = false;
+      if (status) {status.classList.remove('busy'); status.textContent = '● FishHunt AI • რეალური მოდელი';}
+    }
+  }
+  function sendQuestion(q) {
     input.value = '';
-    sendWithFeedback(q, fn);
+    askRealAI(q);
   }
 
   tabs.querySelectorAll('[data-ai-cat]').forEach(btn => {
@@ -327,7 +374,7 @@ function initAI() {
   search.oninput = renderQuestions;
   const sendInput = () => {
     const t = input.value.trim();
-    if (t) sendWithFeedback(t, () => answer(t));
+    if (t) askRealAI(t);
     input.value = '';
   };
   document.getElementById('aiSend').onclick = sendInput;
@@ -337,6 +384,6 @@ function initAI() {
 
   populateEntities('quick');
   renderQuestions();
-  setBusy(false);
+  if (status) status.textContent = '● FishHunt AI • რეალური მოდელი';
   tabs.querySelectorAll('[data-ai-cat]').forEach(tab => tab.setAttribute('aria-pressed', String(tab.dataset.aiCat === current)));
 }
