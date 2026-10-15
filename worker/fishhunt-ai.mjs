@@ -26,7 +26,7 @@ function headersFor(origin, permitted) {
   if (permitted && origin) {
     h.set("Access-Control-Allow-Origin", origin);
     h.set("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
-    h.set("Access-Control-Allow-Headers", "Content-Type");
+    h.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
   }
   return h;
 }
