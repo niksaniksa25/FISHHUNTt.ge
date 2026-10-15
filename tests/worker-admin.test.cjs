@@ -52,8 +52,23 @@ test('admin authentication, feedback lifecycle, and revocation use private stora
  assert.equal(r.status,200);
  r=await worker.fetch(req('/api/admin/feedback?status=resolved','GET',undefined,login.token),env);
  assert.equal((await r.json()).items.length,1);
+ const view={visitorId:'visitor-identifier-001',path:'/FISHHUNTt.ge/index.html'};
+ r=await worker.fetch(req('/api/analytics/visit','POST',view),env);
+ assert.equal(r.status,201);
+ r=await worker.fetch(req('/api/analytics/visit','POST',view),env);
+ assert.equal(r.status,200); // same visitor and day must not double-count
+ r=await worker.fetch(req('/api/analytics/visit','POST',{visitorId:'visitor-identifier-002',path:'/FISHHUNTt.ge/fishing.html'}),env);
+ assert.equal(r.status,201);
+ r=await worker.fetch(req('/api/analytics/visit','POST',{visitorId:'bad',path:'/FISHHUNTt.ge/index.html'}),env);
+ assert.equal(r.status,400);
  r=await worker.fetch(req('/api/admin/stats','GET',undefined,login.token),env);
- assert.equal((await r.json()).stats.statsUnavailable,true);
+ const stats=(await r.json()).stats;
+ assert.equal(stats.statsUnavailable,true);
+ assert.equal(stats.visitorAnalyticsAvailable,true);
+ assert.equal(stats.visitorsToday,2);
+ assert.equal(stats.visitorsYesterday,0);
+ assert.equal(stats.uniqueVisitors,2);
+ assert.equal(stats.purchases,null);
  r=await worker.fetch(req('/api/admin/logout','POST',{},login.token),env);
  assert.equal(r.status,200);
  r=await worker.fetch(req('/api/admin/me','GET',undefined,login.token),env);
