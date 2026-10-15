@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
@@ -207,4 +205,3 @@ test('guide destination loading keeps the focused weather button and independent
   await page.context.GeoGuideRanking.refresh();assert.equal(page.element('fgPlaceGrid').children[0],cards[1]);assert.equal(cards[1].dataset.score,40);
   page.context.openMeteo=async()=>{throw Error('offline');};await target.onclick({stopPropagation(){}});assert.equal(target.disabled,false);assert.equal(page.context.document.activeElement,target);assert.equal(cards[1].dataset.score,'');assert.equal(cards[1].parts.context.textContent,'');
 });
->>>>>>> aecf3d59363952da10b96a17adebfee618d2cbd1
