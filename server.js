@@ -1,3 +1,4 @@
+const {handleAiChat} = require('./lib/ai-chat');
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -603,11 +604,13 @@ const server=http.createServer(async(req,res)=>{
   try{
     const u=new URL(req.url,`http://${req.headers.host}`);
 
-    const usesAppCors=u.pathname==='/api/weather'||u.pathname==='/api/feedback'||u.pathname.startsWith('/api/analytics/')||u.pathname.startsWith('/api/admin/')||u.pathname.startsWith('/api/auth/')||u.pathname.startsWith('/api/leaderboard/');
+    const usesAppCors=u.pathname==='/api/weather'||u.pathname==='/api/feedback'||u.pathname.startsWith('/api/analytics/')||u.pathname.startsWith('/api/admin/')||u.pathname.startsWith('/api/auth/')||u.pathname.startsWith('/api/leaderboard/')||u.pathname==='/api/ai/chat';
     if(usesAppCors){
       appCors(req,res);
       if(req.method==='OPTIONS'){res.writeHead(204);return res.end();}
     }
+
+    if(u.pathname==='/api/ai/chat') return handleAiChat(req,res,{readBody:body,json,originIsAllowed});
 
     if(u.pathname.startsWith('/api/push/')){
       pushCors(req,res);
