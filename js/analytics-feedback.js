@@ -32,9 +32,9 @@
   });
   function apiBase() { let base = String(window.GN_API_BASE_URL || '').trim(); while (base.endsWith('/')) base = base.slice(0, -1); return base; }
   function apiEndpoint(route) {
-    // Feedback can use the free Worker independently of payments/auth/analytics.
+    // Public feedback and anonymous visitor counts use the free Worker.
     const worker = String(window.GN_ADMIN_WORKER_ORIGIN || '').trim().replace(/\/+$/, '');
-    if (route === '/api/feedback' && worker) return worker + route;
+    if ((route === '/api/feedback' || route === '/api/analytics/visit') && worker) return worker + route;
     const base = apiBase();
     if (base) return base + route;
     // GitHub Pages serves only static files: /api/* exists only on the Node backend.
@@ -43,14 +43,26 @@
   }
   let apiConfigSettled = false;
   if (!String(currentPath).toLowerCase().endsWith('/admin.html')) {
-    apiConfigReady.then(() => {
+    apiConfigReady.then(async () => {
       const endpoint = apiEndpoint('/api/analytics/visit');
       if (!endpoint) return;
-      return fetch(endpoint, {
-        method: 'POST', credentials: apiBase() ? 'include' : 'same-origin',
+      // Avoid repeated writes when a visitor navigates between site pages.
+      // The Worker independently de-duplicates by anonymous browser/day.
+      const day = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Tbilisi', year: 'numeric', month: '2-digit', day: '2-digit'
+      }).format(new Date());
+      const key = 'gn_visit_recorded_day';
+      try { if (sessionStorage.getItem(key) === day) return; } catch (_) {}
+      const onWorker = Boolean(window.GN_ADMIN_WORKER_ORIGIN && endpoint.startsWith(String(window.GN_ADMIN_WORKER_ORIGIN)));
+      const response = await fetch(endpoint, {
+        method: 'POST', credentials: onWorker ? 'omit' : (apiBase() ? 'include' : 'same-origin'),
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ visitorId, path: currentPath, title: document.title || 'GeoNature', referralCode }), keepalive: true
+        body: JSON.stringify({ visitorId, path: currentPath, title: document.title || 'GeoNature', referralCode }),
+        keepalive: true
       });
+      if (response.ok) {
+        try { sessionStorage.setItem(key, day); } catch (_) {}
+      }
     }).catch(() => {});
   }
 
