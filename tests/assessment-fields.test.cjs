@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -123,4 +121,3 @@ test('all five assessment pages include every field and readable model and scale
     assert.match(html, /id="factorModelExplanation"/); assert.match(html, /id="factorMode"/); assert.match(html, /ბარები აჩვენებს მონაცემის შკალას/);
   }
 });
->>>>>>> aecf3d59363952da10b96a17adebfee618d2cbd1
