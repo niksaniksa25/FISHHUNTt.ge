@@ -36,3 +36,18 @@ To customize a non-GitHub Pages frontend origin, add `FISHHUNT_ALLOWED_ORIGINS` 
 Use the Worker only for AI. Do not switch BOG payments, push, analytics, or donations to this Worker.
 
 If you do not want any accounts, keys, or quotas at all, a cloud-hosted advanced AI is not realistically guaranteed to run for free. Fully local in-browser models are another possibility but are much weaker/slower on phones and require substantial model downloads.
+
+
+## Free Cloudflare Admin + Feedback (owner setup required)
+
+The same Cloudflare Worker now supports server-verified administrator login, feedback storage, and feedback management. It is independent of the paid Node.js API and existing Gemini AI.
+
+1. In the Cloudflare dashboard open Storage & databases -> KV and create a KV namespace named fishhunt-admin.
+2. Open Workers & Pages -> fishhunt-ai -> Settings -> Bindings -> Add binding -> KV namespace. Select fishhunt-admin. The variable name MUST be exactly ADMIN_KV.
+3. Open Settings -> Variables and Secrets -> Add. Add type Secret, name ADMIN_PASSWORD, value a NEW private strong password at least 12 characters long. Do not put it in GitHub, share it in chat, or remove the existing GEMINI_API_KEY.
+4. Open Edit code on fishhunt-ai. Replace the entire editor with the latest code at https://github.com/niksaniksa25/FISHHUNTt.ge/blob/main/worker/fishhunt-ai.mjs and click Deploy. GitHub changes alone cannot deploy the Worker.
+5. Open https://fishhunt-ai.bsloveer25.workers.dev/api/health and confirm adminConfigured: true (plus configured: true for Gemini).
+6. Visit https://niksaniksa25.github.io/FISHHUNTt.ge/admin.html and sign in with the new ADMIN_PASSWORD. The user-facing website already points to the Worker public URL.
+7. Submit a test feedback message and confirm its arrival in the Admin inbox.
+
+Limitations: old Node accounts, visitor analytics, and Bank of Georgia purchases do NOT move to this Worker; those figures are shown as unavailable. This change supports a live KV-stored feedback inbox, authenticated sessions, and mark-read/resolved. Cloudflare KV free limits and eventual consistency apply; the feedback list currently scans at most 300 records. Auth tokens are held in sessionStorage/localStorage depending on Remember me. Client-side premium UI gating is not authoritative paid entitlement. Set rate limits and optional Turnstile before significant public traffic.
