@@ -25,6 +25,10 @@ services:
         generateValue: true
       - key: GEONATURE_ADMIN_PANEL_PASSWORD
         generateValue: true
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-4.1-mini
       - key: BOG_CLIENT_ID
         sync: false
       - key: BOG_CLIENT_SECRET
