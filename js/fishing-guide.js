@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 (function(){
   const esc=v=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
   const clamp=(n,a=0,b=100)=>Math.max(a,Math.min(b,Math.round(n)));
@@ -130,4 +128,3 @@
   }
   document.addEventListener('DOMContentLoaded',init);
 })();
->>>>>>> aecf3d59363952da10b96a17adebfee618d2cbd1
