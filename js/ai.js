@@ -306,7 +306,7 @@ function initAI() {
   }
 
   function serverUrl(path) {
-    const base = String(window.GN_API_BASE_URL || '').trim().replace(/\\/$/, '');
+    const base = String(window.GN_API_BASE_URL || '').trim().replaceAll('\\', '/').replace(/\/+$/, '');
     // GitHub Pages must connect to the separate HTTPS Node API.
     if (location.hostname.endsWith('github.io') && !base) return '';
     return base + path;
