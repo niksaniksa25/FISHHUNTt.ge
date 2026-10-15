@@ -32,6 +32,9 @@
   });
   function apiBase() { let base = String(window.GN_API_BASE_URL || '').trim(); while (base.endsWith('/')) base = base.slice(0, -1); return base; }
   function apiEndpoint(route) {
+    // Feedback can use the free Worker independently of payments/auth/analytics.
+    const worker = String(window.GN_ADMIN_WORKER_ORIGIN || '').trim().replace(/\/+$/, '');
+    if (route === '/api/feedback' && worker) return worker + route;
     const base = apiBase();
     if (base) return base + route;
     // GitHub Pages serves only static files: /api/* exists only on the Node backend.
