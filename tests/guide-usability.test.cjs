@@ -24,17 +24,47 @@ test('Georgian inflected names match while short species names cannot match unre
   const c=guide();assert.equal(c.findFish('კალმახზე რა შეზღუდვაა?').id,'browntrout');assert.equal(c.findWild('არწივზე ნადირობა?').scientific,'Aquila chrysaetos');
   assert.equal(c.entityNameMatches('ბუნება როგორ მუშაობს','ბუ'),false);assert.equal(c.entityNameMatches('ბუს ჰაბიტატი','ბუ'),true);
 });
-test('guide text entry and selected-species questions give consistent immediate catalog answers',()=>{
-  const c=guide(),nodes=new Map(),messages=[];
+test('free real-AI chat sends questions to model gateway and preserves category selection',async()=>{
+  const c=guide(),nodes=new Map(),messages=[],sent=[];
   const node=id=>{
-    if(!nodes.has(id))nodes.set(id,{value:'',dataset:{},attributes:{},classList:{add(){},remove(){},toggle(){}},setAttribute(name,value){this.attributes[name]=value;},querySelectorAll(){return[];},appendChild(){},insertAdjacentHTML(position,html){messages.push(html);}});
+    if(!nodes.has(id))nodes.set(id,{
+      value:'',dataset:{},attributes:{},classList:{add(){},remove(){},toggle(){}},
+      setAttribute(name,value){this.attributes[name]=value;},
+      querySelectorAll(){return[];},appendChild(){},insertAdjacentHTML(){}
+    });
     return nodes.get(id);
   };
   const tabs=['quick','weather','fishing','fish','wild','place','site'].map(cat=>({...node('tab'+cat),dataset:{aiCat:cat}}));
-  node('aiCategoryTabs').querySelectorAll=()=>tabs;c.document={getElementById:node,createElement:()=>({})};
-  c.initAI();node('aiInput').value='როგორ გავაგზავნო უკუკავშირი?';node('aiSend').onclick();assert.match(messages.at(-1),/Create issue/);assert.match(node('aiStatus').textContent,/საიტის ცნობარიდან/);
-  tabs.find(tab=>tab.dataset.aiCat==='fish').onclick();node('aiEntity').value='0';node('aiInput').value='რა ტემპერატურა უხდება?';
-  let prevented=false;node('aiInput').onkeydown({key:'Enter',isComposing:false,preventDefault(){prevented=true;}});assert.equal(prevented,true);assert.match(messages.at(-1),/8–18°C/);
-  const count=messages.length;node('aiInput').value='კალმახი';node('aiInput').onkeydown({key:'Enter',isComposing:true});assert.equal(messages.length,count);
+  node('aiCategoryTabs').querySelectorAll=()=>tabs;
+  node('chatMessages').appendChild=bubble=>{messages.push(bubble);};
+  c.document={getElementById:node,createElement:()=>({})};
+  c.location={hostname:'niksaniksa25.github.io'};
+  c.GN_AI_WORKER_ORIGIN='https://fishhunt-demo.example.workers.dev';
+  c.fetch=async(url,options)=>{
+    sent.push({url,payload:JSON.parse(options.body)});
+    return {ok:true,json:async()=>({ok:true,answer:'AI პასუხი კობრზე'})};
+  };
+  c.initAI();
+  node('aiInput').value='როგორ ვითევზაო კობრზე?';
+  node('aiSend').onclick();
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(sent.length,1);
+  assert.match(sent[0].url,/fishhunt-demo\.example\.workers\.dev\/api\/ai\/chat/);
+  assert.equal(sent[0].payload.message,'როგორ ვითევზაო კობრზე?');
+  assert.match(messages.at(-1).textContent,/AI პასუხი/);
+
+  tabs.find(tab=>tab.dataset.aiCat==='fish').onclick();
+  node('aiEntity').value='0';
+  node('aiInput').value='რა ტემპერატურა უხდება?';
+  let prevented=false;
+  node('aiInput').onkeydown({key:'Enter',isComposing:false,preventDefault(){prevented=true;}});
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(prevented,true);
+  assert.equal(sent.length,2);
+  assert.equal(sent[1].payload.context.entity,'კალმახი');
+  const count=sent.length;
+  node('aiInput').value='კალმახი';
+  node('aiInput').onkeydown({key:'Enter',isComposing:true});
+  assert.equal(sent.length,count);
   assert.equal(tabs.find(tab=>tab.dataset.aiCat==='fish').attributes['aria-pressed'],'true');
 });
