@@ -509,8 +509,10 @@ function configuredFrontendOrigin(){
 }
 function originIsAllowed(origin){
   const configured=configuredFrontendOrigin();
+  let backendOrigin='';
+  try{backendOrigin=new URL(PUBLIC_BASE_URL).origin}catch{}
   const local=/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
-  return Boolean(origin && (origin.replace(/\/+$/,'')===configured || local));
+  return Boolean(origin && (origin.replace(/\/+$/,'')===configured || origin.replace(/\/+$/,'')===backendOrigin || local));
 }
 function appCors(req,res){
   const origin=String(req.headers.origin||'');
