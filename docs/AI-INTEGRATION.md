@@ -51,3 +51,17 @@ The same Cloudflare Worker now supports server-verified administrator login, fee
 7. Submit a test feedback message and confirm its arrival in the Admin inbox.
 
 Limitations: old Node accounts, visitor analytics, and Bank of Georgia purchases do NOT move to this Worker; those figures are shown as unavailable. This change supports a live KV-stored feedback inbox, authenticated sessions, and mark-read/resolved. Cloudflare KV free limits and eventual consistency apply; the feedback list currently scans at most 300 records. Auth tokens are held in sessionStorage/localStorage depending on Remember me. Client-side premium UI gating is not authoritative paid entitlement. Set rate limits and optional Turnstile before significant public traffic.
+
+
+## Anonymous visitor dashboard (today / yesterday / all time)
+
+Admin now displays counted unique browsers for the current Georgia calendar day, previous day and since installation, instead of fabricated metrics.
+
+- No extra Cloudflare resources or secrets: it reuses the existing ADMIN_KV binding, which must remain attached.
+- IMPORTANT: Re-copy the entire newest worker/fishhunt-ai.mjs into fishhunt-ai -> Edit code and click Deploy. A GitHub commit does NOT update the live Worker.
+- Check /api/health for analyticsConfigured:true. Real numbers begin ONLY after the new Worker is deployed; old traffic cannot be reconstructed.
+- Frontend js/analytics-feedback.js sends a POST /api/analytics/visit when site pages load (except Admin). It uses a random browser ID already kept in localStorage; the Worker stores only its SHA-256 hash. No raw IP addresses, names or emails are stored in these analytics records.
+- The Worker de-duplicates each browser once per Asia/Tbilisi calendar day and counts distinct browser IDs all-time. Different browsers or clearing localStorage count as a new unique visitor; these are not verified people, and bots may still be included.
+- The first recorded visit uses up to TWO Cloudflare KV writes (all-time and daily); later days need one write. Cloudflare KV Free's daily write quota is small; heavy traffic may exhaust it and prevent new counts or other KV writes. For high traffic use D1 / purpose-built analytics instead. Totals scanning over 10,000 keys are displayed unavailable instead of a misleading truncated result.
+- Pageviews, historic sales, and authenticated user registrations remain unconnected, and show unavailable rather than zero. Count values are accessible only behind the private Admin token.
+- Use Ctrl+F5 if a browser has cached the old admin.js / analytics-feedback.js scripts.
