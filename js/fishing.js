@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 let selectedFish=null;
 let selectedFishCardScore=null;
 let selectedWater=null;
@@ -609,4 +607,3 @@ window.activityWindowScore=activityWindowScore;
 document.addEventListener('geonature:refresh-plus',()=>document.dispatchEvent(new CustomEvent('gn:fishingUpdated')));
 
 window.GeoFishingPlanner={rowsForDate:hourlyRowsForDate,conditionFromRow:conditionFromFishingRow,scoredHours:scoredFishingHours,bestHour:bestScoredHourForDate,rankedList:rankedFishingList,selectionFromURL:fishingSelectionFromURL,get selectedRow(){return selectedHourlyRow;},get tracksCurrent(){return !selectedFishingHour&&selectedHourlyRow?.source==='current';}};
->>>>>>> aecf3d59363952da10b96a17adebfee618d2cbd1
