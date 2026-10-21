@@ -83,7 +83,7 @@
   function addDashboardExtras(){
     const root=document.getElementById('gnDashboard');if(!root||document.getElementById('gnPersonalInsights'))return;
     const host=document.createElement('div');host.id='gnPersonalInsights';host.className='gn-dashboard-extras';
-    host.innerHTML=`<section class="panel gn-extra-card"><div class="row-between"><div><span class="eyebrow">PERSONAL GEONATURE</span><h2>🧠 შენი სტატისტიკა და რჩევა</h2></div><a class="btn ghost" href="fishing.html">ახალი გასვლის დაგეგმვა →</a></div><div id="gnPersonalInsightsGrid" class="gn-insight-grid"></div></section><section class="panel gn-extra-card"><div class="row-between"><div><span class="eyebrow">საიტის გზამკვლევი</span><h2>კითხვების ცენტრი</h2></div><a class="btn primary" href="ai.html">კითხვების ნახვა →</a></div><p class="muted">მოიძიე საიტში შენახული პასუხები სახეობებზე, ადგილებზე, ამინდსა და გასვლის დაგეგმვაზე. მიმდინარე მონაცემები ამინდის გვერდზე გადაამოწმე.</p></section>`;
+    host.innerHTML=`<section class="panel gn-extra-card"><div class="row-between"><div><span class="eyebrow">PERSONAL GEONATURE</span><h2>🧠 შენი სტატისტიკა და რჩევა</h2></div><a class="btn ghost" href="fishing.html">ახალი გასვლის დაგეგმვა →</a></div><div id="gnPersonalInsightsGrid" class="gn-insight-grid"></div></section><section class="panel gn-extra-card"><div class="row-between"><div><span class="eyebrow">საიტის გზამკვლევი</span><h2>AI</h2></div><a class="btn primary" href="ai.html">AI-სთან საუბარი →</a></div><p class="muted">ესაუბრე AI-ს სახეობებზე, ადგილებზე, აღჭურვილობასა და გასვლის დაგეგმვაზე. მიმდინარე მონაცემები ამინდის გვერდზე გადაამოწმე.</p></section>`;
     root.appendChild(host); renderPersonalInsights();
   }
   function renderPersonalInsights(){

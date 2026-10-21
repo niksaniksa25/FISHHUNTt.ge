@@ -32,7 +32,7 @@ const AI_SITE = [
   ['რამდენი დღის პროგნოზია ხელმისაწვდომი?', 'Free გეგმა აჩვენებს 1 დღეს, Plus — 3 დღეს, AI Pro — 7 დღეს. ხელმისაწვდომი არჩევანი ნაჩვენებია შესაბამის გვერდზე.'],
   ['სად ვნახო დაცული სახეობები?', 'მენიუში გახსენი „წითელი წიგნი“ და გადაამოწმე კონკრეტული სახეობის სტატუსი და ოფიციალური წყარო.'],
   ['როგორ გავაგზავნო უკუკავშირი?', 'დააჭირე ქვედა მარცხენა კუთხეში 💬 უკუკავშირის ღილაკს და აღწერე პრობლემა. GitHub-ის შევსებულ ფორმაში შესვლის შემდეგ დააჭირე „Create issue“-ს — მაშინ გაიგზავნება საჯარო შეტყობინება. მონახაზი საიტზე ამავე ჩანართში შენარჩუნდება.'],
-  ['როგორ მუშაობს ეს კითხვების ცენტრი?', 'ეს ცენტრი პასუხებს საიტში შენახული კითხვებიდან და სახეობების ცნობარიდან არჩევს. მიმდინარე ამინდს შესაბამის ამინდის გვერდზე გადაამოწმე.'],
+  ['როგორ მუშაობს FishHunt AI?', 'AI კითხვებს მოდელთან აგზავნის და საუბრის კონტექსტს ითვალისწინებს. მიმდინარე ამინდი და მოქმედი შეზღუდვები შესაბამის გვერდებზე გადაამოწმე.'],
   ['სად ვნახო ბუნების შესახებ ფაქტები?', 'მენიუში გახსენი „GeoNature ცოდნა“ ან ნახე დღის ფაქტი მთავარ გვერდზე.']
 ];
 const AI_FISHES = (window.FISHES || []).map(f => ({
@@ -240,7 +240,7 @@ function initAI() {
     if (s.includes('მადლობა') || s.includes('გმადლობ')) return 'არაფრის! ❤️ თუ რამე დაგჭირდება, მკითხე.';
     if (s.includes('მუშაობ') || s.includes('მუშაობს') || s.includes('დამეხმარ') || s.includes('რა შეგიძლია')) return 'კი, აქ ვარ და ვმუშაობ. 😊 მკითხე თევზზე, ამინდზე, ლოკაციაზე, დაგეგმვაზე ან თვითონ GeoNature საიტზე.';
     if (s.includes('ნახვამდის') || s === 'bye' || s.includes('კარგად იყავი')) return 'ნახვამდის! წარმატებულ თევზაობას და კარგ გასვლას გისურვებ! 🎣';
-    if (s.includes('ვინ ხარ')) return 'ეს არის GeoNature-ის კითხვების ცენტრი — პასუხები საიტში შენახული ცნობარიდან იძებნება.';
+    if (s.includes('ვინ ხარ')) return 'ეს არის FishHunt AI — თევზაობისა და ბუნების ასისტენტი.';
     if (s.includes('რა შეგიძლია')) return 'შემიძლია დაგეხმარო თევზებზე, ცხოველებზე, სათევზაო ადგილებზე, ამინდზე, რუკაზე და GeoNature-ის ფუნქციებზე.';
     const f = findFish(raw);
     if (f) return fishAnswer(f, raw);
@@ -250,7 +250,7 @@ function initAI() {
     if (p) return placeAnswer(p, raw);
     if (s.includes('feedback') || s.includes('უკუკავშირ') || s.includes('შეცდომ')) return AI_SITE.find(([question]) => question.includes('უკუკავშირ'))[1];
     if (s.includes('შეტყობინ') || s.includes('notification')) return 'მთავარ ან პირად გვერდზე შეტყობინებებში აირჩიე თევზი და ადგილი, შემდეგ შეინახე და ჩართე. შემოწმება საიტის გახსნისას მუშაობს; დახურულ საიტზე გასაგზავნად Push სერვერია საჭირო.';
-    const selected = AI_CATEGORIES[current].entity?.[Number(entitySelect.value)];
+    const selected = entitySelect.value === '' ? null : AI_CATEGORIES[current].entity?.[Number(entitySelect.value)];
     if (entitySelect.value !== '' && selected) return current === 'fish' ? fishAnswer(selected, raw) : current === 'wild' ? wildAnswer(selected, raw) : placeAnswer(selected, raw);
     if (isRuleQuestion(s)) return ruleAnswer(null, raw);
     if (s.includes('ამინდ') || s.includes('ტემპერატურ') || s.includes('ქარ') || s.includes('წნევ') || s.includes('წვიმ')) return weatherAnswer(raw);
@@ -306,62 +306,96 @@ function initAI() {
   }
 
   function serverUrl(path) {
-    // AI can use the free, independently hosted Worker without changing other APIs.
     const worker = String(window.GN_AI_WORKER_ORIGIN || '').trim().replace(/\/+$/, '');
     const base = worker || String(window.GN_API_BASE_URL || '').trim().replace(/\/+$/, '');
-    // GitHub Pages must connect to a separate HTTPS API or Worker.
     if (location.hostname.endsWith('github.io') && !base) return '';
-    if (worker && !/^https:\/\/[a-z0-9.-]+(?::\d+)?$/i.test(worker)) return '';
+    if (base && !/^https:\/\/[a-z0-9.-]+(?::\d+)?$/i.test(base) &&
+        !/^http:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?$/i.test(base)) return '';
     return base + path;
+  }
+  function updateStatus(state, text) {
+    if (!status) return;
+    status.dataset.state = state;
+    status.classList.toggle('busy', state === 'thinking');
+    status.textContent = text;
+  }
+  function revealReply(bubble) {
+    // Reveal the start of a long reply, rather than its last line.
+    requestAnimationFrame(() => {
+      const chat = document.getElementById('aiChat');
+      // The panel's scroll margin accounts for the sticky site header.
+      chat?.scrollIntoView({block: 'start', inline: 'nearest', behavior: 'auto'});
+      msgs.scrollTop = Math.max(0, msgs.scrollTop + bubble.getBoundingClientRect().top - msgs.getBoundingClientRect().top - 14);
+    });
   }
   function addChatBubble(kind, content) {
     const bubble = document.createElement('div');
     bubble.className = kind;
     bubble.textContent = content;
     msgs.appendChild(bubble);
-    msgs.scrollTop = msgs.scrollHeight;
     return bubble;
   }
   async function askRealAI(text) {
-    if (!text || pendingAI) return;
+    if (!text || pendingAI) return false;
+    if (text.length > 1600) {
+      updateStatus('error', 'კითხვა მაქსიმუმ 1600 სიმბოლოს უნდა შეიცავდეს.');
+      return false;
+    }
     const endpoint = serverUrl('/api/ai/chat');
     addChatBubble('user', text);
-    const responseBubble = addChatBubble('assistant', 'ვფიქრობ…');
+    const responseBubble = addChatBubble('assistant', 'პასუხს ვამზადებ…');
     pendingAI = true;
     const sendButton = document.getElementById('aiSend');
     if (sendButton) sendButton.disabled = true;
-    if (status) {status.classList.add('busy'); status.textContent = '● FishHunt AI ფიქრობს…';}
+    msgs.setAttribute('aria-busy', 'true');
+    updateStatus('thinking', 'პასუხს ვამზადებ…');
+    revealReply(responseBubble);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
     try {
       if (!endpoint) throw new Error('AI სერვერის მისამართი ჯერ არ არის მითითებული.');
-      const selected = AI_CATEGORIES[current].entity?.[Number(entitySelect.value)];
+      const selected = entitySelect.value === '' ? null : AI_CATEGORIES[current].entity?.[Number(entitySelect.value)];
       const reply = await fetch(endpoint, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
+        cache: 'no-store',
+        signal: controller.signal,
         body: JSON.stringify({message: text, history: chatHistory.slice(-8), context: {category: current, entity: selected?.name || ''}})
       });
       let data = {};
       try {data = await reply.json();} catch {}
-      if (!reply.ok || !data.ok || !data.answer) throw new Error(data.message || 'AI-სთან კავშირი ვერ შედგა.');
-      responseBubble.textContent = data.answer;
+      if (!reply.ok || !data.ok || typeof data.answer !== 'string' || !data.answer.trim()) {
+        throw new Error(data.message || 'AI-მ პასუხი ვერ დააბრუნა. სცადე ხელახლა.');
+      }
+      responseBubble.textContent = data.answer.trim();
       chatHistory.push({role: 'user', content: text}, {role: 'assistant', content: data.answer});
       if (chatHistory.length > 16) chatHistory.splice(0, chatHistory.length - 16);
+      updateStatus('success', 'პასუხი მზადაა');
     } catch (error) {
-      responseBubble.textContent = error.message || 'AI-სთან კავშირი ვერ შედგა.';
+      responseBubble.textContent = error.name === 'AbortError'
+        ? 'პასუხი დაგვიანდა. სცადე ხელახლა.'
+        : error.message || 'AI-სთან კავშირი ვერ შედგა. სცადე ხელახლა.';
+      responseBubble.classList.add('ai-message-error');
+      updateStatus('error', 'პასუხი ვერ მივიღეთ');
     } finally {
+      clearTimeout(timeout);
       pendingAI = false;
       if (sendButton) sendButton.disabled = false;
-      if (status) {status.classList.remove('busy'); status.textContent = '● FishHunt AI • რეალური მოდელი';}
+      msgs.setAttribute('aria-busy', 'false');
+      revealReply(responseBubble);
     }
+    return true;
   }
   function sendQuestion(q) {
-    input.value = '';
+    if (pendingAI) return;
+    // Choosing a suggestion must not erase a question already being drafted.
     askRealAI(q);
   }
 
   tabs.querySelectorAll('[data-ai-cat]').forEach(btn => {
     const cfg = AI_CATEGORIES[btn.dataset.aiCat];
     if (!cfg) return;
-    btn.textContent = cfg.label + (cfg.entity ? '' : ` ${cfg.count()}`);
+    btn.textContent = cfg.label;
     btn.onclick = () => {
       tabs.querySelectorAll('[data-ai-cat]').forEach(x => x.classList.remove('active'));
       btn.classList.add('active');
@@ -375,18 +409,31 @@ function initAI() {
 
   entitySelect.onchange = renderQuestions;
   search.oninput = renderQuestions;
-  const sendInput = () => {
-    const t = input.value.trim();
-    if (t) askRealAI(t);
+  const sendInput = event => {
+    if (event) event.preventDefault();
+    if (pendingAI) return;
+    const text = input.value.trim();
+    if (!text || text.length > 1600) {
+      if (text.length > 1600) updateStatus('error', 'კითხვა მაქსიმუმ 1600 სიმბოლოს უნდა შეიცავდეს.');
+      return;
+    }
     input.value = '';
+    askRealAI(text);
   };
   document.getElementById('aiSend').onclick = sendInput;
-  input.onkeydown = e => {
-    if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); sendInput(); }
+  const composer = document.getElementById('aiComposer');
+  if (composer) composer.onsubmit = sendInput;
+  input.onkeydown = event => {
+    if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
+      event.preventDefault();
+      sendInput();
+    }
   };
+  const suggestions = document.getElementById('aiSuggestions');
+  if (suggestions && window.matchMedia('(min-width: 1025px)').matches) suggestions.open = true;
 
   populateEntities('quick');
   renderQuestions();
-  if (status) status.textContent = serverUrl('/api/ai/chat') ? '● FishHunt AI • კავშირი მზადაა შესამოწმებლად' : '○ AI სერვერი გასააქტიურებელია';
+  updateStatus(serverUrl('/api/ai/chat') ? 'idle' : 'error', serverUrl('/api/ai/chat') ? 'მზად ვარ შენი კითხვისთვის' : 'AI სერვერი გასააქტიურებელია');
   tabs.querySelectorAll('[data-ai-cat]').forEach(tab => tab.setAttribute('aria-pressed', String(tab.dataset.aiCat === current)));
 }

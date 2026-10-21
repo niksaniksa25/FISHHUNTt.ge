@@ -4,7 +4,7 @@ const fs=require('node:fs');
 const vm=require('node:vm');
 const path=require('node:path');
 function guide(){
-  const context=vm.createContext({Date,Intl,FISHES:[['browntrout','კალმახი','Brown trout','მტკნარი','მდინარე','საქართველო','0.3–4 კგ','8–18°C','1005–1020 hPa','0–12 კმ/სთ','დილა','Salmo trutta']],HUNTING_WILDLIFE:[['bird','არწივი','Eagle','Aquila chrysaetos','ფრინველი','მთა','საქართველო','მთელი წელი','დღე']],WATERS:[]});
+  const context=vm.createContext({Date,Intl,AbortController,setTimeout,clearTimeout,requestAnimationFrame:callback=>callback(),matchMedia:()=>({matches:false}),FISHES:[['browntrout','კალმახი','Brown trout','მტკნარი','მდინარე','საქართველო','0.3–4 კგ','8–18°C','1005–1020 hPa','0–12 კმ/სთ','დილა','Salmo trutta']],HUNTING_WILDLIFE:[['bird','არწივი','Eagle','Aquila chrysaetos','ფრინველი','მთა','საქართველო','მთელი წელი','დღე']],WATERS:[]});
   context.window=context;
   for(const name of ['wildlife-rules.js','ai.js'])vm.runInContext(fs.readFileSync(path.join(__dirname,'../js',name),'utf8'),context);
   return context;
@@ -28,7 +28,7 @@ test('free real-AI chat sends questions to model gateway and preserves category 
   const c=guide(),nodes=new Map(),messages=[],sent=[];
   const node=id=>{
     if(!nodes.has(id))nodes.set(id,{
-      value:'',dataset:{},attributes:{},classList:{add(){},remove(){},toggle(){}},
+      value:'',dataset:{},attributes:{},scrollTop:0,scrollIntoView(){},getBoundingClientRect(){return {top:0}},classList:{add(){},remove(){},toggle(){}},
       setAttribute(name,value){this.attributes[name]=value;},
       querySelectorAll(){return[];},appendChild(){},insertAdjacentHTML(){}
     });
@@ -37,7 +37,7 @@ test('free real-AI chat sends questions to model gateway and preserves category 
   const tabs=['quick','weather','fishing','fish','wild','place','site'].map(cat=>({...node('tab'+cat),dataset:{aiCat:cat}}));
   node('aiCategoryTabs').querySelectorAll=()=>tabs;
   node('chatMessages').appendChild=bubble=>{messages.push(bubble);};
-  c.document={getElementById:node,createElement:()=>({})};
+  c.document={getElementById:node,createElement:()=>({classList:{add(){}},scrollIntoView(){},getBoundingClientRect(){return {top:0}}})};
   c.location={hostname:'niksaniksa25.github.io'};
   c.GN_AI_WORKER_ORIGIN='https://fishhunt-demo.example.workers.dev';
   c.fetch=async(url,options)=>{

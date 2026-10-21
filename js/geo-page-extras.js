@@ -8,7 +8,7 @@
     if(document.getElementById(id))return;
     const anchor=document.getElementById(kind==='fish'?'fishingPlus':'huntingPlus');if(!anchor)return;
     const article=document.createElement('article');article.id=id;article.className='panel gn-card gn-smart-page-guide';
-    article.innerHTML=`<div class="row-between"><div><span class="eyebrow">SMART MOMENT</span><h2>${title}</h2><p class="muted">საუკეთესო საათი იყენებს Planner-ის იმავე მოდელს და არჩეულ ${kind==='fish'?'თევზს, ადგილსა':'სახეობას, რეგიონსა'} და თარიღს.</p></div><a class="btn primary" href="ai.html">კითხვების ცენტრი →</a></div><div id="${id}Body" class="gn-smart-guide-body">Planner-ის მონაცემებს ველოდებით…</div>`;
+    article.innerHTML=`<div class="row-between"><div><span class="eyebrow">SMART MOMENT</span><h2>${title}</h2><p class="muted">საუკეთესო საათი იყენებს Planner-ის იმავე მოდელს და არჩეულ ${kind==='fish'?'თევზს, ადგილსა':'სახეობას, რეგიონსა'} და თარიღს.</p></div><a class="btn primary" href="ai.html">AI →</a></div><div id="${id}Body" class="gn-smart-guide-body">Planner-ის მონაცემებს ველოდებით…</div>`;
     anchor.appendChild(article);
   }
   function recommendations(kind){

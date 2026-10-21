@@ -3,7 +3,7 @@
   const destinations=[
     ['index.html','მთავარი'],['weather.html','ამინდი'],['catalog.html','კატალოგი'],
     ['map.html','რუკა'],['fishing.html','🎣 თევზაობა'],['hunting.html','🦌 ნადირობა'],
-    ['ai.html','კითხვები'],['donate.html','♡ დონაცია'],
+    ['ai.html','AI'],['donate.html','♡ დონაცია'],
     ['fishing-places.html','სათევზაო ადგილები'],['fishing-guide.html','სად წავიდეთ სათევზაოდ'],
     ['fishing-guide.html#fgHuntPlacesSection','სანადირო ადგილები'],['field-kit.html','აღჭურვილობა'],
     ['catch-log.html','ჩემი დაჭერები'],['together.html','ერთად გასვლა'],['dashboard.html','ჩემი GeoNature'],
