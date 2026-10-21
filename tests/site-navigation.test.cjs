@@ -4,6 +4,14 @@ const fs=require('node:fs');
 const path=require('node:path');
 const vm=require('node:vm');
 const source=name=>fs.readFileSync(path.join(__dirname,'../js',name),'utf8');
+test('HTML pages declare standards mode before visible content and contain no merge artifacts',()=>{
+  const root=path.join(__dirname,'..');
+  for(const name of fs.readdirSync(root).filter(name=>name.endsWith('.html'))){
+    const html=fs.readFileSync(path.join(root,name),'utf8');
+    assert.doesNotMatch(html,/^(?:<{7}|={7}|>{7})(?:\s|$)/m,name+' contains unresolved merge artifacts');
+    if(/<!doctype\s+html/i.test(html))assert.match(html,/^\s*<!doctype\s+html\b/i,name+' must enter browser standards mode');
+  }
+});
 function shell(search=''){
   const elements=new Map(),ready=[];
   const element=id=>{
