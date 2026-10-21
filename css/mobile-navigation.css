@@ -1,0 +1,69 @@
+/* Phone navigation retains the original links and their existing handlers. */
+@media(max-width:1024px) {
+  body.gn-has-bottom-nav { --gn-bottom-space:calc(70px + env(safe-area-inset-bottom,0px)); padding-bottom:var(--gn-bottom-space)!important; }
+  body.gn-has-bottom-nav .header { backdrop-filter:none!important; -webkit-backdrop-filter:none!important; filter:none!important; transform:none!important; }
+  body.gn-has-bottom-nav .header-inner { flex-wrap:nowrap!important; min-height:56px!important; }
+  body.gn-has-bottom-nav .header #nav,
+  body.gn-has-bottom-nav .header #nav.open,
+  body.gn-has-bottom-nav .header #nav:not(.open) {
+    position:fixed!important; top:auto!important; left:0!important; right:0!important; bottom:0!important;
+    display:flex!important; flex-flow:row nowrap!important; align-items:center!important; justify-content:flex-start!important;
+    width:100%!important; min-width:0!important; max-width:none!important; height:var(--gn-bottom-space)!important; max-height:none!important;
+    padding:6px max(8px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px))!important;
+    gap:4px!important; border:0!important; border-top:1px solid #345047!important; border-radius:0!important;
+    background:#102721!important; box-shadow:0 -8px 28px rgba(0,0,0,.22)!important; z-index:3000;
+    overflow-x:auto!important; overflow-y:hidden!important; scrollbar-width:none!important;
+    overscroll-behavior-x:contain; -webkit-overflow-scrolling:touch; touch-action:pan-x pan-y pinch-zoom;
+    scroll-padding-inline:180px 16px;
+  }
+  body.gn-has-bottom-nav .header #nav::-webkit-scrollbar { display:none; }
+  body.gn-has-bottom-nav .header #nav .more-wrap,
+  body.gn-has-bottom-nav .header #nav .more-menu,
+  body.gn-has-bottom-nav .header #nav .gn-auth-slot { display:contents!important; }
+  body.gn-has-bottom-nav .header #nav .header-live-pill { display:none!important; }
+  body.gn-has-bottom-nav .header #nav a[data-gn-nav-label] {
+    position:relative; display:flex!important; flex-direction:column!important; align-items:center!important; justify-content:center!important;
+    flex:0 0 auto!important; order:10; width:max-content!important; min-width:72px!important; max-width:128px!important;
+    height:56px!important; min-height:56px!important; padding:4px 9px!important; margin:0!important; gap:3px!important;
+    border:1px solid transparent!important; border-radius:10px!important; background:transparent!important; color:#b8cdc1!important;
+    font-size:0!important; line-height:1!important; text-align:center!important; white-space:normal!important;
+  }
+  body.gn-has-bottom-nav .header #nav a[data-gn-nav-label]::before { content:attr(data-gn-nav-icon); display:block; font-size:20px; line-height:22px; font-weight:500; }
+  body.gn-has-bottom-nav .header #nav a[data-gn-nav-label]::after { content:attr(data-gn-nav-label); display:block; max-width:108px; font-size:10px; line-height:13px; font-weight:600; overflow-wrap:anywhere; }
+  body.gn-has-bottom-nav .header #nav a[data-gn-nav-label]>.mi,
+  body.gn-has-bottom-nav .header #nav a[data-gn-nav-label]>.mt,
+  body.gn-has-bottom-nav .header #nav a[data-gn-nav-label]>span { display:none!important; }
+  body.gn-has-bottom-nav .header #nav a[data-gn-mobile-duplicate=true] { display:none!important; }
+  body.gn-has-bottom-nav .header #nav a[data-gn-bottom-primary]:not([data-gn-bottom-primary=""]) {
+    position:sticky!important; z-index:4; width:52px!important; min-width:52px!important; max-width:52px!important;
+    flex-basis:52px!important; padding-inline:2px!important; background:#102721!important;
+  }
+  body.gn-has-bottom-nav .header #nav a[data-gn-bottom-primary]:not([data-gn-bottom-primary=""])::after { max-width:50px; font-size:9px; white-space:nowrap; }
+  body.gn-has-bottom-nav .header #nav>button:not(.more-trigger):not(.gn-feedback-fab) { flex:0 0 auto; order:16; }
+  body.gn-has-bottom-nav .header #nav a[data-gn-bottom-primary=home] { left:0; order:-30; }
+  body.gn-has-bottom-nav .header #nav a[data-gn-bottom-primary=map] { left:56px; order:-20; }
+  body.gn-has-bottom-nav .header #nav a[data-gn-bottom-primary=ai] { left:112px; order:-10; box-shadow:9px 0 9px -3px #102721; }
+  body.gn-has-bottom-nav .header #nav a[data-gn-bottom-order=weather] { order:0; }
+  body.gn-has-bottom-nav .header #nav a[data-gn-bottom-order=fishing] { order:1; }
+  body.gn-has-bottom-nav .header #nav a[aria-current=page] { color:#d7efb5!important; background:#294637!important; border-color:#476c50!important; }
+  body.gn-has-bottom-nav .header #nav a:focus-visible { z-index:6; outline-offset:-3px!important; }
+  body.gn-has-bottom-nav .header #nav .gn-alert-count { position:absolute; top:2px; right:7px; padding:2px 4px; border-radius:8px; background:#c9e6a6; color:#14271b; font-size:9px!important; line-height:12px; }
+  body.gn-has-bottom-nav .header #nav .gn-alert-count[hidden] { display:none!important; }
+  body.gn-has-bottom-nav .header #nav>.gn-feedback-fab {
+    position:relative!important; inset:auto!important; flex:0 0 84px!important; order:20;
+    display:flex!important; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+    width:84px!important; min-width:84px!important; max-width:84px!important; height:56px!important; min-height:56px!important;
+    padding:4px!important; margin:0!important; border:0!important; border-radius:10px!important;
+    background:transparent!important; color:#b8cdc1!important; box-shadow:none!important; font-size:0!important;
+  }
+  body.gn-has-bottom-nav .header #nav>.gn-feedback-fab span { display:none!important; }
+  body.gn-has-bottom-nav .header #nav>.gn-feedback-fab::before { content:'💬'; font-size:20px; line-height:22px; }
+  body.gn-has-bottom-nav .header #nav>.gn-feedback-fab::after { content:'უკუკავშირი'; font-size:10px; line-height:13px; }
+  body.gn-has-bottom-nav .header #nav .gn-auth-btn,
+  body.gn-has-bottom-nav .header #nav .gn-profile-trigger { flex:0 0 auto!important; order:15; }
+  body.gn-has-bottom-nav .gn-back-top { bottom:calc(var(--gn-bottom-space) + 12px)!important; }
+  body.gn-has-bottom-nav.gn-mobile-keyboard { --gn-bottom-space:0px; }
+  body.gn-has-bottom-nav.gn-mobile-keyboard .header #nav { display:none!important; }
+  body.gn-has-bottom-nav.gn-mobile-keyboard .gn-back-top { display:none!important; }
+  body.gn-has-bottom-nav.gn-finder-open .header #nav { visibility:hidden!important; }
+}
