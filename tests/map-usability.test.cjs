@@ -18,21 +18,86 @@ function harness({ waters = [known], fetch, stored = {}, search = '' } = {}) {
   let clock = Date.parse('2026-10-13T08:15:00Z');
   class Clock extends Date { constructor(...args) { super(...(args.length ? args : [clock])); } static now() { return clock; } }
   const ids = ['map', 'mapInfo', 'mapDate', 'mapHour', 'mapLiveLabel', 'mapRefresh', 'mapLiveToggle', 'mapSearch', 'mapSearchBtn', 'mapGps', 'mapNearby', 'mapNearbyList', 'routeMode', 'clearRoute', 'routeInfo'];
-  const elements = new Map(ids.map(id => [id, { id, value: '', textContent: '', innerHTML: '', disabled: false, attributes: {}, setAttribute(key, value) { this.attributes[key] = String(value); }, getAttribute(key) { return this.attributes[key] ?? null; }, focus() { this.focused = true; } }]));
-  const storage = new Map(Object.entries(stored)), layers = [], calls = [], views = [], events = new Map(), removed = new Set(), intervals = new Map();
-  const map = { setView(coords, zoom) { views.push({ coords: [...coords], zoom }); return this; }, getCenter() { return { lat: 42, lng: 43.7 }; }, removeLayer(layer) { removed.add(layer); return this; }, fitBounds() {}, invalidateSize() {}, on(event, callback) { events.set(event, callback); return this; } };
+  const elements = new Map(ids.map(id => [id, { id, value: '', textContent: '', innerHTML: '', disabled: false, dataset: {}, attributes: {}, setAttribute(key, value) { this.attributes[key] = String(value); }, getAttribute(key) { return this.attributes[key] ?? null; }, focus() { this.focused = true; } }]));
+  const storage = new Map(Object.entries(stored)), layers = [], calls = [], views = [], fits = [], events = new Map(), removed = new Set(), intervals = new Map();
+  const map = { setView(coords, zoom) { views.push({ coords: [...coords], zoom }); return this; }, getCenter() { return { lat: 42, lng: 43.7 }; }, removeLayer(layer) { removed.add(layer); return this; }, fitBounds(bounds, options) { fits.push({bounds,options}); }, invalidateSize() {}, on(event, callback) { events.set(event, callback); return this; } };
   function layer(coords, options = {}, kind = 'marker') {
-    const result = { coords, options, kind, handlers: {}, addTo() { layers.push(this); return this; }, bindPopup(html) { this.popup = html; return this; }, openPopup() { return this; }, setLatLng(next) { this.coords = next; return this; }, setIcon(icon) { this.options.icon = icon; return this; }, on(event, callback) { this.handlers[event] = callback; return this; }, getBounds() { return []; } };
+    const result = { coords, options, kind, handlers: {}, addTo() { layers.push(this); return this; }, bindPopup(html) { this.popup = html; return this; }, openPopup() { this.openedAfterView=views.length; return this; }, setLatLng(next) { this.coords = next; return this; }, setIcon(icon) { this.options.icon = icon; return this; }, on(event, callback) { this.handlers[event] = callback; return this; }, getBounds() { return []; } };
     return result;
   }
-  const context = vm.createContext({ Date: Clock, Intl, console, URLSearchParams, AbortController, location: { search }, navigator: {}, document: { hidden: false, getElementById: id => elements.get(id) || null, addEventListener() {} }, sessionStorage: { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value) }, setTimeout: () => 1, clearTimeout() {}, setInterval(callback) { intervals.set(intervals.size + 1, callback); return intervals.size; }, clearInterval(id) { intervals.delete(id); }, addEventListener() {}, L: { map: () => map, tileLayer: () => ({ addTo() {} }), divIcon: icon => icon, marker: (coords, options) => layer(coords, options), geoJSON: geometry => layer(geometry, {}, 'route'), polyline: coords => layer(coords, {}, 'direct') }, fetch: async (url, options) => { calls.push({ url, options }); if (fetch) return fetch(url, options); const length = new URL(url).searchParams.get('latitude')?.split(',').length || 1; return { ok: true, json: async () => length === 1 ? forecast() : Array.from({ length }, () => forecast()) }; } });
+  const tileEvents = new Map();
+  const context = vm.createContext({ Date: Clock, Intl, console, URLSearchParams, AbortController, location: { search }, navigator: {}, document: { hidden: false, getElementById: id => elements.get(id) || null, addEventListener() {} }, sessionStorage: { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value) }, setTimeout: () => 1, clearTimeout() {}, setInterval(callback) { intervals.set(intervals.size + 1, callback); return intervals.size; }, clearInterval(id) { intervals.delete(id); }, addEventListener() {}, L: { map: () => map, tileLayer: () => ({ addTo() {}, on(event, callback) { tileEvents.set(event, callback); } }), divIcon: icon => icon, marker: (coords, options) => layer(coords, options), geoJSON: geometry => layer(geometry, {}, 'route'), polyline: coords => layer(coords, {}, 'direct') }, fetch: async (url, options) => { calls.push({ url, options }); if (fetch) return fetch(url, options); const length = new URL(url).searchParams.get('latitude')?.split(',').length || 1; return { ok: true, json: async () => length === 1 ? forecast() : Array.from({ length }, () => forecast()) }; } });
   context.window = context;
   context.WATERS = waters;
   for (const file of ['common.js', 'map.js']) vm.runInContext(fs.readFileSync(path.join(__dirname, '../js', file), 'utf8'), context, { filename: file });
   context.initGeoMap();
   const flush = async () => { await new Promise(resolve => setImmediate(resolve)); await new Promise(resolve => setImmediate(resolve)); };
-  return { context, layers, calls, views, events, removed, storage, intervals, flush, node: id => elements.get(id), markers: () => layers.filter(item => item.options.icon && !removed.has(item)), async click(id) { await elements.get(id).onclick?.(); await flush(); }, setClock(iso) { clock = Date.parse(iso); } };
+  return { context, layers, calls, views, fits, events, tileEvents, removed, storage, intervals, flush, node: id => elements.get(id), markers: () => layers.filter(item => item.options.icon && !removed.has(item)), async click(id) { await elements.get(id).onclick?.(); await flush(); }, setClock(iso) { clock = Date.parse(iso); } };
 }
+
+test('failed map backgrounds remain distinguishable from success and can recover on retry', async () => {
+  const page=harness();await page.flush();
+  page.tileEvents.get('loading')();page.tileEvents.get('tileerror')();page.tileEvents.get('load')();
+  assert.equal(page.node('map').dataset.mapTiles,'error');
+  assert.equal(page.markers().length,1,'place markers survive a background failure');
+  page.tileEvents.get('loading')();assert.equal(page.node('map').dataset.mapTiles,'loading');
+  page.tileEvents.get('tileerror')();page.tileEvents.get('tileload')();page.tileEvents.get('load')();
+  assert.equal(page.node('map').dataset.mapTiles,'ready','one failed tile must not label a usable background as entirely unavailable');
+});
+
+test('late phone controllers reuse the live map without creating duplicate layers or timers', async () => {
+  const page=harness();await page.flush();
+  const markers=page.markers().length,requests=page.calls.length,timers=page.intervals.size;
+  assert.equal(page.context.initGeoMap(),page.context.GNMap.instance);
+  assert.equal(typeof page.context.GNMap.refresh,'function');
+  assert.equal(page.markers().length,markers);assert.equal(page.calls.length,requests);assert.equal(page.intervals.size,timers);
+});
+
+test('a missing map engine renders a visible retry in the canvas', () => {
+  const nodes=new Map(['map','mapInfo','mapEngineRetry'].map(id=>[id,{innerHTML:'',textContent:''}]));let reloads=0;
+  const context=vm.createContext({document:{getElementById:id=>nodes.get(id)},location:{reload(){reloads++;}}});context.window=context;
+  vm.runInContext(fs.readFileSync(path.join(__dirname,'../js/map.js'),'utf8'),context);
+  context.initGeoMap();assert.match(nodes.get('map').innerHTML,/role="alert"/);assert.match(nodes.get('map').innerHTML,/mapEngineRetry/);
+  nodes.get('mapEngineRetry').onclick();assert.equal(reloads,1);
+});
+
+test('GPS waits for an active zoom to finish and opens its popup after centering', async () => {
+  const page=harness();await page.flush();
+  page.context.navigator.geolocation={getCurrentPosition:done=>done({coords:{latitude:42,longitude:43.7}})};
+  page.events.get('zoomstart')();await page.click('mapGps');
+  const gps=page.layers.find(layer=>layer.popup==='ჩემი მდებარეობა');
+  assert.equal(page.views.length,1,'setView must not run during the previous CSS zoom');assert.equal(gps.openedAfterView,undefined);
+  page.events.get('zoomend')();
+  assert.deepEqual(page.views.at(-1),{coords:[42,43.7],zoom:12});
+  assert.equal(gps.openedAfterView,page.views.length);assert.match(page.node('mapInfo').textContent,/GPS მდებარეობა ჩართულია/);
+});
+
+test('nearby replaces a queued GPS view before the old zoom finishes', async () => {
+  const page=harness();await page.flush();
+  page.context.navigator.geolocation={getCurrentPosition:done=>done({coords:{latitude:42,longitude:43.7}})};
+  page.events.get('zoomstart')();await page.click('mapGps');await page.click('mapNearby');page.events.get('zoomend')();
+  assert.deepEqual(page.views.at(-1),{coords:[41.7,44.8],zoom:9});
+  assert.equal(page.views.length,2,'only the latest queued navigation is applied');
+  assert.equal(page.layers.find(layer=>layer.popup==='ჩემი მდებარეობა').openedAfterView,undefined);
+});
+
+test('an older delayed GPS result cannot replace a newer local search', async () => {
+  const page=harness();await page.flush();let located;
+  page.context.navigator.geolocation={getCurrentPosition:done=>{located=done;}};
+  const gps=page.node('mapGps').onclick();
+  page.node('mapSearch').value=known[1];await page.click('mapSearchBtn');
+  located({coords:{latitude:42,longitude:43.7}});await gps;await page.flush();
+  assert.deepEqual(page.views.at(-1),{coords:[41.7,44.8],zoom:12});
+  assert.match(page.node('mapInfo').textContent,/ცნობილი ტბა/);assert.doesNotMatch(page.node('mapInfo').textContent,/GPS მდებარეობა ჩართულია/);
+});
+
+test('clearing a route also cancels its view queued behind a zoom transition', async () => {
+  const page=harness({fetch:async url=>({ok:true,json:async()=>url.includes('project-osrm.org')?{routes:[{geometry:{type:'LineString',coordinates:[[43.7,42],[44.8,41.7]]},distance:20000,duration:1800}]}:forecast()})});await page.flush();
+  page.context.navigator.geolocation={getCurrentPosition:done=>done({coords:{latitude:42,longitude:43.7}})};
+  await page.click('routeMode');page.events.get('zoomstart')();page.markers()[0].handlers.click();await page.flush();
+  assert.equal(page.fits.length,0,'route fitting waits while zooming');await page.click('clearRoute');page.events.get('zoomend')();
+  assert.equal(page.fits.length,0,'a cleared route must not move the map after zoomend');
+});
 
 test('map markers and batch weather exclude unknown, empty, boolean and out-of-range coordinates', async () => {
   const invalid = [[null, null], ['', 44], [false, 44], [91, 44], [41, 181], [[], 44]];

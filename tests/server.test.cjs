@@ -80,6 +80,23 @@ test('public pages and assets remain usable while private source is denied', asy
   assert.equal(await head.text(), '');
 });
 
+test('optimized phone images are served as WebP for both GET and HEAD', async () => {
+  for (const name of ['river-avatar.webp', 'mountain-lake.webp']) {
+    const url = base + '/assets/phone/' + name;
+    const response = await fetch(url);
+    assert.equal(response.status, 200, name);
+    assert.equal(response.headers.get('content-type'), 'image/webp');
+    assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
+    const bytes = Buffer.from(await response.arrayBuffer());
+    assert.equal(bytes.toString('ascii', 0, 4), 'RIFF');
+    assert.equal(bytes.toString('ascii', 8, 12), 'WEBP');
+    const head = await fetch(url, {method: 'HEAD'});
+    assert.equal(head.status, 200);
+    assert.equal(head.headers.get('content-type'), 'image/webp');
+    assert.equal(await head.text(), '');
+  }
+});
+
 test('public symlinks cannot expose a file outside the checkout', async () => {
   await fs.writeFile(path.join(data, 'private.html'), 'Private fixture');
   await fs.symlink(path.join(data, 'private.html'), path.join(assets, 'outside.html'));

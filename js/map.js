@@ -1,23 +1,63 @@
 function initGeoMap(){
+  if(window.GNMap?.instance)return window.GNMap.instance;
   if(typeof L==='undefined'){
     const info=document.getElementById('mapInfo');
     if(info)info.textContent='რუკა ვერ ჩაიტვირთა. შეამოწმე ინტერნეტი და განაახლე გვერდი.';
+    const canvas=document.getElementById('map');
+    if(canvas){
+      if(canvas.dataset)canvas.dataset.mapEngine='error';
+      canvas.innerHTML='<div class="map-engine-error" role="alert"><b>რუკა ვერ ჩაიტვირთა</b><p>შეამოწმე ინტერნეტი და სცადე ხელახლა.</p><button class="btn primary" type="button" id="mapEngineRetry">ხელახლა ცდა</button></div>';
+      const retry=document.getElementById('mapEngineRetry');
+      if(retry)retry.onclick=()=>location.reload();
+    }
     return;
   }
+  const canvas=document.getElementById('map');if(canvas?.dataset)canvas.dataset.mapEngine='ready';
   const map=L.map('map',{preferCanvas:true,zoomControl:true}).setView([42.0,43.7],7);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+  const tiles=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
     maxZoom:18,
     attribution:'© OpenStreetMap contributors',
     updateWhenIdle:true,
     keepBuffer:2
-  }).addTo(map);
+  });
+  let loadedTiles=0,failedTiles=0;
+  function tileState(state){
+    const canvas=document.getElementById('map');
+    if(canvas?.dataset)canvas.dataset.mapTiles=state;
+    if(typeof CustomEvent==='function')window.dispatchEvent?.(new CustomEvent('gn:map-tiles',{detail:{state}}));
+  }
+  tiles.on?.('loading',()=>{loadedTiles=0;failedTiles=0;tileState('loading');});
+  tiles.on?.('tileload',()=>{loadedTiles++;});
+  tiles.on?.('tileerror',()=>{failedTiles++;});
+  tiles.on?.('load',()=>tileState(loadedTiles||!failedTiles?'ready':'error'));
+  tiles.addTo(map);
 
   let marker=null,meMarker=null,route=null,userCoords=null,routeMode=false,destination=null;
   const waterMarkers=new Map();
   const scoreCache=new Map();
   let mapLive=true,mapRefreshTimer=null,requestSeq=0,followCurrent=true;
   let activeScoreControllers=[],routeSeq=0,routeController=null,searchSeq=0,locationRequest=null;
+  let zooming=false,pendingView=null,viewIntent=0;
   const CACHE_TTL=10*60*1000;
+
+  // Leaflet ignores setView while a CSS zoom transition is running. Keep only
+  // the latest requested destination and apply it once the public zoom ends.
+  function beginView(){pendingView=null;return ++viewIntent;}
+  function flushView(){
+    if(zooming||!pendingView)return;
+    const next=pendingView;pendingView=null;
+    if(next.intent!==viewIntent)return;
+    map.stop?.();map.closePopup?.();next.apply();
+  }
+  function requestView(apply,intent){
+    if(intent!==viewIntent)return;
+    pendingView={apply,intent};flushView();
+  }
+  function moveView(coords,zoom,intent,after){
+    requestView(()=>{map.setView(coords,zoom,{animate:false});after?.();},intent);
+  }
+  map.on('zoomstart',()=>{zooming=true;});
+  map.on('zoomend',()=>{zooming=false;flushView();});
 
   function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
   function validCoordinates(lat,lon){
@@ -182,21 +222,28 @@ function initGeoMap(){
 
   setTimeout(()=>map.invalidateSize(),200);
   window.addEventListener('resize',()=>map.invalidateSize(),{passive:true});
+  window.addEventListener('pageshow',()=>map.invalidateSize(),{passive:true});
+  if(typeof ResizeObserver==='function'){
+    const resize=new ResizeObserver(()=>map.invalidateSize({pan:false}));
+    const canvas=document.getElementById('map');if(canvas)resize.observe(canvas);
+  }
 
   const params=new URLSearchParams(location.search);
   function haversine(a,b,c,d){const R=6371,rad=Math.PI/180,da=(c-a)*rad,db=(d-b)*rad;const q=Math.sin(da/2)**2+Math.cos(a*rad)*Math.cos(c*rad)*Math.sin(db/2)**2;return 2*R*Math.asin(Math.sqrt(q));}
-  function show(lat,lon,name){
+  function show(lat,lon,name,intent=beginView()){
+    if(intent!==viewIntent)return;
     if(!validCoordinates(lat,lon))return;
     lat=Number(lat);lon=Number(lon);destination={coords:[lat,lon],name:name||'არჩეული ადგილი'};
     if(marker)map.removeLayer(marker);
-    marker=L.marker([lat,lon]).addTo(map).bindPopup(esc(name||'არჩეული ადგილი')).openPopup();
-    map.setView([lat,lon],12);
+    marker=L.marker([lat,lon]).addTo(map).bindPopup(esc(name||'არჩეული ადგილი'));
+    const selected=marker;
+    moveView([lat,lon],12,intent,()=>{if(marker===selected)selected.openPopup();});
     setMapInfo(`${name||'არჩეული ადგილი'} • ${lat.toFixed(5)}, ${lon.toFixed(5)}`);
     if(routeMode&&userCoords)drawRoute(userCoords,[lat,lon],name);
   }
   async function drawRoute(a,b,name){
     if(!validCoordinates(a?.[0],a?.[1])||!validCoordinates(b?.[0],b?.[1]))return;
-    const seq=++routeSeq;if(routeController)routeController.abort();routeController=new AbortController();
+    const seq=++routeSeq,intent=viewIntent;if(routeController)routeController.abort();routeController=new AbortController();
     const controller=routeController,timeout=setTimeout(()=>controller.abort(),9000),[aLat,aLon]=a,[bLat,bLon]=b;
     const routeInfo=document.getElementById('routeInfo');
     if(route)map.removeLayer(route);route=null;
@@ -207,39 +254,40 @@ function initGeoMap(){
       if(seq!==routeSeq||!routeMode)return;
       const result=data.routes?.[0],coordinates=result?.geometry?.coordinates;
       if(result?.geometry?.type!=='LineString'||!Array.isArray(coordinates)||coordinates.length<2||!coordinates.every(pair=>Array.isArray(pair)&&validCoordinates(pair[1],pair[0]))||!Number.isFinite(result.distance)||result.distance<0||!Number.isFinite(result.duration)||result.duration<0)throw new Error('route unavailable');
-      if(route)map.removeLayer(route);route=L.geoJSON(result.geometry,{style:{color:'#4fd3ff',weight:6,opacity:.9}}).addTo(map);map.fitBounds(route.getBounds(),{padding:[70,70]});
+      if(route)map.removeLayer(route);route=L.geoJSON(result.geometry,{style:{color:'#4fd3ff',weight:6,opacity:.9}}).addTo(map);const bounds=route.getBounds();requestView(()=>{if(routeMode&&seq===routeSeq)map.fitBounds(bounds,{padding:[70,70],animate:false});},intent);
       if(routeInfo)routeInfo.textContent=`${name||'დანიშნულება'} • ${(result.distance/1000).toFixed(1)} კმ • დაახლოებით ${Math.round(result.duration/60)} წთ`;
     }catch(error){
       if(seq!==routeSeq||!routeMode)return;
-      if(route)map.removeLayer(route);route=L.polyline([a,b],{color:'#f6c453',weight:4,dashArray:'8 8',opacity:.95}).addTo(map);map.fitBounds(route.getBounds(),{padding:[70,70]});
+      if(route)map.removeLayer(route);route=L.polyline([a,b],{color:'#f6c453',weight:4,dashArray:'8 8',opacity:.95}).addTo(map);const bounds=route.getBounds();requestView(()=>{if(routeMode&&seq===routeSeq)map.fitBounds(bounds,{padding:[70,70],animate:false});},intent);
       if(routeInfo)routeInfo.textContent=`${name||'დანიშნულება'} • პირდაპირი მანძილი ${haversine(aLat,aLon,bLat,bLon).toFixed(1)} კმ • გზის მარშრუტი დროებით მიუწვდომელია`;
     }finally{clearTimeout(timeout);if(routeController===controller)routeController=null;}
   }
-  function showNearby(lat,lon,fromGps=true){
+  function showNearby(lat,lon,fromGps=true,intent=beginView()){
+    if(intent!==viewIntent)return;
     if(!validCoordinates(lat,lon))return;
     const valid=locatedWaters();
     const list=valid.map(w=>({w,d:haversine(lat,lon,+w[4],+w[5])})).sort((a,b)=>a.d-b.d).slice(0,6);
     const box=document.getElementById('mapNearbyList');
     if(box)box.innerHTML=list.length?list.map(x=>`<div style="padding:6px 0"><a href="place-details.html?id=${encodeURIComponent(x.w[0])}"><b>${esc(x.w[1])}</b></a><span> • ${x.d.toFixed(1)} კმ</span></div>`).join(''):'ახლოს მდებარე ადგილი ვერ მოიძებნა.';
     setMapInfo(fromGps?'📍 ახლომდებარე ადგილები დალაგებულია შენი GPS მდებარეობიდან.':'GPS მიუწვდომელია — მანძილები ითვლება რუკის ცენტრიდან.');
-    if(list[0])map.setView([+list[0].w[4],+list[0].w[5]],9);
+    if(list[0])moveView([+list[0].w[4],+list[0].w[5]],9,intent);
   }
   async function searchMap(q){
-    const query=String(q||'').trim(),seq=++searchSeq;
+    const query=String(q||'').trim(),seq=++searchSeq,intent=beginView();
     const button=document.getElementById('mapSearchBtn');if(button)button.disabled=false;
     if(!query){setMapInfo('ჩაწერე ადგილის, სოფლის ან ქალაქის სახელი.');document.getElementById('mapSearch')?.focus();return;}
     const ql=query.toLowerCase(),matches=(window.WATERS||[]).filter(w=>(`${w[1]} ${w[2]} ${w[3]} ${w[7]||''}`).toLowerCase().includes(ql));
     const exact=matches.filter(w=>String(w[1]).toLowerCase()===ql);
     const named=exact.length?exact:matches.filter(w=>String(w[1]).toLowerCase().includes(ql));
     const local=named.find(w=>validCoordinates(w[4],w[5]));
-    if(local){show(Number(local[4]),Number(local[5]),local[1]);return;}
+    if(local){show(Number(local[4]),Number(local[5]),local[1],intent);return;}
     if(button)button.disabled=true;setMapInfo(`🔎 იძებნება: ${query}`);
     try{
-      const results=await geocode(query);if(seq!==searchSeq)return;
+      const results=await geocode(query);if(seq!==searchSeq||intent!==viewIntent)return;
       const found=Array.isArray(results)?results.find(item=>validCoordinates(item?.lat,item?.lon)):null;
-      if(found){show(Number(found.lat),Number(found.lon),found.display_name);return;}
+      if(found){show(Number(found.lat),Number(found.lon),found.display_name,intent);return;}
       setMapInfo(matches.length?'ამ ადგილის ზუსტი კოორდინატები მიუწვდომელია. სცადე ახლომდებარე სოფლის ან ქალაქის სახელი.':'ადგილი ვერ მოიძებნა. სცადე სრული სახელი.');
-    }catch{if(seq===searchSeq)setMapInfo('ძიება დროებით მიუწვდომელია. სცადე სათევზაო ადგილის სახელი ან შეამოწმე ინტერნეტი.');}
+    }catch{if(seq===searchSeq&&intent===viewIntent)setMapInfo('ძიება დროებით მიუწვდომელია. სცადე სათევზაო ადგილის სახელი ან შეამოწმე ინტერნეტი.');}
     finally{if(seq===searchSeq&&button)button.disabled=false;}
   }
   const searchBtn=document.getElementById('mapSearchBtn');
@@ -263,9 +311,9 @@ function initGeoMap(){
   }
   function locationError(error){return error?.message==='unsupported'?'ამ ბრაუზერში GPS ხელმისაწვდომი არ არის. მოძებნე ადგილი სახელით.':error?.code===1?'GPS ნებართვა არ არის გაცემული. ბრაუზერის Location ნებართვა ჩართე.':'GPS მდებარეობა დროებით ვერ მოიძებნა.';}
   const gps=document.getElementById('mapGps');
-  if(gps)gps.onclick=async()=>{setMapInfo('📍 GPS მდებარეობა იტვირთება…');try{const coords=await locate();meMarker.openPopup();map.setView(coords,12);setMapInfo('📍 GPS მდებარეობა ჩართულია.');if(routeMode&&destination)drawRoute(coords,destination.coords,destination.name);}catch(error){setMapInfo(locationError(error));}};
+  if(gps)gps.onclick=async()=>{const intent=beginView();setMapInfo('📍 GPS მდებარეობა იტვირთება…');try{const coords=await locate();moveView(coords,12,intent,()=>{meMarker.openPopup();setMapInfo('📍 GPS მდებარეობა ჩართულია.');if(routeMode&&destination)drawRoute(coords,destination.coords,destination.name);});}catch(error){if(intent===viewIntent)setMapInfo(locationError(error));}};
   const nearby=document.getElementById('mapNearby');
-  if(nearby)nearby.onclick=async()=>{if(userCoords){showNearby(...userCoords);return;}setMapInfo('📍 ახლომდებარე ადგილებისთვის მდებარეობა იტვირთება…');try{showNearby(...await locate());}catch{const center=map.getCenter();showNearby(center.lat,center.lng,false);}};
+  if(nearby)nearby.onclick=async()=>{const intent=beginView();if(userCoords){showNearby(...userCoords,true,intent);return;}setMapInfo('📍 ახლომდებარე ადგილებისთვის მდებარეობა იტვირთება…');try{const coords=await locate();showNearby(...coords,true,intent);}catch{const center=map.getCenter();showNearby(center.lat,center.lng,false,intent);}};
   const routeBtn=document.getElementById('routeMode');
   if(routeBtn){routeBtn.setAttribute('aria-pressed','false');routeBtn.onclick=async()=>{
     routeMode=true;routeBtn.setAttribute('aria-pressed','true');const seq=routeSeq,el=document.getElementById('routeInfo');
@@ -279,4 +327,7 @@ function initGeoMap(){
   document.addEventListener('visibilitychange',()=>{if(!document.hidden&&mapLive)refreshLiveMap();});
   window.addEventListener('pagehide',()=>{if(mapRefreshTimer)clearInterval(mapRefreshTimer);activeScoreControllers.forEach(controller=>controller.abort());if(routeController)routeController.abort();});
   if(validCoordinates(params.get('lat'),params.get('lon')))show(Number(params.get('lat')),Number(params.get('lon')),params.get('name')||'ლოკაცია');
+  window.GNMap={instance:map,refresh:refreshLiveMap,redrawTiles:()=>tiles.redraw?.()};
+  if(typeof CustomEvent==='function')window.dispatchEvent?.(new CustomEvent('gn:map-ready',{detail:{map}}));
+  return map;
 }

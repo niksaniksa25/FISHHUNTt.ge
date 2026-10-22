@@ -399,7 +399,7 @@ function serveStatic(req,res){
   if(relative.split(/[\\/]/).some(part=>part.startsWith('.')))return notFound();
   const privateFiles=new Set(['server.js','package.json','package-lock.json','users.json','sessions.json','orders.json','donations.json','analytics.json','feedback.json','push-state.json']);
   if(privateFiles.has(path.basename(relative)))return notFound();
-  const types={'.html':'text/html; charset=utf-8','.js':'application/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.svg':'image/svg+xml','.ico':'image/x-icon','.webmanifest':'application/manifest+json','.woff':'font/woff','.woff2':'font/woff2','.ttf':'font/ttf'};
+  const types={'.html':'text/html; charset=utf-8','.js':'application/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.webp':'image/webp','.svg':'image/svg+xml','.ico':'image/x-icon','.webmanifest':'application/manifest+json','.woff':'font/woff','.woff2':'font/woff2','.ttf':'font/ttf'};
   const fp=path.resolve(__dirname,relative),ext=path.extname(fp).toLowerCase();
   if(!types[ext])return notFound();
   try{

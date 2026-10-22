@@ -10,7 +10,9 @@ Current conditions, selected-hour forecasts, stale data and unavailable measurem
 
 Shared responsive layouts are in `css/responsive.css`, with separate `css/responsive-ios.css` and `css/responsive-android.css` platform adjustments. `js/device-responsive.js` applies device classes and visible-viewport sizing; `css/nature-theme.css` supplies the shared forest/river palette.
 
-`css/ui-polish.css` is the final shared design layer with a dedicated phone layout. The homepage puts places, weather and planning before supporting content. `js/ui-shell.js` provides the local page/species/place finder, section shortcuts, a return-to-top control and expandable factor explanations; all 20 factor values remain visible. Every full page has a main landmark, skip link, description and accessible names for its search/planner fields. Mobile page titles retain their independent horizontal navigation; content cards stay in ordinary grids.
+`css/ui-polish.css` supplies the shared desktop design. Phones have a separate presentation in `css/phone-layout.css` and `js/phone-layout.js`, with smaller content groups, touch controls and compact lists. The homepage puts places, weather and planning before supporting content. `js/ui-shell.js` provides the local page/species/place finder, section shortcuts, a return-to-top control and expandable factor explanations; all 20 factor values remain visible. Every full page has a main landmark, skip link, description and accessible names for its search/planner fields. Content cards stay in ordinary grids.
+
+The phone map uses `css/mobile-map.css` and `js/mobile-map.js`: the map opens first, with search and location controls above it and optional details in a drawer. These controls reuse the original nodes and map instance, preserving selected places, live data and desktop behavior across rotation and resizing. Leaflet 1.9.4 and its license are bundled in `assets/vendor/leaflet`; the map engine does not require a CDN. Map tiles, forecasts, address searches and routes still require their respective online providers.
 
 The season calendar, species profiles and planning tools show restrictions separately from activity forecasts. See [the source versions and legal coverage](docs/WILDLIFE-RULES.md); an activity score does not establish permission to catch or hunt.
 
@@ -26,7 +28,7 @@ This build keeps the existing site and adds:
 Real payment credentials must be entered in `.env` on the server. Do not put merchant secrets into browser JavaScript.
 
 
-On phones and tablets, all page titles appear in one horizontally scrollable header row, including the secondary destinations. The desktop More menu groups secondary tools in a dropdown. Donation has its own compact link in the main navigation.
+On phones and tablets, the bottom navigation keeps Home, Map and AI visible while the other page titles scroll horizontally. The desktop More menu groups secondary tools in a dropdown. Donation has its own compact link in the main navigation.
 
 
 ### Premium term purchases
