@@ -1,7 +1,7 @@
 (function(){
   'use strict';
   const media=window.matchMedia('(max-width:1024px)');
-  let shell,side,canvas,ui=null,frame=0;
+  let shell,side,canvas,ui=null,frame=0,observerTask=0;
   function ready(){
     shell=document.querySelector('.map-shell');side=shell?.querySelector('.map-side');canvas=document.getElementById('map');
     if(!shell||!side||!canvas)return;
@@ -14,15 +14,17 @@
         frame=0;if(!ui)return;
         document.body.classList.toggle('gn-map-engine-unavailable',canvas.dataset.mapEngine==='error');
         const viewport=window.visualViewport;
-        const bottom=viewport&&viewport.scale===1 ? viewport.height+viewport.offsetTop : window.innerHeight;
+        const bottom=viewport&&viewport.scale===1 ? Math.min(window.innerHeight,viewport.height+viewport.offsetTop) : window.innerHeight;
         const nav=document.getElementById('nav');
         const navRect=nav?.getBoundingClientRect();
         const navVisible=navRect&&getComputedStyle(nav).display!=='none'&&navRect.height>0;
-        const available=Math.max(180,Math.floor(Math.min(bottom,navVisible?navRect.top:bottom)-shell.getBoundingClientRect().top));
+        const available=Math.max(180,Math.floor(bottom-(navVisible?navRect.height:0)-shell.getBoundingClientRect().top));
         const height=available+'px';
         if(shell.style.getPropertyValue('--gn-phone-map-height')!==height){
           shell.style.setProperty('--gn-phone-map-height',height);
-          window.GNMap?.instance?.invalidateSize({pan:false});
+          // Leaflet must compensate the pixel origin when the canvas changes.
+          // pan:false makes the visible geographic center drift on tall phones.
+          window.GNMap?.instance?.invalidateSize({pan:true,animate:false});
         }
     }
     function closePanel(){
@@ -97,13 +99,15 @@
     }
     function leave(){
       if(!ui)return;
+      if(observerTask){clearTimeout(observerTask);observerTask=0;}
       ui.observer?.disconnect();ui.restoreSearch?.();
       for(const dispose of ui.listeners)dispose();
       for(const {node,marker} of ui.records){marker.replaceWith(node);}
       for(const {node,text,label,title} of ui.buttons){node.textContent=text;if(label===null)node.removeAttribute('aria-label');else node.setAttribute('aria-label',label);if(title===null)node.removeAttribute('title');else node.setAttribute('title',title);}
       for(const node of [ui.searchbar,ui.actions,ui.summary,ui.body,ui.tileError])node.remove();
       ui=null;side.classList.remove('gn-map-expanded');document.body.classList.remove('gn-phone-map','gn-map-engine-unavailable');shell.style.removeProperty('--gn-phone-map-height');
-      requestAnimationFrame(()=>window.GNMap?.instance?.invalidateSize({pan:false}));
+      window.GNMap?.instance?.invalidateSize({pan:true,animate:false});
+      requestAnimationFrame(()=>window.GNMap?.instance?.invalidateSize({pan:true,animate:false}));
     }
     function sync(){if(media.matches)enter();else leave();resize();}
     media.addEventListener?.('change',sync);
@@ -112,7 +116,10 @@
     window.addEventListener('gn:map-ready',resize);
     window.addEventListener('pageshow',resize);
     if(typeof ResizeObserver==='function'){
-      const observer=new ResizeObserver(()=>{if(frame)cancelAnimationFrame(frame);fit();});
+      const observer=new ResizeObserver(()=>{
+        if(observerTask)return;
+        observerTask=setTimeout(()=>{observerTask=0;resize();},0);
+      });
       for(const node of [document.querySelector('.header'),document.getElementById('nav')])if(node)observer.observe(node);
     }
     sync();

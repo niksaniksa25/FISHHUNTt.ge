@@ -224,7 +224,11 @@ function initGeoMap(){
   window.addEventListener('resize',()=>map.invalidateSize(),{passive:true});
   window.addEventListener('pageshow',()=>map.invalidateSize(),{passive:true});
   if(typeof ResizeObserver==='function'){
-    const resize=new ResizeObserver(()=>map.invalidateSize({pan:false}));
+    let resizeTask=0;
+    const resize=new ResizeObserver(()=>{
+      if(resizeTask)return;
+      resizeTask=setTimeout(()=>{resizeTask=0;map.invalidateSize({pan:true,animate:false});},0);
+    });
     const canvas=document.getElementById('map');if(canvas)resize.observe(canvas);
   }
 
