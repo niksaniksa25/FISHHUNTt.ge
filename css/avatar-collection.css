@@ -1,0 +1,61 @@
+/* A consistent illustrated collection, with large artwork and visible choices. */
+.gn-profile-panel .gn-profile-hero { padding:14px; border-radius:18px; gap:14px; }
+.gn-profile-panel .gn-profile-hero>div:nth-child(2) { min-width:0; }
+.gn-profile-panel .gn-profile-hero strong { overflow-wrap:anywhere; }
+.gn-profile-panel .gn-profile-avatar-preview {
+  width:104px; height:104px; border-radius:28px; padding:3px;
+  background:linear-gradient(145deg,#e6d59b,#9bcf9b 50%,#67b9af);
+  box-shadow:0 8px 24px #0005;
+}
+.gn-profile-panel .gn-profile-avatar-preview img { border-radius:25px; }
+.gn-profile-panel .gn-profile-hero small { font-size:12px; line-height:1.5; color:#dbebcf; }
+.gn-profile-panel .gn-profile-avatar-title { align-items:center; gap:12px; margin:20px 0 10px; }
+.gn-profile-panel .gn-profile-avatar-title b { font-size:13px; line-height:1.45; }
+.gn-profile-panel .gn-profile-avatar-title small { font-size:10px; line-height:1.5; }
+.gn-profile-panel .gn-avatar-grid { grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+.gn-profile-panel .gn-avatar-option {
+  position:relative; display:flex; flex-direction:column; align-items:stretch;
+  min-width:0; min-height:0; aspect-ratio:auto!important; height:auto; padding:5px;
+  overflow:hidden; border:1px solid #385544; border-radius:16px;
+  background:linear-gradient(155deg,#1a3529,#10271f); color:#e2eddb;
+  transition:border-color .18s,box-shadow .18s,transform .18s;
+}
+.gn-profile-panel .gn-avatar-option>span { position:static; inset:auto; display:block; padding:0; border-radius:0; background:none; color:inherit; font-weight:inherit; }
+.gn-profile-panel .gn-avatar-option .gn-avatar-art { width:100%; aspect-ratio:1; border-radius:11px; overflow:hidden; background:#0c211a; }
+.gn-profile-panel .gn-avatar-art img { display:block; width:100%; height:100%; object-fit:cover; border-radius:inherit; }
+.gn-profile-panel .gn-avatar-option .gn-avatar-caption {
+  display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2;
+  overflow:hidden; padding:7px 2px 3px; min-height:38px;
+  font-size:11px; line-height:15px; font-weight:600; text-align:center; white-space:normal; overflow-wrap:anywhere;
+}
+.gn-profile-panel .gn-avatar-option .gn-avatar-check {
+  position:absolute; top:9px; right:9px; display:none; place-items:center;
+  width:21px; height:21px; border:2px solid #172f24; border-radius:50%;
+  background:#cce7a5; color:#163323; font-size:13px; line-height:1; font-weight:900;
+}
+.gn-profile-panel .gn-avatar-option.selected { border-color:#d0e8ad; background:#294933; box-shadow:0 0 0 1px #d0e8ad inset,0 5px 14px #0003; }
+.gn-profile-panel .gn-avatar-option.selected .gn-avatar-check { display:grid; }
+.gn-profile-panel .gn-avatar-option .gn-avatar-tier {
+  position:absolute; top:10px; left:9px; padding:3px 5px; border:1px solid #d9be7580;
+  border-radius:5px; background:#182d23e8; color:#edd79e; font-size:7px; line-height:1; font-weight:800; letter-spacing:.06em;
+}
+.gn-profile-panel .gn-avatar-option.premium { border-color:#695b37; background:linear-gradient(155deg,#263427,#18291f); box-shadow:none; }
+.gn-profile-panel .gn-avatar-option.premium.selected { border-color:#eed696; box-shadow:0 0 0 1px #eed696 inset; }
+.gn-profile-panel .gn-avatar-option.is-locked .gn-avatar-tier::before { content:'🔒 '; }
+.gn-profile-panel .gn-avatar-option:focus-visible { outline:3px solid #d4edb3; outline-offset:2px; }
+.gn-profile-panel .gn-avatar-option:hover { border-color:#a2c18f; transform:translateY(-1px); }
+.gn-profile-panel .gn-profile-note { font-size:12px; line-height:1.6; margin-top:12px; }
+.gn-profile-panel .gn-profile-note a { display:inline-flex; align-items:center; min-height:44px; }
+@media(min-width:1025px) {
+  #gnProfilePanel.gn-profile-panel { width:min(420px,calc(100vw - 24px)); }
+  .gn-profile-panel .gn-avatar-grid { grid-template-columns:repeat(4,minmax(0,1fr)); }
+}
+@media(max-width:359px) {
+  .gn-profile-panel .gn-avatar-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .gn-profile-panel .gn-avatar-option .gn-avatar-caption { font-size:11px; line-height:15px; min-height:40px; }
+  .gn-profile-panel .gn-profile-avatar-preview { width:88px; height:88px; border-radius:24px; }
+  .gn-profile-panel .gn-profile-avatar-preview img { border-radius:21px; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .gn-profile-panel .gn-avatar-option { transition:none; }
+}

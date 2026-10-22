@@ -20,7 +20,7 @@ async function fixture(){
 }
 test('a failed avatar uses one local fallback without changing its original accessible name',async()=>{
   const f=await fixture(),image=f.image();image.fail();
-  assert.deepEqual(image.requests,['assets/phone/river-avatar.webp']);
+  assert.deepEqual(image.requests,['assets/avatars/collection/free-fish.webp']);
   assert.equal(image.img.alt,'მელას ბილიკი');assert.equal(image.img.hidden,undefined);
   image.fail();image.fail();
   assert.equal(image.requests.length,1);assert.equal(image.img.hidden,true);assert.equal(image.img.style.display,'none');

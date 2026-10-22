@@ -6,26 +6,26 @@
   const LAST_EMAIL_KEY='geonature_last_email_v5';
   const PROFILE_KEY_PREFIX='geonature_profile_v1:';
   const AVATARS=[
-    {id:'free-fish',emoji:'🐟',src:'assets/phone/river-avatar.webp',name:'მდინარის მკვლევარი',premium:false},
-    {id:'free-leaf',emoji:'🌲',src:'assets/avatars/photo/forest.jpg',name:'ტყის მკვლევარი',premium:false},
-    {id:'free-camp',emoji:'⛺',src:'assets/avatars/photo/sunset.jpg',name:'განთიადის მეთევზე',premium:false},
-    {id:'free-fox',emoji:'🦊',src:'assets/avatars/photo/fox.jpg',name:'მელას ბილიკი',premium:false},
-    {id:'free-wave',emoji:'🌊',src:'assets/avatars/photo/lake.jpg',name:'ტბის დამკვირვებელი',premium:false},
-    {id:'free-ranger',emoji:'🎣',src:'assets/avatars/photo/rod-close.jpg',name:'ანკესის მეგობარი',premium:false},
-    {id:'plus-eagle',emoji:'🦅',src:'assets/avatars/photo/eagle.jpg',name:'არწივის თვალი',premium:true},
-    {id:'plus-wolf',emoji:'🐺',src:'assets/avatars/photo/wolf.jpg',name:'ტყის მცველი',premium:true},
-    {id:'plus-bear',emoji:'🐻',src:'assets/avatars/photo/bear.jpg',name:'ტყის ექსპერტი',premium:true},
-    {id:'plus-deer',emoji:'🦌',src:'assets/avatars/photo/deer.jpg',name:'მწვანე ბილიკი',premium:true},
-    {id:'plus-fishing',emoji:'🎣',src:'assets/avatars/photo/fish-plus.jpg',name:'ტრაუტის პროფესიონალი',premium:true},
-    {id:'plus-compass',emoji:'🧭',src:'assets/avatars/photo/mountains.jpg',name:'GeoNature Explorer',premium:true},
-    {id:'plus-canyon',emoji:'🏔️',src:'assets/avatars/photo/mountain-plus.jpg',name:'კანიონის მკვლევარი',premium:true},
-    {id:'plus-svaneti',emoji:'⛰️',src:'assets/avatars/photo/adventure-plus.jpg',name:'სვანეთის მთამსვლელი',premium:true},
-    {id:'plus-ranger',emoji:'🌲',src:'assets/avatars/photo/ranger-plus.jpg',name:'ბუნების რეინჯერი',premium:true},
-    {id:'plus-nocturne',emoji:'🌙',src:'assets/avatars/photo/camp.jpg',name:'ღამის მაძიებელი',premium:true},
-    {id:'plus-fish-photo',emoji:'🐟',src:'assets/avatars/photo/trout-plus.jpg',name:'ოქროს თევზი',premium:true},
-    {id:'plus-reel-photo',emoji:'🎣',src:'assets/avatars/photo/reel-plus.jpg',name:'სპინინგის ოსტატი',premium:true},
-    {id:'plus-hunt-photo',emoji:'🦌',src:'assets/avatars/photo/adventure-plus.jpg',name:'ველური ბუნება',premium:true},
-    {id:'plus-football',emoji:'⚽',src:'assets/profile-bg/football-star.svg',name:'Football Star',premium:true}
+    {id:'free-fish',emoji:'🐟',src:'assets/avatars/collection/free-fish.webp',name:'მდინარის მკვლევარი',premium:false},
+    {id:'free-leaf',emoji:'🌲',src:'assets/avatars/collection/free-leaf.webp',name:'ტყის მკვლევარი',premium:false},
+    {id:'free-camp',emoji:'⛺',src:'assets/avatars/collection/free-camp.webp',name:'განთიადის მეთევზე',premium:false},
+    {id:'free-fox',emoji:'🦊',src:'assets/avatars/collection/free-fox.webp',name:'მელას ბილიკი',premium:false},
+    {id:'free-wave',emoji:'🌊',src:'assets/avatars/collection/free-wave.webp',name:'ტბის დამკვირვებელი',premium:false},
+    {id:'free-ranger',emoji:'🎣',src:'assets/avatars/collection/free-ranger.webp',name:'ანკესის მეგობარი',premium:false},
+    {id:'plus-eagle',emoji:'🦅',src:'assets/avatars/collection/plus-eagle.webp',name:'არწივის თვალი',premium:true},
+    {id:'plus-wolf',emoji:'🐺',src:'assets/avatars/collection/plus-wolf.webp',name:'ტყის მცველი',premium:true},
+    {id:'plus-bear',emoji:'🐻',src:'assets/avatars/collection/plus-bear.webp',name:'ტყის ექსპერტი',premium:true},
+    {id:'plus-deer',emoji:'🦌',src:'assets/avatars/collection/plus-deer.webp',name:'მწვანე ბილიკი',premium:true},
+    {id:'plus-fishing',emoji:'🎣',src:'assets/avatars/collection/plus-fishing.webp',name:'ტრაუტის პროფესიონალი',premium:true},
+    {id:'plus-compass',emoji:'🧭',src:'assets/avatars/collection/plus-compass.webp',name:'GeoNature Explorer',premium:true},
+    {id:'plus-canyon',emoji:'🏔️',src:'assets/avatars/collection/plus-canyon.webp',name:'კანიონის მკვლევარი',premium:true},
+    {id:'plus-svaneti',emoji:'⛰️',src:'assets/avatars/collection/plus-svaneti.webp',name:'სვანეთის მთამსვლელი',premium:true},
+    {id:'plus-ranger',emoji:'🌲',src:'assets/avatars/collection/plus-ranger.webp',name:'ბუნების რეინჯერი',premium:true},
+    {id:'plus-nocturne',emoji:'🌙',src:'assets/avatars/collection/plus-nocturne.webp',name:'ღამის მაძიებელი',premium:true},
+    {id:'plus-fish-photo',emoji:'🐟',src:'assets/avatars/collection/plus-fish-photo.webp',name:'ოქროს თევზი',premium:true},
+    {id:'plus-reel-photo',emoji:'🎣',src:'assets/avatars/collection/plus-reel-photo.webp',name:'სპინინგის ოსტატი',premium:true},
+    {id:'plus-hunt-photo',emoji:'🦌',src:'assets/avatars/collection/plus-hunt-photo.webp',name:'ველური ბუნება',premium:true},
+    {id:'plus-football',emoji:'⚽',src:'assets/avatars/collection/plus-football.webp',name:'Football Star',premium:true}
   ];
   const BACKGROUNDS=[
     {id:'bg-fishing-lake',src:'assets/phone/mountain-lake.webp',name:'მთის ტბა',premium:false},
@@ -49,6 +49,11 @@
     const width=kind==='background'?160:size,height=kind==='background'?100:size;
     return `<img data-gn-profile-image="${kind}" src="${escapeHtml(item.src)}" alt="${escapeHtml(item.name)}" width="${width}" height="${height}" loading="${lazy?'lazy':'eager'}" decoding="async">`;
   }
+  function avatarOption(item,selected){
+    const locked=item.premium&&!premiumUnlocked();
+    const label=item.name+(item.premium?' · Plus':'');
+    return `<button type="button" class="gn-avatar-option${item.premium?' premium':''}${locked?' is-locked':''}${selected?' selected':''}" data-avatar-id="${item.id}" aria-label="${escapeHtml(label)}" aria-pressed="${selected}"${locked?' aria-disabled="true"':''} title="${escapeHtml(item.name)}"><span class="gn-avatar-art">${profileImage(item,160,true)}</span><span class="gn-avatar-caption">${escapeHtml(item.name)}</span><span class="gn-avatar-check" aria-hidden="true">✓</span>${item.premium?'<span class="gn-avatar-tier" aria-hidden="true">PLUS</span>':''}</button>`;
+  }
   let profileImageFallbackBound=false;
   function ensureProfileImageFallback(){
     if(profileImageFallbackBound)return;
@@ -58,7 +63,7 @@
       if(!image?.matches?.('img[data-gn-profile-image]'))return;
       if(!image.dataset.gnImageFallback){
         image.dataset.gnImageFallback='true';
-        image.src=image.dataset.gnProfileImage==='background'?'assets/phone/mountain-lake.webp':'assets/phone/river-avatar.webp';
+        image.src=image.dataset.gnProfileImage==='background'?'assets/phone/mountain-lake.webp':'assets/avatars/collection/free-fish.webp';
         return;
       }
       image.hidden=true;image.style.display='none';image.setAttribute('aria-hidden','true');
@@ -177,14 +182,33 @@
     if(user){
       const profile=await loadProfile(user); const avatar=AVATARS.find(a=>a.id===profile.avatarId)||AVATARS[0];
       wrap.innerHTML=`<button class="gn-profile-trigger" id="gnProfileTrigger" type="button"><span class="gn-profile-avatar">${profileImage(avatar,34)}</span><span class="gn-profile-text"><b>${escapeHtml(profile.displayName||user.email.split('@')[0])}</b><small>${escapeHtml(user.email)}</small></span><span class="gn-profile-chevron">⌄</span></button><button class="gn-auth-btn" id="gnSignOut" type="button">გასვლა</button>`;
-      const panel=document.createElement('div');panel.className='gn-profile-panel';panel.hidden=true;panel.innerHTML=`<div class="gn-profile-panel-head"><div><b>ჩემი პროფილი</b><small>${escapeHtml(user.email)}</small></div><span class="gn-profile-plan">${String(user.plan||'free').toUpperCase()}</span></div><div class="gn-profile-hero" id="gnProfileHero"><div class="gn-profile-avatar-preview">${profileImage(avatar,82)}</div><div><strong>${escapeHtml(profile.displayName||user.email.split('@')[0])}</strong><small>${escapeHtml(avatar.name)}</small><span>${usesLocalAccounts?localAccountDescription:'აირჩიე ახალი ავატარი, ფონი და სახელი'}</span></div></div><label>სახელი<input id="gnProfileName" maxlength="20" value="${escapeHtml(profile.displayName||'')}" placeholder="მაგ. გიორგი"></label><div class="gn-profile-avatar-title"><b>უფასო ავატარები</b><small>6 ვარიანტი • ყველასთვის</small></div><div class="gn-avatar-grid free-grid">${AVATARS.filter(a=>!a.premium).map(a=>`<button type="button" class="gn-avatar-option ${a.id===avatar.id?'selected':''}" data-avatar-id="${a.id}" title="${escapeHtml(a.name)}">${profileImage(a,96,true)}</button>`).join('')}</div><div class="gn-profile-avatar-title premium-title"><b>✨ PLUS ავატარები</b><small>ფოტო • თევზი • ანკესი • ბუნება • სპორტი</small></div><div class="gn-avatar-grid premium-grid">${AVATARS.filter(a=>a.premium).map(a=>`<button type="button" class="gn-avatar-option premium ${a.id===avatar.id?'selected':''}" data-avatar-id="${a.id}" title="${escapeHtml(a.name)}">${profileImage(a,96,true)}${a.premium?'<span>PLUS</span>':''}</button>`).join('')}</div><div class="gn-profile-avatar-title premium-title"><b>🖼️ პროფილის ფონი</b><small>სურათი პროფილის უკან • ზოგი PLUS</small></div><div class="gn-profile-bg-grid">${BACKGROUNDS.map(b=>`<button type="button" class="gn-profile-bg-option ${b.premium?'premium ':''}${b.id===(profile.backgroundId||'bg-fishing-lake')?'selected':''}" data-bg-id="${b.id}" title="${escapeHtml(b.name)}">${profileImage(b,160,true,'background')}<b>${escapeHtml(b.name)}</b>${b.premium?'<span>PLUS</span>':''}</button>`).join('')}</div><div class="gn-profile-note" id="gnProfileNote"></div><div class="gn-profile-actions"><button type="button" class="btn ghost" id="gnProfileCancel">დახურვა</button><button type="button" class="btn primary" id="gnProfileSave">შენახვა</button></div>`;panel.id='gnProfilePanel';panel.setAttribute('role','dialog');panel.setAttribute('aria-label','ჩემი პროფილი');panel.tabIndex=-1;
+      const panel=document.createElement('div');panel.className='gn-profile-panel';panel.hidden=true;panel.innerHTML=`<div class="gn-profile-panel-head"><div><b>ჩემი პროფილი</b><small>${escapeHtml(user.email)}</small></div><span class="gn-profile-plan">${String(user.plan||'free').toUpperCase()}</span></div><div class="gn-profile-hero" id="gnProfileHero"><div class="gn-profile-avatar-preview">${profileImage(avatar,82)}</div><div><strong>${escapeHtml(profile.displayName||user.email.split('@')[0])}</strong><small>${escapeHtml(avatar.name)}</small><span>${usesLocalAccounts?localAccountDescription:'აირჩიე ახალი ავატარი, ფონი და სახელი'}</span></div></div><label>სახელი<input id="gnProfileName" maxlength="20" value="${escapeHtml(profile.displayName||'')}" placeholder="მაგ. გიორგი"></label><div class="gn-profile-avatar-title"><b>უფასო ავატარები</b><small>6 ვარიანტი • ყველასთვის</small></div><div class="gn-avatar-grid free-grid" role="group" aria-label="უფასო ავატარები">${AVATARS.filter(a=>!a.premium).map(a=>avatarOption(a,a.id===avatar.id)).join('')}</div><div class="gn-profile-avatar-title premium-title"><b>✨ PLUS ავატარები</b><small>ბუნების კოლექცია • 14 ავატარი</small></div><div class="gn-avatar-grid premium-grid" role="group" aria-label="Plus ავატარები">${AVATARS.filter(a=>a.premium).map(a=>avatarOption(a,a.id===avatar.id)).join('')}</div><div class="gn-profile-avatar-title premium-title"><b>🖼️ პროფილის ფონი</b><small>სურათი პროფილის უკან • ზოგი PLUS</small></div><div class="gn-profile-bg-grid">${BACKGROUNDS.map(b=>`<button type="button" class="gn-profile-bg-option ${b.premium?'premium ':''}${b.id===(profile.backgroundId||'bg-fishing-lake')?'selected':''}" data-bg-id="${b.id}" title="${escapeHtml(b.name)}">${profileImage(b,160,true,'background')}<b>${escapeHtml(b.name)}</b>${b.premium?'<span>PLUS</span>':''}</button>`).join('')}</div><div class="gn-profile-note" id="gnProfileNote"></div><div class="gn-profile-actions"><button type="button" class="btn ghost" id="gnProfileCancel">დახურვა</button><button type="button" class="btn primary" id="gnProfileSave">შენახვა</button></div>`;panel.id='gnProfilePanel';panel.setAttribute('role','dialog');panel.setAttribute('aria-label','ჩემი პროფილი');panel.tabIndex=-1;
       const profileContent=document.createElement('div');profileContent.className='gn-profile-content';
       const profileActions=panel.querySelector('.gn-profile-actions');
       while(panel.firstChild&&panel.firstChild!==profileActions)profileContent.appendChild(panel.firstChild);
       panel.insertBefore(profileContent,profileActions);document.body.appendChild(panel);
       let selectedAvatar=avatar.id; let selectedBackground=profile.backgroundId||'bg-fishing-lake'; const trigger=wrap.querySelector('#gnProfileTrigger'); const setBackground=()=>{const bg=BACKGROUNDS.find(b=>b.id===selectedBackground)||BACKGROUNDS[0]; trigger.style.backgroundImage=`url('${bg.src}')`; const hero=panel.querySelector('#gnProfileHero'); if(hero){hero.style.backgroundImage=`linear-gradient(135deg,rgba(6,18,11,.72),rgba(5,12,8,.91)),url('${bg.src}')`;hero.style.backgroundSize='cover';hero.style.backgroundPosition='center'}}; setBackground();
       let savedAvatar=selectedAvatar,savedBackground=selectedBackground,savedName=profile.displayName||'';
-      const close=()=>{panel.hidden=true;document.body.classList.remove('gn-header-profile-open');trigger.setAttribute('aria-expanded','false');selectedAvatar=savedAvatar;selectedBackground=savedBackground;panel.querySelector('#gnProfileName').value=savedName;panel.querySelectorAll('.gn-avatar-option').forEach(button=>button.classList.toggle('selected',button.dataset.avatarId===selectedAvatar));panel.querySelectorAll('.gn-profile-bg-option').forEach(button=>button.classList.toggle('selected',button.dataset.bgId===selectedBackground));setBackground();};
+      function updateAvatarPreview(){
+        const chosen=AVATARS.find(item=>item.id===selectedAvatar)||AVATARS[0];
+        const hero=panel.querySelector('#gnProfileHero');
+        if(hero&&hero.dataset.gnPreviewAvatar!==chosen.id){
+          hero.querySelector('.gn-profile-avatar-preview').innerHTML=profileImage(chosen,120);
+          hero.querySelector('small').textContent=chosen.name;
+          hero.dataset.gnPreviewAvatar=chosen.id;
+        }
+        panel.querySelectorAll('.gn-avatar-option').forEach(button=>{
+          const selected=button.dataset.avatarId===chosen.id;
+          const item=AVATARS.find(avatar=>avatar.id===button.dataset.avatarId);
+          const locked=Boolean(item?.premium&&!premiumUnlocked());
+          button.classList.toggle('selected',selected);button.classList.toggle('is-locked',locked);
+          button.setAttribute('aria-pressed',String(selected));
+          if(locked)button.setAttribute('aria-disabled','true');else button.removeAttribute('aria-disabled');
+        });
+      }
+      updateAvatarPreview();
+
+      const close=()=>{panel.hidden=true;document.body.classList.remove('gn-header-profile-open');trigger.setAttribute('aria-expanded','false');selectedAvatar=savedAvatar;selectedBackground=savedBackground;panel.querySelector('#gnProfileName').value=savedName;updateAvatarPreview();panel.querySelectorAll('.gn-profile-bg-option').forEach(button=>button.classList.toggle('selected',button.dataset.bgId===selectedBackground));setBackground();};
       const compactProfile=()=>Boolean(window.matchMedia?.('(max-width:1024px)').matches);
       const position=()=>{
         if(panel.hidden)return;
@@ -212,9 +236,9 @@
       };
       panel.addEventListener('focusin',position);
       trigger.setAttribute('aria-controls',panel.id);trigger.setAttribute('aria-expanded','false');
-      trigger.onclick=()=>{if(!panel.hidden){close();return;}panel.hidden=false;document.body.classList.add('gn-header-profile-open');trigger.setAttribute('aria-expanded','true');position();if(compactProfile())panel.focus({preventScroll:true});else panel.querySelector('#gnProfileName')?.focus();};
+      trigger.onclick=()=>{if(!panel.hidden){close();return;}panel.hidden=false;document.body.classList.add('gn-header-profile-open');trigger.setAttribute('aria-expanded','true');updateAvatarPreview();position();profileContent.scrollTop=0;panel.scrollTop=0;if(compactProfile())panel.focus({preventScroll:true});else panel.querySelector('#gnProfileName')?.focus();};
       window.addEventListener('resize',position,{passive:true});window.visualViewport?.addEventListener('resize',position,{passive:true});document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!panel.hidden){close();trigger.focus();}});
-      panel.querySelectorAll('.gn-avatar-option').forEach(b=>b.onclick=()=>{const item=AVATARS.find(a=>a.id===b.dataset.avatarId);if(item?.premium&&!premiumUnlocked()){panel.querySelector('#gnProfileNote').innerHTML=`🔒 <b>${escapeHtml(item.name)}</b> — უკეთესი ავატარია და Plus-ში იხსნება. <a href="premium.html">Plus-ის ნახვა →</a>`;return;}selectedAvatar=b.dataset.avatarId;panel.querySelectorAll('.gn-avatar-option').forEach(x=>x.classList.toggle('selected',x===b));panel.querySelector('#gnProfileNote').textContent=''});
+      panel.querySelectorAll('.gn-avatar-option').forEach(b=>b.onclick=()=>{const item=AVATARS.find(a=>a.id===b.dataset.avatarId);if(item?.premium&&!premiumUnlocked()){panel.querySelector('#gnProfileNote').innerHTML=`🔒 <b>${escapeHtml(item.name)}</b> — უკეთესი ავატარია და Plus-ში იხსნება. <a href="premium.html">Plus-ის ნახვა →</a>`;return;}selectedAvatar=b.dataset.avatarId;updateAvatarPreview();panel.querySelector('#gnProfileNote').textContent=''});
       panel.querySelectorAll('.gn-profile-bg-option').forEach(b=>b.onclick=()=>{const item=BACKGROUNDS.find(x=>x.id===b.dataset.bgId);if(item?.premium&&!premiumUnlocked()){panel.querySelector('#gnProfileNote').innerHTML=`🔒 <b>${escapeHtml(item.name)}</b> — PLUS ფონი. <a href="premium.html">Plus-ის ნახვა →</a>`;return;}selectedBackground=b.dataset.bgId;panel.querySelectorAll('.gn-profile-bg-option').forEach(x=>x.classList.toggle('selected',x===b));setBackground();panel.querySelector('#gnProfileNote').textContent='' }); panel.querySelector('#gnProfileCancel').onclick=()=>{close();trigger.focus();};
       const saveButton=panel.querySelector('#gnProfileSave');let saving=false;
       saveButton.onclick=async()=>{
