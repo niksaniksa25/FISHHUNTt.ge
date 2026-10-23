@@ -1,0 +1,18 @@
+# EXAMPLE ONLY: copy to a separate local configuration after replacing the KV ID.
+# Do not deploy this template unchanged: preserve the existing ADMIN_KV binding.
+name = "fishhunt-ai"
+main = "worker/fishhunt-ai.mjs"
+compatibility_date = "2026-10-23"
+keep_vars = true
+
+[[kv_namespaces]]
+binding = "ADMIN_KV"
+id = "REPLACE_WITH_THE_EXISTING_FISHHUNT_ADMIN_KV_NAMESPACE_ID"
+
+[[durable_objects.bindings]]
+name = "FISHHUNT_ACCOUNTS"
+class_name = "FishHuntAccountsDO"
+
+[[migrations]]
+tag = "fishhunt-accounts-v1"
+new_sqlite_classes = ["FishHuntAccountsDO"]

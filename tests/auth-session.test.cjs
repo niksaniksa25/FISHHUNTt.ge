@@ -176,3 +176,64 @@ test('unknown or non-string requested name colors fail without saving profile ch
     const profile=(await first.auth.request('/profile')).profile;assert.equal(profile.nameColor,'default');assert.equal(profile.displayName,'');
   }
 });
+
+test('legacy and invalid stored avatar frames normalize to none without exposing CSS', async () => {
+  const first=app();await first.auth.request('/signup',post(credentials));
+  const users=JSON.parse(first.local.getItem(usersKey));
+  for(const frame of [undefined,'unknown','url(https://example.invalid)',{},['aurora']]){
+    if(frame===undefined)delete users[0].avatarFrame;else users[0].avatarFrame=frame;
+    first.local.setItem(usersKey,JSON.stringify(users));
+    assert.equal((await first.auth.request('/profile')).profile.avatarFrame,'none');
+    assert.equal((await first.auth.me()).avatarFrame,'none');
+  }
+});
+
+test('unearned frame choices cannot partially save the profile or award progress', async () => {
+  const first=app();await first.auth.request('/signup',post(credentials));
+  first.local.setItem('geonature_plus_v1',JSON.stringify({catches:[{}],plans:[{}],favorites:['same','SAME',' same '],xp:'invalid',badges:['first-catch','planner','xp500']}));
+  for(const avatarFrame of ['first-catch','explorer','champion','aurora','copper']){
+    await assert.rejects(first.auth.request('/profile',profilePatch({avatarFrame})),/დაჭერა|გეგმა|XP|Plus/);
+    assert.equal((await first.auth.request('/profile')).profile.displayName,'');
+  }
+  assert.equal(JSON.parse(first.local.getItem('geonature_plus_v1')).xp,'invalid');
+});
+
+test('a recorded catch unlocks its cosmetic frame and persists without a Plus subscription', async () => {
+  const first=app();await first.auth.request('/signup',post(credentials));
+  first.local.setItem('gn_catches',JSON.stringify([{species:'კობრი',date:'2026-10-23'}]));
+  const saved=await first.auth.request('/profile',profilePatch({avatarFrame:'first-catch'}));
+  assert.equal(saved.profile.avatarFrame,'first-catch');
+  const next=app({local:first.local,tab:first.tab});
+  assert.equal((await next.auth.request('/profile')).profile.avatarFrame,'first-catch');
+  assert.equal((await next.auth.me()).avatarFrame,'first-catch');
+});
+
+test('explorer and champion frames require actual plans or favorites and XP progress', async () => {
+  const first=app();await first.auth.request('/signup',post(credentials));
+  for(const progress of [{plans:[{title:'ჟინვალის გეგმა'}]},{favorites:['ჟინვალი','ბაზალეთი','ლისი']}]){
+    first.local.setItem('geonature_plus_v1',JSON.stringify(progress));
+    assert.equal((await first.auth.request('/profile',profilePatch({avatarFrame:'explorer'}))).profile.avatarFrame,'explorer');
+  }
+  first.local.setItem('geonature_plus_v1',JSON.stringify({xp:499}));
+  await assert.rejects(first.auth.request('/profile',profilePatch({avatarFrame:'champion'})),/500 XP/);
+  first.local.setItem('geonature_plus_v1',JSON.stringify({xp:500}));
+  assert.equal((await first.auth.request('/profile',profilePatch({avatarFrame:'champion'}))).profile.avatarFrame,'champion');
+});
+
+test('Plus frame preferences persist but an expired plan cannot activate a paid frame', async () => {
+  const first=app();await first.auth.request('/signup',post(credentials));first.local.setItem('gn_plan','plus');
+  for(const avatarFrame of ['aurora','copper'])assert.equal((await first.auth.request('/profile',profilePatch({avatarFrame}))).profile.avatarFrame,avatarFrame);
+  assert.equal((await first.auth.request('/profile',profilePatch({displayName:'ახალი სახელი'}))).profile.avatarFrame,'copper');
+  first.local.setItem('gn_plan_expires_at',String(Date.now()-1000));
+  await assert.rejects(first.auth.request('/profile',profilePatch({avatarFrame:'aurora'})),/Plus/);
+  assert.equal((await first.auth.request('/profile',profilePatch({displayName:'უბრალო სახელი'}))).profile.avatarFrame,'none');
+});
+
+test('invalid requested frames never become saved style or partially update a name', async () => {
+  const first=app();await first.auth.request('/signup',post(credentials));
+  for(const avatarFrame of ['unknown','url(https://example.invalid)',{},['aurora'],null]){
+    await assert.rejects(first.auth.request('/profile',profilePatch({avatarFrame})),/ჩარჩო არასწორია/);
+    assert.equal((await first.auth.request('/profile')).profile.avatarFrame,'none');
+    assert.equal((await first.auth.request('/profile')).profile.displayName,'');
+  }
+});

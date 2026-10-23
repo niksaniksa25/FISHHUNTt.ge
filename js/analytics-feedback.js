@@ -1,4 +1,4 @@
-/* GeoNature analytics + feedback widget. When no API is configured, offers a no-backend GitHub Issues fallback. */
+/* FishHunt analytics + feedback widget. When no API is configured, offers a no-backend GitHub Issues fallback. */
 (function () {
   'use strict';
   if (document.querySelector('.gn-feedback-fab')) return;
@@ -57,7 +57,7 @@
       const response = await fetch(endpoint, {
         method: 'POST', credentials: onWorker ? 'omit' : (apiBase() ? 'include' : 'same-origin'),
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ visitorId, path: currentPath, title: document.title || 'GeoNature', referralCode }),
+        body: JSON.stringify({ visitorId, path: currentPath, title: document.title || 'FishHunt', referralCode }),
         keepalive: true
       });
       if (response.ok) {
@@ -86,7 +86,7 @@
   const overlay = document.createElement('div'); overlay.className = 'gn-feedback-overlay'; overlay.hidden = true;
   overlay.innerHTML = `
     <section id="gnFeedbackDialog" class="gn-feedback-dialog" role="dialog" aria-modal="true" aria-labelledby="gnFeedbackTitle" aria-describedby="gnFeedbackHelp">
-      <div class="gn-feedback-head"><div><h2 id="gnFeedbackTitle">შეტყობინება GeoNature-ს</h2><p>იპოვე შეცდომა ან გაქვს იდეა? მოგვწერე, რა მოხდა და როგორ გავიმეოროთ.</p></div><button type="button" class="gn-feedback-close" aria-label="დახურვა">×</button></div>
+      <div class="gn-feedback-head"><div><h2 id="gnFeedbackTitle">შეტყობინება FishHunt-ს</h2><p>იპოვე შეცდომა ან გაქვს იდეა? მოგვწერე, რა მოხდა და როგორ გავიმეოროთ.</p></div><button type="button" class="gn-feedback-close" aria-label="დახურვა">×</button></div>
       <form id="gnFeedbackForm"><label for="gnFeedbackCategory">ტიპი</label><select id="gnFeedbackCategory" name="category"><option value="bug">🐛 შეცდომა / არ მუშაობს</option><option value="idea">💡 ახალი იდეა</option><option value="question">❓ კითხვა</option><option value="other">💬 სხვა</option></select>
       <label for="gnFeedbackMessage">რა მოხდა? / რას შევცვლიდი?</label><textarea id="gnFeedbackMessage" name="message" minlength="1" maxlength="4000" required placeholder="აღწერე ნაბიჯები, გვერდი ან შეცდომა…"></textarea>
       <label id="gnFeedbackEmailLabel" for="gnFeedbackEmail">ელფოსტა პასუხისთვის (არასავალდებულო)</label><input id="gnFeedbackEmail" name="email" type="email" maxlength="160" placeholder="name@example.com">
@@ -173,7 +173,7 @@
     const maxPrefillChars = 500;
     const clipped = message.length > maxPrefillChars;
     const body = [
-      '### GeoNature feedback',
+      '### FishHunt feedback',
       '',
       '**ტიპი:** ' + (feedbackCategoryLabels[category] || 'სხვა'),
       '**გვერდი:** ' + pageUrl,
@@ -182,9 +182,9 @@
       message.slice(0, maxPrefillChars) + (clipped ? '\n\n[აქ პირველი 500 სიმბოლოა. ჩასვი დაკოპირებული სრული ტექსტი ამ ველში. სრული შეტყობინება ასევე შენახულია საიტის მონახაზში — საჭიროებისას დაბრუნდი უკან და დააკოპირე.]' : ''),
       '',
       '---',
-      '_შეტყობინება შექმნილია GeoNature-ის საიტის Feedback ვიჯეტიდან._'
+      '_შეტყობინება შექმნილია FishHunt-ის საიტის Feedback ვიჯეტიდან._'
     ].join('\n');
-    const title = '[GeoNature feedback] ' + (feedbackCategoryLabels[category] || 'შეტყობინება') + ' — ' + (location.pathname || '/');
+    const title = '[FishHunt feedback] ' + (feedbackCategoryLabels[category] || 'შეტყობინება') + ' — ' + (location.pathname || '/');
     const url = 'https://github.com/niksaniksa25/FISHHUNTt.ge/issues/new?' + new URLSearchParams({ title, body }).toString();
 
     status.replaceChildren();

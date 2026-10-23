@@ -62,7 +62,7 @@
       state.feed=[item,...state.feed].slice(0,25);persist();
       try{options.deliver?.(item,state.system);}catch{}return item;
     }
-    function test(){return addAlert({id:'test-'+now(),at:now(),title:'🔔 GeoNature • სატესტო შეტყობინება',body:'გვერდზე შეტყობინებები მუშაობს. ეს სატესტო ჩანაწერია; ამინდის შეფასებას არ წარმოადგენს.',test:true});}
+    function test(){return addAlert({id:'test-'+now(),at:now(),title:'🔔 FishHunt • სატესტო შეტყობინება',body:'გვერდზე შეტყობინებები მუშაობს. ეს სატესტო ჩანაწერია; ამინდის შეფასებას არ წარმოადგენს.',test:true});}
     async function run(force=false){
       if(!state.enabled)return {enabled:false};
       if(!force&&Number.isFinite(state.lastCheck?.at)&&now()>=state.lastCheck.at&&now()-state.lastCheck.at<CHECK_INTERVAL)return state.lastCheck;

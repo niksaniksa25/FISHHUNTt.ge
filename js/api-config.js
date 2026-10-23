@@ -7,6 +7,9 @@ window.GN_API_BASE_URL = ''; // Replace the empty string with the public HTTPS N
 // Paste the worker's https://YOUR-NAME.workers.dev origin after deployment.
 // Do not paste GEMINI_API_KEY or any secret into this file.
 window.GN_AI_WORKER_ORIGIN = 'https://fishhunt-ai.bsloveer25.workers.dev';
+// Accounts are opt-in and enabled only when this Worker's health response
+// confirms the account Durable Object is configured. Local accounts keep working.
+window.GN_ACCOUNT_WORKER_ORIGIN = 'https://fishhunt-accounts.bsloveer25.workers.dev';
 // Admin and feedback use the same Worker; other API traffic remains unchanged.
 window.GN_ADMIN_WORKER_ORIGIN = 'https://fishhunt-ai.bsloveer25.workers.dev';
 window.GN_API_BASE_URL = String(window.GN_API_BASE_URL || '').trim();

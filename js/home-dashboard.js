@@ -95,6 +95,7 @@
     if($('homeNow'))$('homeNow').disabled=state.loading||state.followNow;
     document.body.dataset.live=state.live&&!state.loading&&!unavailable&&!old&&!forecast?'1':'0';
     const header=$('headerLivePill');if(header){header.dataset.live=document.body.dataset.live;const label=header.querySelector('span');if(label)label.textContent=text.replace(/^[●○◌]\s*/,'');}
+    window.FishHuntDayPlan?.updateFromHome?.({data:state.data,lat:state.lat,lon:state.lon,city:state.city,loading:state.loading,error:state.error,live:state.live});
   }
   function renderUnavailable(){
     state.missing=true;

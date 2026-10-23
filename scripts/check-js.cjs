@@ -5,6 +5,7 @@ const root = path.resolve(__dirname, '..');
 const files = [
   ...fs.readdirSync(root).filter(name => name.endsWith('.js')),
   ...fs.readdirSync(path.join(root, 'js')).filter(name => name.endsWith('.js')).map(name => 'js/' + name),
+  ...fs.readdirSync(path.join(root, 'worker')).filter(name => name.endsWith('.mjs')).map(name => 'worker/' + name),
 ].sort();
 for (const file of files) {
   const result = spawnSync(process.execPath, ['--check', path.join(root, file)], { stdio: 'inherit' });

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="forest" x1="8" y1="5" x2="55" y2="61" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#24513d"/>
+      <stop offset="1" stop-color="#102b25"/>
+    </linearGradient>
+    <linearGradient id="fish" x1="17" y1="23" x2="45" y2="43" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#eef1c9"/>
+      <stop offset="1" stop-color="#b7dda8"/>
+    </linearGradient>
+  </defs>
+  <rect x="1" y="1" width="62" height="62" rx="19" fill="url(#forest)" stroke="#94bd98" stroke-width="2"/>
+  <path d="M18 33 10 25v16l8-8Z" fill="#9bc89a"/>
+  <path d="M17 33c7-11 20-14 32-4-4 11-19 17-32 4Z" fill="url(#fish)"/>
+  <path d="M33 26c-5 4-5 9-2 14" stroke="#39694c" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="40" cy="30" r="2.4" fill="#15382c"/>
+  <path d="M47 11v10c0 5-7 6-7 1" stroke="#e1ad78" stroke-width="2.8" stroke-linecap="round"/>
+  <path d="M15 48c7-5 12 4 20 0s10-3 15-1" stroke="#75b9aa" stroke-width="2" stroke-linecap="round"/>
+</svg>

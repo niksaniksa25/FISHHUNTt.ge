@@ -45,6 +45,23 @@ test('an unlocated directory entry opens the general map without a fabricated pi
   page.context.openMeteo=async()=>{fetched=true;};await page.ready[0]();await new Promise(resolve=>setImmediate(resolve));
   assert.equal(page.element('mapBtn').href,'map.html');assert.equal(page.element('mapBtn').textContent,'🗺️ რუკის გახსნა');assert.equal(page.element('planBtn').href,'fishing.html?place=unknown');assert.equal(fetched,false);
 });
+test('place share context uses actual timestamped weather and suppresses stale indices',async()=>{
+  const iso=new Date(Date.now()+4*3600000).toISOString().slice(0,16);
+  for(const stale of [false,true]){
+    const page=detail(located),events=[];
+    page.context.CustomEvent=class{constructor(type,options){this.type=type;Object.assign(this,options);}};
+    page.context.document.dispatchEvent=event=>events.push(event);
+    page.context.openMeteo=async()=>({timezone:'Asia/Tbilisi',utc_offset_seconds:14400,__meta:{stale},current:{time:iso,temperature_2m:14,apparent_temperature:13,wind_speed_10m:6,wind_gusts_10m:9,precipitation:0,weather_code:1,relative_humidity_2m:55,pressure_msl:1015,is_day:1},hourly:{time:[]},daily:{time:[]}});
+    await page.ready[0]();await new Promise(resolve=>setImmediate(resolve));
+    const snapshot=page.context.FishHuntPlaceContext.current();
+    assert.equal(snapshot.placeId,'known');assert.equal(snapshot.weather.temperature,14);
+    assert.equal(snapshot.status,stale?'stale':'live');
+    if(stale)assert.equal(snapshot.index,null);else assert.equal(typeof snapshot.index,'number');
+    assert.ok(Number.isFinite(Date.parse(snapshot.sourceTime)));
+    assert.equal(events.at(-1).type,'fishhunt:place-context');
+    assert.equal(events.at(-1).bubbles,true);
+  }
+});
 test('nearest-place GPS excludes null coordinates even near the zero meridian',()=>{
   const page=shell();page.context.WATERS=[['unknown','კოორდინატი არ არის','ტბა','თბილისი',null,null,'',''],['real','რეალური ადგილი','ტბა','თბილისი',1,1,'','']];page.context.FISHES=[];
   page.context.navigator.geolocation={getCurrentPosition:callback=>callback({coords:{latitude:0,longitude:0}})};

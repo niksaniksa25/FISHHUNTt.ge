@@ -1,4 +1,4 @@
-/* GeoNature Premium — product tiers and UI gating
+/* FishHunt Premium — product tiers and UI gating
    Real billing must be connected to a server-side payment provider.
    This file only controls client-side feature visibility after a plan is supplied by the backend.
 */
@@ -7,8 +7,8 @@
   const PLANS={free:0,plus:1,pro:2};
   const PLAN_INFO={
     free:{name:'Free',price:'0 ₾',days:1},
-    plus:{name:'GeoNature Plus',price:'2.99 ₾ / თვე',days:3},
-    pro:{name:'GeoNature AI Pro',price:'7.99 ₾ / თვე',days:7}
+    plus:{name:'FishHunt Plus',price:'2.99 ₾ / თვე',days:3},
+    pro:{name:'FishHunt AI Pro',price:'7.99 ₾ / თვე',days:7}
   };
   // Fill these with your real checkout URLs when your payment provider is connected.
   const CHECKOUT_URLS={plus:'payment.html?plan=plus',pro:'payment.html?plan=pro'};
@@ -159,7 +159,7 @@
     const footer=document.querySelector('.footer');
     [...document.body.children].forEach(el=>{if(el!==header&&el!==footer&&el.tagName!=='SCRIPT')el.style.display='none';});
     const gate=document.createElement('main');gate.className='gn-premium-gate';
-    gate.innerHTML=`<div class="gn-premium-gate-card"><div class="gn-premium-icon">${required==='pro'?'🤖':'⭐'}</div><span class="eyebrow">GEONATURE PREMIUM</span><h1>ეს ფუნქცია ${formatPlan(required)}-შია</h1><p>${required==='pro'?'AI, 7-დღიანი პროგნოზები, რუკაზე ნებისმიერი ქალაქი/საათი და აღჭურვილობის ჩექლისტი AI Pro-ის ნაწილია.':'Plus ხსნის „მეტი“ მენიუს გაფართოებულ ნაწილს, 3-დღიან პროგნოზს, GeoNature ცოდნას, Together-ს და მთვარე & ღამის ცას.'}</p><div class="gn-gate-price"><b>${PLAN_INFO[required].price}</b><span>თვეში</span></div><div class="gn-gate-actions"><a class="btn primary" href="${pricingUrl(required)}">ნახე გეგმები და გადახდა →</a><a class="btn ghost" href="index.html">მთავარზე დაბრუნება</a></div></div></main>`;
+    gate.innerHTML=`<div class="gn-premium-gate-card"><div class="gn-premium-icon">${required==='pro'?'🤖':'⭐'}</div><span class="eyebrow">FISHHUNT PREMIUM</span><h1>ეს ფუნქცია ${formatPlan(required)}-შია</h1><p>${required==='pro'?'AI, 7-დღიანი პროგნოზები, რუკაზე ნებისმიერი ქალაქი/საათი და აღჭურვილობის ჩექლისტი AI Pro-ის ნაწილია.':'Plus ხსნის „მეტი“ მენიუს გაფართოებულ ნაწილს, 3-დღიან პროგნოზს, FishHunt ცოდნას, Together-ს და მთვარე & ღამის ცას.'}</p><div class="gn-gate-price"><b>${PLAN_INFO[required].price}</b><span>თვეში</span></div><div class="gn-gate-actions"><a class="btn primary" href="${pricingUrl(required)}">ნახე გეგმები და გადახდა →</a><a class="btn ghost" href="index.html">მთავარზე დაბრუნება</a></div></div></main>`;
     if(staticDeployment()){
       const card=gate.querySelector('.gn-premium-gate-card'),text=card?.querySelector('p'),actions=card?.querySelector('.gn-gate-actions');
       if(text)text.textContent=`ეს გვერდი ${formatPlan(required)} გეგმის ნაწილია. გააქტიურება ამჟამად მიუწვდომელია, რადგან გადახდის სერვისი ჯერ არ არის დაკავშირებული. შეგიძლია გამოიყენო უფასო ინსტრუმენტები.`;

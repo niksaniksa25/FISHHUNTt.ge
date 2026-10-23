@@ -6,10 +6,10 @@
     ['ai.html','AI'],['donate.html','♡ დონაცია'],
     ['fishing-places.html','სათევზაო ადგილები'],['fishing-guide.html','სად წავიდეთ სათევზაოდ'],
     ['fishing-guide.html#fgHuntPlacesSection','სანადირო ადგილები'],['field-kit.html','აღჭურვილობა'],
-    ['catch-log.html','ჩემი დაჭერები'],['together.html','ერთად გასვლა'],['dashboard.html','ჩემი GeoNature'],
+    ['catch-log.html','ჩემი დაჭერები'],['together.html','ერთად გასვლა'],['dashboard.html','ჩემი FishHunt'],
     ['dashboard.html#badges','ბეჯები & ჩელენჯები'],['dashboard.html#gnNotificationCenter','შეტყობინებები'],
     ['seasons.html','სეზონური კალენდარი'],['forests.html','ტყეების Explorer'],['red-book.html','წითელი წიგნი'],
-    ['knowledge.html','GeoNature ცოდნა'],['moon.html','მთვარე & ღამის ცა'],['safety.html','უსაფრთხოება'],
+    ['knowledge.html','FishHunt ცოდნა'],['moon.html','მთვარე & ღამის ცა'],['safety.html','უსაფრთხოება'],
     ['premium-extras.html','Smart Tools'],['trial.html','3 დღე უფასოდ'],['premium.html','Premium გეგმები']
   ];
   const phoneTitles = {

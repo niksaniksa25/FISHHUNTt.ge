@@ -10,4 +10,6 @@ feedback.json
 push-state.json
 *.log
 .DS_Store
+wrangler.accounts.local.toml
+.wrangler/
 donations.json

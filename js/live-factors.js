@@ -1,4 +1,4 @@
-/* GeoNature Live Assessment Factors
+/* FishHunt Live Assessment Factors
  * Exact display values come from the same hourly/current weather payload used by the page.
  * Kp is read live from NOAA SWPC when available; moon illumination is calculated astronomically.
  */

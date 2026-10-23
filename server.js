@@ -5,7 +5,7 @@ const crypto = require('node:crypto');
 const vm = require('node:vm');
 const { URL } = require('node:url');
 
-// GeoNature BOG payment gateway adapter.
+// FishHunt BOG payment gateway adapter.
 // IMPORTANT: BOG merchant credentials belong only in .env on the server.
 // The endpoint URLs below are configurable because BOG may change its API contract.
 function loadEnv(){
@@ -22,7 +22,7 @@ fs.mkdirSync(DATA_DIR,{recursive:true});
 const CLIENT_ID=process.env.BOG_CLIENT_ID||'';
 const CLIENT_SECRET=process.env.BOG_CLIENT_SECRET||'';
 const SALE_END=Date.parse(process.env.GEONATURE_PLUS_SALE_END||'2026-11-01T00:00:00+04:00');
-const plans={plus:{name:'GeoNature Plus',regularPrice:5.99,salePrice:2.99,days:3},pro:{name:'GeoNature AI Pro',regularPrice:15.00,salePrice:7.99,days:7}};
+const plans={plus:{name:'FishHunt Plus',regularPrice:5.99,salePrice:2.99,days:3},pro:{name:'FishHunt AI Pro',regularPrice:15.00,salePrice:7.99,days:7}};
 function currentPlanPrice(plan){const p=plans[plan]; if(!p) return 0; return p.salePrice; }
 function planPricing(plan){const p=plans[plan]; if(!p) return null; const saleActive=plan==='plus' ? Date.now()<SALE_END : true; return {name:p.name,regularPrice:p.regularPrice,currentPrice:p.salePrice,days:p.days,saleActive,saleEnds:plan==='plus'?SALE_END:null};}
 const TERM_OPTIONS={1:{months:1,discount:0,label:'1 თვე'},3:{months:3,discount:10,label:'3 თვე • 10% ფასდაკლება'},6:{months:6,discount:15,label:'6 თვე • 15% ფასდაკლება'},12:{months:12,discount:25,label:'1 წელი • 25% ფასდაკლება'}};
@@ -205,7 +205,9 @@ function profilePlusAccess(user,req){
   return (['plus','pro'].includes(user?.plan)&&Number.isFinite(expires)&&(!expires||expires>Date.now()))||Boolean(req&&currentAdmin(req));
 }
 function profileNameColor(user,req){return profilePlusAccess(user,req)?normalizedNameColor(user?.nameColor):'default'}
-function cleanUser(user,req){return {id:user.id,email:user.email,createdAt:user.createdAt,role:user.role||'user',plan:user.plan||'free',planExpiresAt:user.planExpiresAt||null,displayName:user.displayName||'',avatarId:user.avatarId||'free-fish',backgroundId:user.backgroundId||'bg-fishing-lake',nameColor:profileNameColor(user,req),xp:Math.max(0,Number(user.xp)||0)}}
+const PROFILE_AVATAR_FRAMES=['none','first-catch','explorer','champion','aurora','copper'];
+function profileAvatarFrame(user,req){const frame=PROFILE_AVATAR_FRAMES.includes(user?.avatarFrame)?user.avatarFrame:'none';return ['aurora','copper'].includes(frame)&&!profilePlusAccess(user,req)?'none':frame}
+function cleanUser(user,req){return {id:user.id,email:user.email,createdAt:user.createdAt,role:user.role||'user',plan:user.plan||'free',planExpiresAt:user.planExpiresAt||null,displayName:user.displayName||'',avatarId:user.avatarId||'free-fish',backgroundId:user.backgroundId||'bg-fishing-lake',nameColor:profileNameColor(user,req),avatarFrame:profileAvatarFrame(user,req),xp:Math.max(0,Number(user.xp)||0)}}
 function cookieToken(req){const m=String(req.headers.cookie||'').match(/(?:^|;\s*)gn_session=([^;]+)/);return m?decodeURIComponent(m[1]):''}
 function currentUser(req){const token=cookieToken(req);const rec=sessions[token];if(!rec)return null;if(Date.now()>rec.expiresAt){delete sessions[token];writeJsonFile(SESSIONS_FILE,sessions);return null}return users.find(u=>u.id===rec.userId)||null}
 function requestIsSecure(req){
@@ -593,7 +595,7 @@ async function performPushChecks(){
           if(preferences.hour!=='any'&&Number(preferences.hour)!==localHour)continue;
           const score=calcPushScore(weather,fish,place),key=`${fish.id}|${place.id}`,last=Number(sub.lastSent[key]||0);
           if(score===null||score<preferences.threshold||Date.now()-last<6*60*60*1000)continue;
-          await sendPush(sub.subscription,{title:'🎣 GeoNature • პირობები',body:`${fish.name} • ${place.name}: პირობების ინდექსი ${score}/100. საორიენტაციო შეფასებაა; დაჭერის ალბათობას არ წარმოადგენს. ადგილობრივი დრო: ${weather.current.time.slice(11,16)}. მოპოვების წესები გადაამოწმე.`,url:frontendLink(`fishing.html?fish=${encodeURIComponent(fish.id)}&place=${encodeURIComponent(place.id)}#fishProfile`),tag:`fish-${fish.id}-${place.id}`});
+          await sendPush(sub.subscription,{title:'🎣 FishHunt • პირობები',body:`${fish.name} • ${place.name}: პირობების ინდექსი ${score}/100. საორიენტაციო შეფასებაა; დაჭერის ალბათობას არ წარმოადგენს. ადგილობრივი დრო: ${weather.current.time.slice(11,16)}. მოპოვების წესები გადაამოწმე.`,url:frontendLink(`fishing.html?fish=${encodeURIComponent(fish.id)}&place=${encodeURIComponent(place.id)}#fishProfile`),tag:`fish-${fish.id}-${place.id}`});
           sub.lastSent[key]=Date.now();changed=true;
         }catch(error){if(error.code==='GONE'){sub.enabled=false;changed=true}}
       }
@@ -649,7 +651,7 @@ const server=http.createServer(async(req,res)=>{
       }
       if(u.pathname==='/api/push/test'&&req.method==='POST'){
         const b=await body(req);const rec=pushState.subscriptions.find(x=>x.clientId===String(b.clientId||''));if(!rec)return json(res,404,{ok:false,message:'ჯერ ჩართე შეტყობინებები.'});if(!rec.enabled||!normalizePushSub(rec.subscription))return json(res,409,{ok:false,message:'შეტყობინებები არააქტიურია. ჯერ ხელახლა ჩართე.'});
-        try{await sendPush(rec.subscription,{title:'🔔 GeoNature',body:'სატესტო შეტყობინება წარმატებით მოვიდა. Push მუშაობს!',url:frontendLink('dashboard.html'),tag:'geonature-test'});return json(res,200,{ok:true,message:'📨 სატესტო შეტყობინება გაიგზავნა.'})}catch(e){if(e.code==='GONE'){rec.enabled=false;persistPushState()}return json(res,502,{ok:false,message:'Push პროვაიდერმა შეტყობინება ვერ მიიღო.'})}
+        try{await sendPush(rec.subscription,{title:'🔔 FishHunt',body:'სატესტო შეტყობინება წარმატებით მოვიდა. Push მუშაობს!',url:frontendLink('dashboard.html'),tag:'geonature-test'});return json(res,200,{ok:true,message:'📨 სატესტო შეტყობინება გაიგზავნა.'})}catch(e){if(e.code==='GONE'){rec.enabled=false;persistPushState()}return json(res,502,{ok:false,message:'Push პროვაიდერმა შეტყობინება ვერ მიიღო.'})}
       }
       if(u.pathname==='/api/push/check-now'&&req.method==='POST'){runPushChecks().catch(()=>{});return json(res,200,{ok:true,message:'შემოწმება დაიწყო.'});}
     }
@@ -768,7 +770,7 @@ const server=http.createServer(async(req,res)=>{
     }
     if(u.pathname==='/api/leaderboard/xp'&&req.method==='GET'){
       const leaderboard=users.filter(x=>(x.role||'user')!=='admin'&&Number(x.xp)>0)
-        .map(x=>({id:x.id,name:String(x.displayName||x.email?.split('@')[0]||'GeoNature Explorer').slice(0,30),avatarId:x.avatarId||'free-fish',xp:Math.max(0,Number(x.xp)||0),updatedAt:Number(x.xpUpdatedAt||x.createdAt)||0}))
+        .map(x=>({id:x.id,name:String(x.displayName||x.email?.split('@')[0]||'FishHunt Explorer').slice(0,30),avatarId:x.avatarId||'free-fish',xp:Math.max(0,Number(x.xp)||0),updatedAt:Number(x.xpUpdatedAt||x.createdAt)||0}))
         .sort((a,b)=>b.xp-a.xp||a.name.localeCompare(b.name,'ka')).slice(0,50)
         .map((x,i)=>({rank:i+1,...x}));
       return json(res,200,{ok:true,leaderboard});
@@ -782,7 +784,7 @@ const server=http.createServer(async(req,res)=>{
     }
     if(u.pathname==='/api/auth/profile'&&req.method==='GET'){
       const user=currentUser(req); if(!user) return json(res,401,{ok:false,message:'ანგარიშში შესვლა აუცილებელია.'});
-      return json(res,200,{ok:true,profile:{displayName:user.displayName||'',avatarId:user.avatarId||'free-fish',backgroundId:user.backgroundId||'bg-fishing-lake',nameColor:profileNameColor(user,req)}});
+      return json(res,200,{ok:true,profile:{displayName:user.displayName||'',avatarId:user.avatarId||'free-fish',backgroundId:user.backgroundId||'bg-fishing-lake',nameColor:profileNameColor(user,req),avatarFrame:profileAvatarFrame(user,req)}});
     }
     if(u.pathname==='/api/auth/profile'&&req.method==='PATCH'){
       const user=currentUser(req); if(!user) return json(res,401,{ok:false,message:'ანგარიშში შესვლა აუცილებელია.'});
@@ -794,9 +796,13 @@ const server=http.createServer(async(req,res)=>{
       if(hasNameColor&&!PROFILE_NAME_COLORS.includes(b.nameColor))return json(res,400,{ok:false,message:'სახელის ფერი ვერ მოიძებნა.'});
       const nameColor=hasNameColor?b.nameColor:profileNameColor(user,req);
       if(nameColor!=='default'&&!profilePlusAccess(user,req))return json(res,403,{ok:false,message:'სახელის ფერის შეცვლა Plus-შია.'});
+      const hasFrame=Object.prototype.hasOwnProperty.call(b,'avatarFrame');
+      if(hasFrame&&!PROFILE_AVATAR_FRAMES.includes(b.avatarFrame))return json(res,400,{ok:false,message:'ავატარის ჩარჩო ვერ მოიძებნა.'});
+      const avatarFrame=hasFrame?b.avatarFrame:profileAvatarFrame(user,req);
+      if(['aurora','copper'].includes(avatarFrame)&&!profilePlusAccess(user,req))return json(res,403,{ok:false,message:'ეს ჩარჩო Plus-შია.'});
       const plusAvatarIds=['plus-eagle','plus-wolf','plus-bear','plus-deer','plus-fishing','plus-compass','plus-canyon','plus-svaneti','plus-ranger','plus-nocturne','plus-fish-photo','plus-reel-photo','plus-hunt-photo','plus-football']; const plusBgIds=['bg-football']; if((plusAvatarIds.includes(avatar)||plusBgIds.includes(background)) && !['plus','pro'].includes(user.plan||'free') && !currentAdmin(req)) return json(res,403,{ok:false,message:'ეს PLUS არჩევანია.'});
-      user.displayName=name;user.avatarId=avatar;user.backgroundId=background;user.nameColor=nameColor;writeJsonFile(USERS_FILE,users);
-      return json(res,200,{ok:true,profile:{displayName:name,avatarId:avatar,backgroundId:background,nameColor}});
+      user.displayName=name;user.avatarId=avatar;user.backgroundId=background;user.nameColor=nameColor;user.avatarFrame=avatarFrame;writeJsonFile(USERS_FILE,users);
+      return json(res,200,{ok:true,profile:{displayName:name,avatarId:avatar,backgroundId:background,nameColor,avatarFrame}});
     }
     if(u.pathname==='/api/auth/signout'&&req.method==='POST'){
       clearSessionCookie(res,req);return json(res,200,{ok:true});
@@ -881,4 +887,4 @@ const server=http.createServer(async(req,res)=>{
     serveStatic(req,res);
   }catch(e){console.error(e);json(res,500,{ok:false,message:e.message})}
 });
-server.listen(PORT,HOST,()=>console.log(`GeoNature server listening on http://${HOST}:${server.address().port}`));
+server.listen(PORT,HOST,()=>console.log(`FishHunt server listening on http://${HOST}:${server.address().port}`));

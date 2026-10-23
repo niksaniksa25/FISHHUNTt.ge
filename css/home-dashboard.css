@@ -6,3 +6,35 @@
 #homeScore[data-level="good"],#outdoorScoreCard[data-level="good"] .value{color:#32bf68!important} #homeScore[data-level="mid"],#outdoorScoreCard[data-level="mid"] .value{color:#e7c23f!important} #homeScore[data-level="bad"],#outdoorScoreCard[data-level="bad"] .value{color:#e24b4b!important}
 .home-week{margin-top:18px}.home-week-strip{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}.home-day{border:1px solid rgba(255,255,255,.08);background:#0b1710;color:#f1f5f0;border-radius:12px;padding:10px;text-align:left;cursor:pointer}.home-day b,.home-day span,.home-day em,.home-day small{display:block}.home-day b{font-size:20px}.home-day span{font-size:25px;font-weight:950;margin:3px 0}.home-day em{font-style:normal;font-size:9px;color:#9eaca2}.home-day.good{border-color:rgba(50,191,104,.35)}.home-day.good span{color:#32bf68}.home-day.mid{border-color:rgba(231,194,63,.35)}.home-day.mid span{color:#e7c23f}.home-day.bad{border-color:rgba(226,75,75,.35)}.home-day.bad span{color:#e24b4b}
 @media(max-width:1000px){.home-week-strip{grid-template-columns:repeat(4,1fr)}}@media(max-width:620px){.home-week-strip{grid-template-columns:repeat(2,1fr)}}
+
+/* A short plan inside the existing weather panel, expanded only on request. */
+.fh-day-plan{margin-top:18px;border:1px solid #385344;border-radius:14px;background:#10281f;overflow:hidden}
+.fh-day-plan>summary{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;min-height:60px;padding:12px 15px;cursor:pointer;list-style:none}
+.fh-day-plan>summary::-webkit-details-marker{display:none}
+.fh-day-plan-heading{font-size:13px;font-weight:800;color:#d3e8af}
+#fhDayPlanSummary{font-size:13px;line-height:1.5;color:#e6eee4;overflow-wrap:anywhere}
+.fh-day-plan-chevron{font-size:18px;color:#bad0bd;transition:transform .15s}
+.fh-day-plan[open] .fh-day-plan-chevron{transform:rotate(180deg)}
+.fh-day-plan-content{padding:0 15px 15px;border-top:1px solid #ffffff0d}
+.fh-day-plan-meta{margin:12px 0;color:#9eb3a5;font-size:12px;line-height:1.6}
+.fh-day-plan-facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0}
+.fh-day-plan-facts>div{padding:10px;border-radius:10px;background:#0b2018;min-width:0}
+.fh-day-plan-facts dt{font-size:11px;color:#a7b8ab;line-height:1.5}
+.fh-day-plan-facts dd{margin:5px 0 0;color:#e4eddf;font-size:14px;font-weight:700;line-height:1.5;overflow-wrap:anywhere}
+.fh-day-plan-message,.fh-day-plan-legal{font-size:12px;line-height:1.7;color:#b5c8b8;overflow-wrap:anywhere}
+.fh-day-plan-legal{margin-top:10px;padding:10px 12px;background:#253120;border-left:3px solid #c0ae72;border-radius:9px}
+.fh-day-plan-legal strong{display:block;margin-bottom:4px;color:#e2d6ac;font-size:12px}
+.fh-day-plan-legal-details{margin-top:5px}
+.fh-day-plan-legal-details>summary{display:flex;align-items:center;min-height:44px;color:#d5deb9;font-size:12px;cursor:pointer}
+.fh-day-plan-legal-details>summary::before{content:'＋';margin-right:7px}
+.fh-day-plan-legal-details[open]>summary::before{content:'−'}
+.fh-day-plan-legal-details>summary:focus-visible{outline:3px solid #d5edb0;outline-offset:2px}
+.fh-day-plan-legal a{display:inline-flex;align-items:center;min-height:44px;color:#cce0b4}
+.fh-day-plan-note{display:block;margin-top:10px;color:#9fb3a4;font-size:12px;line-height:1.6}
+.fh-day-plan-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:13px}
+.fh-day-plan-links>a,.fh-day-plan-links>button{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:8px 13px;border:1px solid #48664e;border-radius:10px;background:#193426;color:#dcebcf;font-size:12px;line-height:1.4;text-decoration:none;cursor:pointer}
+.fh-day-plan-links>button{margin-left:auto}
+.fh-day-plan-links>button:disabled{opacity:.65;cursor:wait}
+.fh-day-plan>summary:focus-visible,.fh-day-plan-links>a:focus-visible,.fh-day-plan-links>button:focus-visible{outline:3px solid #d5edb0;outline-offset:2px}
+@media(max-width:767px){.fh-day-plan>summary{grid-template-columns:minmax(0,1fr) auto;gap:4px 10px}.fh-day-plan-heading{grid-column:1}.fh-day-plan-chevron{grid-column:2;grid-row:1/3}#fhDayPlanSummary{grid-column:1}.fh-day-plan-facts{grid-template-columns:repeat(2,minmax(0,1fr))}.fh-day-plan-links>button{margin-left:0}}
+@media(prefers-reduced-motion:reduce){.fh-day-plan-chevron{transition:none}}

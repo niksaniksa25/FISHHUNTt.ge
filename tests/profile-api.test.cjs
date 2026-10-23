@@ -137,3 +137,25 @@ test('an authenticated admin session may choose a Plus color for its signed-in a
   assert.equal((await api('admin-user', undefined, { route: '/api/auth/me', admin: true })).user.nameColor, 'lavender');
   assert.equal((await api('admin-user')).profile.nameColor, 'default');
 });
+
+test('frame preferences preserve older clients and enforce active Plus frames', async () => {
+  assert.equal((await api('legacy')).profile.avatarFrame, 'none');
+  for (const avatarFrame of ['aurora', 'copper']) {
+    await api('free', { ...profile, avatarFrame }, { expected: 403 });
+    await api('expired', { ...profile, avatarFrame }, { expected: 403 });
+    assert.equal((await api('plus', { ...profile, avatarFrame })).profile.avatarFrame, avatarFrame);
+    assert.equal((await api('plus', profile)).profile.avatarFrame, avatarFrame);
+    assert.equal((await api('plus', undefined, { route: '/api/auth/me' })).user.avatarFrame, avatarFrame);
+  }
+  // Achievement frames are private cosmetic preferences; the browser checks local record unlocks.
+  assert.equal((await api('free', { ...profile, avatarFrame: 'first-catch' })).profile.avatarFrame, 'first-catch');
+  assert.equal((await stored('free')).avatarFrame, 'first-catch');
+});
+
+test('frame input cannot store arbitrary styles or unexpected objects', async () => {
+  for (const avatarFrame of ['url(https://example.invalid)', 'constructor', {}, null, ['aurora']]) {
+    await api('plus', { ...profile, avatarFrame }, { expected: 400 });
+  }
+  assert.equal((await api('plus')).profile.avatarFrame, 'copper');
+  assert.equal((await api('free', { ...profile, avatarFrame: 'none' })).profile.avatarFrame, 'none');
+});

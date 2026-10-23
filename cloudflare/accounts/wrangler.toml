@@ -1,0 +1,13 @@
+# Accounts-only deployment: no Gemini secret or administrator KV binding.
+# The existing fishhunt-ai Worker is not changed by this configuration.
+name = "fishhunt-accounts"
+main = "../../worker/fishhunt-ai.mjs"
+compatibility_date = "2026-10-23"
+
+[[durable_objects.bindings]]
+name = "FISHHUNT_ACCOUNTS"
+class_name = "FishHuntAccountsDO"
+
+[[migrations]]
+tag = "fishhunt-accounts-v1"
+new_sqlite_classes = ["FishHuntAccountsDO"]

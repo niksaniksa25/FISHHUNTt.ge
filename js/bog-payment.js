@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const FALLBACK={plus:{name:'GeoNature Plus',regularPrice:5.99,currentPrice:2.99,days:3,saleActive:true},pro:{name:'GeoNature AI Pro',regularPrice:15,currentPrice:7.99,days:7,saleActive:true}};
+const FALLBACK={plus:{name:'FishHunt Plus',regularPrice:5.99,currentPrice:2.99,days:3,saleActive:true},pro:{name:'FishHunt AI Pro',regularPrice:15,currentPrice:7.99,days:7,saleActive:true}};
 const qs=new URLSearchParams(location.search),plan=qs.get('plan')==='pro'?'pro':'plus';
 const termMonths=[1,3,6,12].includes(Number(qs.get('term')))?Number(qs.get('term')):1;
 const base=String(window.GN_API_BASE_URL||document.querySelector('meta[name="gn-api-base"]')?.content||'').replace(/\/+$/,'');

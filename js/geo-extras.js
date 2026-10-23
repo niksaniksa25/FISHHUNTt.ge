@@ -83,7 +83,7 @@
   function addDashboardExtras(){
     const root=document.getElementById('gnDashboard');if(!root||document.getElementById('gnPersonalInsights'))return;
     const host=document.createElement('div');host.id='gnPersonalInsights';host.className='gn-dashboard-extras';
-    host.innerHTML=`<section class="panel gn-extra-card"><div class="row-between"><div><span class="eyebrow">PERSONAL GEONATURE</span><h2>🧠 შენი სტატისტიკა და რჩევა</h2></div><a class="btn ghost" href="fishing.html">ახალი გასვლის დაგეგმვა →</a></div><div id="gnPersonalInsightsGrid" class="gn-insight-grid"></div></section><section class="panel gn-extra-card"><div class="row-between"><div><span class="eyebrow">საიტის გზამკვლევი</span><h2>AI</h2></div><a class="btn primary" href="ai.html">AI-სთან საუბარი →</a></div><p class="muted">ესაუბრე AI-ს სახეობებზე, ადგილებზე, აღჭურვილობასა და გასვლის დაგეგმვაზე. მიმდინარე მონაცემები ამინდის გვერდზე გადაამოწმე.</p></section>`;
+    host.innerHTML=`<section class="panel gn-extra-card"><div class="row-between"><div><span class="eyebrow">PERSONAL FishHunt</span><h2>🧠 შენი სტატისტიკა და რჩევა</h2></div><a class="btn ghost" href="fishing.html">ახალი გასვლის დაგეგმვა →</a></div><div id="gnPersonalInsightsGrid" class="gn-insight-grid"></div></section><section class="panel gn-extra-card"><div class="row-between"><div><span class="eyebrow">საიტის გზამკვლევი</span><h2>AI</h2></div><a class="btn primary" href="ai.html">AI-სთან საუბარი →</a></div><p class="muted">ესაუბრე AI-ს სახეობებზე, ადგილებზე, აღჭურვილობასა და გასვლის დაგეგმვაზე. მიმდინარე მონაცემები ამინდის გვერდზე გადაამოწმე.</p></section>`;
     root.appendChild(host); renderPersonalInsights();
   }
   function renderPersonalInsights(){
@@ -91,7 +91,7 @@
     let topFish='ჯერ არ არის',topPlace='ჯერ არ არის',bestWeight=0,bestFish='—';
     const fishCount=Object.create(null),placeCount=Object.create(null);catches.forEach(c=>{if(typeof c.fish==='string'&&c.fish)fishCount[c.fish]=(fishCount[c.fish]||0)+1;if(typeof c.place==='string'&&c.place)placeCount[c.place]=(placeCount[c.place]||0)+1;const weight=number(c.weight);if(weight!==null&&weight>bestWeight){bestWeight=weight;bestFish=typeof c.fish==='string'?c.fish:'—'}});
     topFish=Object.entries(fishCount).sort((a,b)=>b[1]-a[1])[0]?.[0]||topFish;topPlace=Object.entries(placeCount).sort((a,b)=>b[1]-a[1])[0]?.[0]||topPlace;
-    const xp=Math.max(0,number(s.xp)??0),level=Math.floor(xp/100)+1;const insight=topFish!=='ჯერ არ არის'?`შენ ყველაზე ხშირად ${esc(topFish)}-ს უთითებ Catch Log-ში. შემდეგ გასვლაზე ამ სახეობის საუკეთესო საათი შეამოწმე Planner-ში.`:'Catch Log ჯერ ცარიელია — პირველი ჩანაწერის შემდეგ GeoNature შენს პირად ტენდენციებსაც დაგანახებს.';
+    const xp=Math.max(0,number(s.xp)??0),level=Math.floor(xp/100)+1;const insight=topFish!=='ჯერ არ არის'?`შენ ყველაზე ხშირად ${esc(topFish)}-ს უთითებ Catch Log-ში. შემდეგ გასვლაზე ამ სახეობის საუკეთესო საათი შეამოწმე Planner-ში.`:'Catch Log ჯერ ცარიელია — პირველი ჩანაწერის შემდეგ FishHunt შენს პირად ტენდენციებსაც დაგანახებს.';
     box.innerHTML=[['🎣','საყვარელი თევზი',topFish],['📍','ხშირი ადგილი',topPlace],['🏆','პირადი რეკორდი',bestWeight?bestFish+' • '+bestWeight+' კგ':'ჯერ არ არის'],['⭐','რჩეულები',String(favs.length)],['🗺️','გეგმები',String(plans.length)],['⚡','Level',String(level)+' • '+xp+' XP']].map(x=>`<div class="gn-insight-item"><span>${x[0]}</span><small>${x[1]}</small><b>${esc(x[2])}</b></div>`).join('')+`<div class="gn-insight-wide"><small>💡 პირადი რჩევა</small><p>${insight}</p></div>`;
   }
   window.GeoNatureExtras={renderHome,renderPersonalInsights};

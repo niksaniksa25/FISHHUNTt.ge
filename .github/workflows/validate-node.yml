@@ -16,6 +16,9 @@ on:
       - "*.html"
       - "scripts/**"
       - "tests/**"
+      - "worker/**"
+      - "cloudflare/**"
+      - "wrangler*.toml"
       - ".github/workflows/validate-node.yml"
 
 permissions:

@@ -1,0 +1,9 @@
+/* FishHunt identity; preserve the header's existing dimensions and navigation. */
+.header .logo .logo-mark {
+  display:grid; place-items:center; overflow:hidden;
+  padding:0; background:transparent!important; border-radius:12px;
+  flex-shrink:0; box-shadow:none!important;
+}
+.logo .logo-mark img { display:block; width:100%; height:100%; object-fit:contain; }
+.header .logo b { color:#edf3e7; letter-spacing:.015em!important; }
+.header .logo small { color:#98b5a4!important; letter-spacing:.035em!important; }

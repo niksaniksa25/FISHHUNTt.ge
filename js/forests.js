@@ -69,7 +69,7 @@
     const birds=z[4].filter(n=>BIRDS.has(n)).length;
     const forestBlurb=z[1]+'-ის ჰაბიტატის აღწერა: '+z[5]+'. პროფილში ჩამოთვლილი სახეობები საინფორმაციო ცნობარია; მათი არსებობა კონკრეტულ დღეს ან ზუსტ წერტილში ავტომატურად არ დასტურდება.';
     const animalCards=animals.map(x=>'<a class="forest-wild" href="species.html?id='+encodeURIComponent(x[1])+'"><span class="forest-wild-icon">'+(BIRDS.has(x[1])?'🦉':'🦌')+'</span><span><strong>'+esc(x[1])+'</strong><small>'+esc(x[4]||x[5]||'საქართველოს ველური ბუნება')+'</small></span><b aria-hidden="true">↗</b></a>').join('');
-    return '<div class="forest-detail-top"><button class="btn ghost forest-back" id="forestBack" type="button">← ყველა ტყის ზონა</button><span class="forest-detail-label">GEONATURE • FOREST PROFILE</span></div>'+
+    return '<div class="forest-detail-top"><button class="btn ghost forest-back" id="forestBack" type="button">← ყველა ტყის ზონა</button><span class="forest-detail-label">FishHunt • FOREST PROFILE</span></div>'+
       '<div class="forest-profile-hero"><img id="forestProfileImg" src="'+FALLBACK_FOREST_IMAGE+'" alt="'+esc(z[1])+' — ტყის ლანდშაფტი" data-zone-id="'+esc(z[0])+'">'+
       '<div class="forest-profile-overlay"><span class="forest-region-pill">🌲 '+esc(z[3])+'</span><h2>'+esc(z[1])+'</h2><p>'+esc(z[2])+'</p></div>'+
       '<div class="forest-profile-score"><strong>'+score+'</strong><span>/100</span><small>ჰაბიტატის<br>მრავალფეროვნება</small></div></div>'+

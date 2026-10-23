@@ -214,11 +214,18 @@ async function geocode(q){const u=`https://nominatim.openstreetmap.org/search?fo
 function fmtDate(x){const local=typeof x==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(x),date=new Date(local?x+'T12:00:00Z':x);return Number.isFinite(date.getTime())?date.toLocaleDateString('ka-GE',{weekday:'long',day:'2-digit',month:'short',timeZone:local?'UTC':'Asia/Tbilisi'}):'—';}
 function fmtTime(x){if(typeof x==='string'&&/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(x))return x.slice(11,16);const date=new Date(x);return Number.isFinite(date.getTime())?date.toLocaleTimeString('ka-GE',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Tbilisi'}):'—';}
 async function loadHomeWeather(lat,lon,city){try{const d=await openMeteo(lat,lon),c=d.current,m=codeMeta(c.weather_code),s=scoreWeather(c);document.getElementById('homeCity').textContent=city;document.getElementById('homeIcon').textContent=m[0];document.getElementById('homeTemp').textContent=Math.round(c.temperature_2m)+'°';document.getElementById('homeDesc').textContent=m[1];document.getElementById('homeScore').textContent=s;document.getElementById('homePressure').textContent=Math.round(c.pressure_msl)+' hPa';document.getElementById('homeWind').textContent=Math.round(c.wind_speed_10m)+' კმ/სთ';document.getElementById('homeHumidity').textContent=Math.round(c.relative_humidity_2m)+'%';document.getElementById('homeRain').textContent=Number(c.precipitation).toFixed(1)+' მმ'}catch(e){console.error(e)}}
+function weatherLocationFromURL(search,defaults){
+  const params=new URLSearchParams(typeof search==='string'?search:'');
+  if(!params.has('lat')||!params.has('lon')||!validCoordinates(params.get('lat'),params.get('lon')))return {...defaults};
+  const name=String(params.get('name')||defaults?.city||'არჩეული ადგილი').replace(/[\u0000-\u001f\u007f]/g,' ').trim().replace(/\s+/g,' ').slice(0,120);
+  return {lat:Number(params.get('lat')),lon:Number(params.get('lon')),city:name||defaults?.city||'არჩეული ადგილი'};
+}
 async function initWeatherPage(lat,lon,city){
   const get=id=>document.getElementById(id),set=(id,value)=>{const el=get(id);if(el)el.textContent=value;};
   const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const fmt=(value,unit='',digits=1)=>numberOrNull(value)===null?'—':Number(value).toFixed(digits)+unit;
-  let activeLat=lat,activeLon=lon,activeCity=city,data=null,selectedISO='',trackCurrent=true,requestId=0,searchId=0;
+  const initial=weatherLocationFromURL(window.location?.search||'',{lat,lon,city});
+  let activeLat=initial.lat,activeLon=initial.lon,activeCity=initial.city,data=null,selectedISO='',trackCurrent=true,requestId=0,searchId=0;
   function renderFactors(){
     if(!data)return;
     const row=trackCurrent?currentWeatherRow(data):weatherRowAt(data,selectedISO);
@@ -307,4 +314,4 @@ function chanceBand(score){const value=numberOrNull(score);if(value===null)retur
 function chanceMarkup(score,label='პირობების ინდექსი'){const value=numberOrNull(score),n=value===null?null:Math.max(0,Math.min(100,Math.round(value))),[cls,text]=chanceBand(n),safeLabel=String(label).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));return `<div class="gn-chance gn-chance-${cls}"${n===null?'':` data-score="${n}"`}><span class="gn-chance-ring" style="--chance:${n??0}"><b>${n===null?'—':n+'/100'}</b></span><span class="gn-chance-copy"><strong>${safeLabel}</strong><small>${text}</small></span></div>`;}
 window.GeoChanceUI={band:chanceBand,markup:chanceMarkup};
 
-window.GeoNatureCommon=Object.assign(window.GeoNatureCommon||{},{scoreWeather,outdoorScore,openMeteo,codeMeta,fmtDate,localDateISO,numberOrNull,zonedDateTime,weatherRowAt,hourlyRows,conditionsFromRow,currentWeatherRow,validCoordinates,weatherObservationTime});
+window.GeoNatureCommon=Object.assign(window.GeoNatureCommon||{},{scoreWeather,outdoorScore,openMeteo,codeMeta,fmtDate,localDateISO,numberOrNull,zonedDateTime,weatherRowAt,hourlyRows,conditionsFromRow,currentWeatherRow,validCoordinates,weatherObservationTime,weatherLocationFromURL});

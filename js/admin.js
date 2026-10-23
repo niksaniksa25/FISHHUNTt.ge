@@ -59,7 +59,7 @@
     $('adminStats').innerHTML=cards.map(([label,value,note,available])=>'<div><b>'+esc(available&&value!=null?value:'—')+'</b><span>'+esc(label)+'</span><small>'+esc(available?note:'მონაცემთა წყარო არ არის დაკავშირებული')+'</small></div>').join('');
     const pp=s.purchasesByPlan||{};
     $('adminPurchaseSummary').innerHTML=unavailable?'<div class="admin-empty">გაყიდვების მონაცემები ამ სერვერზე არ არის ხელმისაწვდომი.</div>':
-      '<div><b>'+esc(pp.plus||0)+'</b><span>GeoNature Plus</span></div><div><b>'+esc(pp.pro||0)+'</b><span>AI Pro</span></div><div><b>'+Number(s.revenue||0).toFixed(2)+' ₾</b><span>ჯამური დადასტურებული თანხა</span></div>';
+      '<div><b>'+esc(pp.plus||0)+'</b><span>FishHunt Plus</span></div><div><b>'+esc(pp.pro||0)+'</b><span>AI Pro</span></div><div><b>'+Number(s.revenue||0).toFixed(2)+' ₾</b><span>ჯამური დადასტურებული თანხა</span></div>';
     const purchases=s.recentPurchases||[];
     $('adminPurchases').innerHTML=unavailable?'<div class="admin-empty">შესყიდვების რეალური ბაზა არ არის დაკავშირებული.</div>':
       (purchases.map(p=>'<div class="mini-row"><b>'+esc(p.plan==='pro'?'AI Pro':'Plus')+' • '+esc(p.termMonths||1)+' თვე</b><span>'+Number(p.amount||0).toFixed(2)+' ₾</span><span>'+esc(date(p.at))+'</span></div>').join('')||'<div class="admin-empty">ჯერ დადასტურებული შესყიდვები არ არის.</div>');

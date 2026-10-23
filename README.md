@@ -60,6 +60,18 @@ Profiles show the chosen display name without an email address. Twenty [characte
 
 Name colors use fixed, validated identifiers in both browser storage and the Node profile API. Static GitHub Pages profiles remain local to the current browser. The Node API persists profile settings for authenticated accounts and checks active plan access before accepting a Plus name color.
 
+### Compact trip tools
+
+The home weather panel includes a collapsed daily plan: the nearest eligible catalogued water, actual forecast for that water, the best remaining hour today and canonical species restrictions. Unavailable or old observations do not receive a new recommendation. Weather links retain the recommended place's exact coordinates.
+
+Daily plans and place pages offer a locally rendered PNG share card and explicit offline saving. Up to 24 saved place descriptions, species lists, timestamps and safety guidance are available in the dashboard and the lightweight offline page. New forecasts and map tiles still need connectivity. See [sharing and offline behavior](docs/SHARE-OFFLINE.md).
+
+Profiles also include a collapsed frame chooser. Three achievement frames use actual personal catch, planning/favorite and XP records; two additional styles require Plus. These are personal cosmetic unlocks, not verified public rewards.
+
+### Optional account sync
+
+Cloud accounts can synchronize profile settings, favorites, plans and text catch records between devices after explicit sign-in and transfer choices. Photos stay on the original device. A dedicated free Cloudflare Worker with a SQLite Durable Object provides private account storage and revision checks; the browser keeps local accounts working until the account service is deployed. Publishing GitHub Pages alone does not activate cloud storage. Follow the [owner deployment instructions](docs/ACCOUNT-SYNC.md); the existing AI and admin Worker can remain unchanged.
+
 
 ## განახლებული კატალოგები
 - თევზები: 84 სახეობა (`js/fishing-data.js`).
