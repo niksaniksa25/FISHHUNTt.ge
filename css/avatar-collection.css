@@ -1,7 +1,9 @@
-/* A consistent illustrated collection, with large artwork and visible choices. */
+/* Character portraits and profile personalization, shared by phone and desktop. */
+#gnProfileTrigger::before { background:linear-gradient(90deg,rgba(4,12,8,.92),rgba(4,12,8,.82)); }
+.gn-profile-trigger .gn-profile-text b { font-size:12px; line-height:1.5; }
 .gn-profile-panel .gn-profile-hero { padding:14px; border-radius:18px; gap:14px; }
 .gn-profile-panel .gn-profile-hero>div:nth-child(2) { min-width:0; }
-.gn-profile-panel .gn-profile-hero strong { overflow-wrap:anywhere; }
+.gn-profile-panel .gn-profile-hero strong { overflow-wrap:anywhere; transition:color .15s; }
 .gn-profile-panel .gn-profile-avatar-preview {
   width:104px; height:104px; border-radius:28px; padding:3px;
   background:linear-gradient(145deg,#e6d59b,#9bcf9b 50%,#67b9af);
@@ -46,6 +48,23 @@
 .gn-profile-panel .gn-avatar-option:hover { border-color:#a2c18f; transform:translateY(-1px); }
 .gn-profile-panel .gn-profile-note { font-size:12px; line-height:1.6; margin-top:12px; }
 .gn-profile-panel .gn-profile-note a { display:inline-flex; align-items:center; min-height:44px; }
+.gn-profile-panel .gn-name-color-section { margin:16px 0 6px; padding:13px; border:1px solid #385344; border-radius:15px; background:#10271f; }
+.gn-profile-panel .gn-name-color-title { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; color:#e4eddf; font-size:12px; font-weight:700; }
+.gn-profile-panel .gn-name-color-plus { padding:4px 7px; border:1px solid #9e8a5580; border-radius:6px; color:#eed697; background:#2d3221; font-size:9px; letter-spacing:.04em; }
+.gn-profile-panel .gn-name-color-options { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:7px; }
+.gn-profile-panel .gn-name-color-option {
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px;
+  min-width:0; min-height:58px; padding:7px 2px; border:1px solid transparent;
+  border-radius:10px; background:#183127; color:#c6d4c9; cursor:pointer;
+}
+.gn-profile-panel .gn-name-color-option .gn-name-color-swatch { display:block; position:relative; width:23px; height:23px; flex:none; border-radius:50%; background:var(--gn-swatch,#edf5ea); border:1px solid #ffffff45; box-shadow:0 2px 7px #0003; }
+.gn-profile-panel .gn-name-color-option .gn-name-color-label { display:block; min-width:0; max-width:100%; font-size:10px; line-height:1.4; white-space:normal; overflow-wrap:anywhere; text-align:center; }
+.gn-profile-panel .gn-name-color-option.selected { border-color:#cce7a5; background:#294632; }
+.gn-profile-panel .gn-name-color-option.selected .gn-name-color-swatch::after { content:'✓'; position:absolute; inset:0; display:grid; place-items:center; color:#173125; font-size:14px; font-weight:900; }
+.gn-profile-panel .gn-name-color-option.is-locked .gn-name-color-swatch::before { content:'🔒'; position:absolute; right:-5px; bottom:-4px; font-size:10px; line-height:1; }
+.gn-profile-panel .gn-name-color-option:focus-visible { outline:3px solid #d4edb3; outline-offset:2px; }
+.gn-profile-panel .gn-name-color-hint { display:block; margin:9px 0 0; color:#9db1a4; font-size:12px!important; line-height:1.6!important; }
+.gn-profile-panel .gn-name-color-hint a { display:inline-flex; align-items:center; min-height:44px; color:#d6e8b8; }
 @media(min-width:1025px) {
   #gnProfilePanel.gn-profile-panel { width:min(420px,calc(100vw - 24px)); }
   .gn-profile-panel .gn-avatar-grid { grid-template-columns:repeat(4,minmax(0,1fr)); }
@@ -57,5 +76,5 @@
   .gn-profile-panel .gn-profile-avatar-preview img { border-radius:21px; }
 }
 @media(prefers-reduced-motion:reduce) {
-  .gn-profile-panel .gn-avatar-option { transition:none; }
+  .gn-profile-panel .gn-avatar-option,.gn-profile-panel .gn-profile-hero strong { transition:none; }
 }

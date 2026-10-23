@@ -198,7 +198,14 @@ function validEmail(email){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)}
 function hashPassword(password,salt){return crypto.scryptSync(password,salt,64).toString('hex')}
 function createPasswordHash(password){const salt=crypto.randomBytes(16).toString('hex');return {salt,hash:hashPassword(password,salt)} }
 function verifyPassword(password,user){try{const got=hashPassword(password,user.passwordSalt);return crypto.timingSafeEqual(Buffer.from(got,'hex'),Buffer.from(user.passwordHash,'hex'))}catch{return false}}
-function cleanUser(user){return {id:user.id,email:user.email,createdAt:user.createdAt,role:user.role||'user',plan:user.plan||'free',planExpiresAt:user.planExpiresAt||null,displayName:user.displayName||'',avatarId:user.avatarId||'free-fish',backgroundId:user.backgroundId||'bg-fishing-lake',xp:Math.max(0,Number(user.xp)||0)}}
+const PROFILE_NAME_COLORS=['default','mint','gold','sky','aqua','rose','lavender','coral'];
+function normalizedNameColor(value){return PROFILE_NAME_COLORS.includes(value)?value:'default'}
+function profilePlusAccess(user,req){
+  const expires=Number(user?.planExpiresAt||0);
+  return (['plus','pro'].includes(user?.plan)&&Number.isFinite(expires)&&(!expires||expires>Date.now()))||Boolean(req&&currentAdmin(req));
+}
+function profileNameColor(user,req){return profilePlusAccess(user,req)?normalizedNameColor(user?.nameColor):'default'}
+function cleanUser(user,req){return {id:user.id,email:user.email,createdAt:user.createdAt,role:user.role||'user',plan:user.plan||'free',planExpiresAt:user.planExpiresAt||null,displayName:user.displayName||'',avatarId:user.avatarId||'free-fish',backgroundId:user.backgroundId||'bg-fishing-lake',nameColor:profileNameColor(user,req),xp:Math.max(0,Number(user.xp)||0)}}
 function cookieToken(req){const m=String(req.headers.cookie||'').match(/(?:^|;\s*)gn_session=([^;]+)/);return m?decodeURIComponent(m[1]):''}
 function currentUser(req){const token=cookieToken(req);const rec=sessions[token];if(!rec)return null;if(Date.now()>rec.expiresAt){delete sessions[token];writeJsonFile(SESSIONS_FILE,sessions);return null}return users.find(u=>u.id===rec.userId)||null}
 function requestIsSecure(req){
@@ -717,20 +724,20 @@ const server=http.createServer(async(req,res)=>{
       return json(res,201,{ok:true,message:'მადლობა! შეტყობინება ადმინისტრატორს გაეგზავნა.',id:item.id});
     }
     if(u.pathname==='/api/auth/me'&&req.method==='GET'){
-      const user=currentUser(req); return json(res,200,{ok:true,user:user?cleanUser(user):null});
+      const user=currentUser(req); return json(res,200,{ok:true,user:user?cleanUser(user,req):null});
     }
     if(u.pathname==='/api/auth/signup'&&req.method==='POST'){
       const b=await body(req); const email=normalizeEmail(b.email); const password=String(b.password||'');
       if(!validEmail(email)) return json(res,400,{ok:false,message:'შეიყვანე სწორი Gmail / Email მისამართი.'});
       if(password.length<8) return json(res,400,{ok:false,message:'პაროლი უნდა იყოს მინიმუმ 8 სიმბოლო.'});
       if(users.some(u=>u.email===email)) return json(res,409,{ok:false,message:'ეს ელფოსტა უკვე რეგისტრირებულია. შედი ანგარიშზე.'});
-      const ph=createPasswordHash(password); const user={id:`usr_${Date.now()}_${crypto.randomBytes(5).toString('hex')}`,email,passwordSalt:ph.salt,passwordHash:ph.hash,createdAt:Date.now(),role:'user',plan:'free',displayName:'',avatarId:'free-fish',backgroundId:'bg-fishing-lake'};
-      users.push(user);writeJsonFile(USERS_FILE,users);keepRecent(analytics.registrations,{userId:user.id,at:user.createdAt},20000);persistAnalytics();setSessionCookie(res,user.id,req,b.remember!==false);return json(res,201,{ok:true,user:cleanUser(user)});
+      const ph=createPasswordHash(password); const user={id:`usr_${Date.now()}_${crypto.randomBytes(5).toString('hex')}`,email,passwordSalt:ph.salt,passwordHash:ph.hash,createdAt:Date.now(),role:'user',plan:'free',displayName:'',avatarId:'free-fish',backgroundId:'bg-fishing-lake',nameColor:'default'};
+      users.push(user);writeJsonFile(USERS_FILE,users);keepRecent(analytics.registrations,{userId:user.id,at:user.createdAt},20000);persistAnalytics();setSessionCookie(res,user.id,req,b.remember!==false);return json(res,201,{ok:true,user:cleanUser(user,req)});
     }
     if(u.pathname==='/api/auth/signin'&&req.method==='POST'){
       const b=await body(req); const email=normalizeEmail(b.email); const password=String(b.password||''); const user=users.find(u=>u.email===email);
       if(!user||!verifyPassword(password,user)) return json(res,401,{ok:false,message:'ელფოსტა ან პაროლი არასწორია.'});
-      keepRecent(analytics.logins,{userId:user.id,at:Date.now()},20000);analytics.loginsTotal=(analytics.loginsTotal||0)+1;persistAnalytics();setSessionCookie(res,user.id,req,b.remember!==false);return json(res,200,{ok:true,user:cleanUser(user)});
+      keepRecent(analytics.logins,{userId:user.id,at:Date.now()},20000);analytics.loginsTotal=(analytics.loginsTotal||0)+1;persistAnalytics();setSessionCookie(res,user.id,req,b.remember!==false);return json(res,200,{ok:true,user:cleanUser(user,req)});
     }
     if(u.pathname==='/api/admin/login'&&req.method==='POST'){ const b=await body(req); if(!verifyAdminPanelPassword(b.password)) return json(res,401,{ok:false,message:'Admin პაროლი არასწორია.'}); setAdminCookie(res,req,b.remember!==false); return json(res,200,{ok:true}); }
     if(u.pathname==='/api/admin/me'&&req.method==='GET'){ return json(res,200,{ok:true,admin:Boolean(currentAdmin(req))}); }
@@ -775,7 +782,7 @@ const server=http.createServer(async(req,res)=>{
     }
     if(u.pathname==='/api/auth/profile'&&req.method==='GET'){
       const user=currentUser(req); if(!user) return json(res,401,{ok:false,message:'ანგარიშში შესვლა აუცილებელია.'});
-      return json(res,200,{ok:true,profile:{displayName:user.displayName||'',avatarId:user.avatarId||'free-fish',backgroundId:user.backgroundId||'bg-fishing-lake'}});
+      return json(res,200,{ok:true,profile:{displayName:user.displayName||'',avatarId:user.avatarId||'free-fish',backgroundId:user.backgroundId||'bg-fishing-lake',nameColor:profileNameColor(user,req)}});
     }
     if(u.pathname==='/api/auth/profile'&&req.method==='PATCH'){
       const user=currentUser(req); if(!user) return json(res,401,{ok:false,message:'ანგარიშში შესვლა აუცილებელია.'});
@@ -783,9 +790,13 @@ const server=http.createServer(async(req,res)=>{
       const avatar=String(b.avatarId||'free-fish'); const background=String(b.backgroundId||'bg-fishing-lake'); const allowed=['free-fish','free-leaf','free-camp','free-fox','free-wave','free-ranger','plus-eagle','plus-wolf','plus-bear','plus-deer','plus-fishing','plus-compass','plus-canyon','plus-svaneti','plus-ranger','plus-nocturne','plus-fish-photo','plus-reel-photo','plus-hunt-photo','plus-football']; const bgAllowed=['bg-fishing-lake','bg-fishing-rod','bg-fish','bg-forest','bg-mountains','bg-lake','bg-football'];
       if(name.length<2||name.length>20) return json(res,400,{ok:false,message:'სახელი უნდა იყოს 2-20 სიმბოლო.'});
       if(!allowed.includes(avatar)) return json(res,400,{ok:false,message:'ეს ავატარი ვერ მოიძებნა.'}); if(!bgAllowed.includes(background)) return json(res,400,{ok:false,message:'ეს ფონი ვერ მოიძებნა.'});
+      const hasNameColor=Object.prototype.hasOwnProperty.call(b,'nameColor');
+      if(hasNameColor&&!PROFILE_NAME_COLORS.includes(b.nameColor))return json(res,400,{ok:false,message:'სახელის ფერი ვერ მოიძებნა.'});
+      const nameColor=hasNameColor?b.nameColor:profileNameColor(user,req);
+      if(nameColor!=='default'&&!profilePlusAccess(user,req))return json(res,403,{ok:false,message:'სახელის ფერის შეცვლა Plus-შია.'});
       const plusAvatarIds=['plus-eagle','plus-wolf','plus-bear','plus-deer','plus-fishing','plus-compass','plus-canyon','plus-svaneti','plus-ranger','plus-nocturne','plus-fish-photo','plus-reel-photo','plus-hunt-photo','plus-football']; const plusBgIds=['bg-football']; if((plusAvatarIds.includes(avatar)||plusBgIds.includes(background)) && !['plus','pro'].includes(user.plan||'free') && !currentAdmin(req)) return json(res,403,{ok:false,message:'ეს PLUS არჩევანია.'});
-      user.displayName=name;user.avatarId=avatar;user.backgroundId=background;writeJsonFile(USERS_FILE,users);
-      return json(res,200,{ok:true,profile:{displayName:name,avatarId:avatar,backgroundId:background}});
+      user.displayName=name;user.avatarId=avatar;user.backgroundId=background;user.nameColor=nameColor;writeJsonFile(USERS_FILE,users);
+      return json(res,200,{ok:true,profile:{displayName:name,avatarId:avatar,backgroundId:background,nameColor}});
     }
     if(u.pathname==='/api/auth/signout'&&req.method==='POST'){
       clearSessionCookie(res,req);return json(res,200,{ok:true});

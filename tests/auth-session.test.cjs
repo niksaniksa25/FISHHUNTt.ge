@@ -114,3 +114,65 @@ test('concurrent local registrations preserve both distinct users and reject dup
   const users=JSON.parse(first.local.getItem(usersKey));
   assert.equal(users.length,2);assert.equal(new Set(users.map(user=>user.email)).size,2);
 });
+
+const profilePatch = extra => ({ method: 'PATCH', body: JSON.stringify({ displayName: 'ტყის მეგობარი', avatarId: 'free-fox', backgroundId: 'bg-forest', ...extra }) });
+
+test('legacy and unrecognized stored name colors read as the default without exposing raw CSS', async () => {
+  const first=app();
+  await first.auth.request('/signup',post(credentials));
+  const users=JSON.parse(first.local.getItem(usersKey));
+  for(const color of [undefined,'#ff0000','url(https://example.invalid/track)','unknown']){
+    if(color===undefined)delete users[0].nameColor;else users[0].nameColor=color;
+    first.local.setItem(usersKey,JSON.stringify(users));
+    assert.equal((await first.auth.request('/profile')).profile.nameColor,'default');
+    assert.equal((await first.auth.me()).nameColor,'default');
+  }
+});
+
+test('a free account cannot persist a Plus name color or partially update its name', async () => {
+  const first=app();await first.auth.request('/signup',post(credentials));
+  await assert.rejects(first.auth.request('/profile',profilePatch({nameColor:'gold'})),/Plus/);
+  const profile=(await first.auth.request('/profile')).profile;
+  assert.equal(profile.displayName,'');assert.equal(profile.avatarId,'free-fish');assert.equal(profile.nameColor,'default');
+  const saved=await first.auth.request('/profile',profilePatch({nameColor:'default'}));
+  assert.equal(saved.profile.nameColor,'default');
+});
+
+test('Plus name colors persist across navigation while email remains available for authentication', async () => {
+  const first=app();await first.auth.request('/signup',post(credentials));
+  first.local.setItem('gn_plan','plus');
+  for(const nameColor of ['mint','gold','sky','aqua','rose','lavender','coral']){
+    const saved=await first.auth.request('/profile',profilePatch({nameColor}));
+    assert.equal(saved.profile.nameColor,nameColor);
+    const next=app({local:first.local,tab:first.tab});
+    assert.equal((await next.auth.request('/profile')).profile.nameColor,nameColor);
+    const user=await next.auth.me();assert.equal(user.nameColor,nameColor);assert.equal(user.email,credentials.email);
+  }
+});
+
+test('expired Plus blocks a new color while a legacy profile edit can reset to the free default', async () => {
+  const first=app();await first.auth.request('/signup',post(credentials));
+  first.local.setItem('gn_plan','plus');
+  await first.auth.request('/profile',profilePatch({nameColor:'gold'}));
+  first.local.setItem('gn_plan_expires_at',String(Date.now()-1000));
+  await assert.rejects(first.auth.request('/profile',profilePatch({nameColor:'rose'})),/Plus/);
+  assert.equal((await first.auth.request('/profile')).profile.nameColor,'gold');
+  const saved=await first.auth.request('/profile',profilePatch({displayName:'ახალი სახელი'}));
+  assert.equal(saved.profile.nameColor,'default');
+});
+
+test('older clients preserve an entitled stored color when omitting the new field', async () => {
+  const first=app();await first.auth.request('/signup',post(credentials));
+  first.local.setItem('gn_plan','pro');
+  await first.auth.request('/profile',profilePatch({nameColor:'lavender'}));
+  const saved=await first.auth.request('/profile',profilePatch({displayName:'ახალი სახელი'}));
+  assert.equal(saved.profile.displayName,'ახალი სახელი');assert.equal(saved.profile.nameColor,'lavender');
+});
+
+test('unknown or non-string requested name colors fail without saving profile changes', async () => {
+  const first=app();await first.auth.request('/signup',post(credentials));first.local.setItem('gn_plan','plus');
+  for(const nameColor of ['#ff0000','url(https://example.invalid/track)',{},['gold'],null]){
+    await assert.rejects(first.auth.request('/profile',profilePatch({nameColor})),/ფერი არასწორია/);
+    const profile=(await first.auth.request('/profile')).profile;assert.equal(profile.nameColor,'default');assert.equal(profile.displayName,'');
+  }
+});

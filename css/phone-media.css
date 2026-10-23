@@ -9,7 +9,7 @@
   }
   body.gn-phone-layout .ai-mark,
   body.gn-phone-layout .ai-welcome-symbol {
-    background:#163324 url('../assets/avatars/collection/free-fish.webp') center/cover no-repeat!important;
+    background:#163324 url('../assets/avatars/portraits-v2/free-fish.webp') center/cover no-repeat!important;
     font-size:0!important; color:transparent!important; border-color:rgba(185,218,163,.3);
   }
   body.gn-phone-layout .gn-avatar-option { aspect-ratio:1; }

@@ -5,27 +5,41 @@
   const LOCAL_SESSION_KEY='geonature_local_session_v5';
   const LAST_EMAIL_KEY='geonature_last_email_v5';
   const PROFILE_KEY_PREFIX='geonature_profile_v1:';
+  const NAME_COLORS=[
+    {id:'default',label:'თეთრი',hex:'#edf5ea',name:'ჩვეულებრივი'},
+    {id:'mint',label:'პიტნა',hex:'#b8e68e',name:'პიტნისფერი'},
+    {id:'gold',label:'ოქრო',hex:'#f2ce7a',name:'ოქროსფერი'},
+    {id:'sky',label:'ცა',hex:'#a4d8ff',name:'ცისფერი'},
+    {id:'aqua',label:'ფირუზი',hex:'#8ee4da',name:'ფირუზისფერი'},
+    {id:'rose',label:'ვარდი',hex:'#ffb1cb',name:'ვარდისფერი'},
+    {id:'lavender',label:'იასამანი',hex:'#d7c4ff',name:'იასამნისფერი'},
+    {id:'coral',label:'მარჯანი',hex:'#ffb6a2',name:'მარჯნისფერი'}
+  ];
+  function normalizeNameColor(value){return NAME_COLORS.some(item=>item.id===value)?value:'default';}
+  function visibleName(value){return String(value||'').trim().replace(/\s+/g,' ')||'მკვლევარი';}
+  function effectiveNameColor(value){const id=normalizeNameColor(value);return id==='default'||premiumUnlocked()?id:'default';}
+  function applyNameColor(element,value){const id=effectiveNameColor(value),color=NAME_COLORS.find(item=>item.id===id);element.style.color=color.hex;element.dataset.nameColor=id;}
   const AVATARS=[
-    {id:'free-fish',emoji:'🐟',src:'assets/avatars/collection/free-fish.webp',name:'მდინარის მკვლევარი',premium:false},
-    {id:'free-leaf',emoji:'🌲',src:'assets/avatars/collection/free-leaf.webp',name:'ტყის მკვლევარი',premium:false},
-    {id:'free-camp',emoji:'⛺',src:'assets/avatars/collection/free-camp.webp',name:'განთიადის მეთევზე',premium:false},
-    {id:'free-fox',emoji:'🦊',src:'assets/avatars/collection/free-fox.webp',name:'მელას ბილიკი',premium:false},
-    {id:'free-wave',emoji:'🌊',src:'assets/avatars/collection/free-wave.webp',name:'ტბის დამკვირვებელი',premium:false},
-    {id:'free-ranger',emoji:'🎣',src:'assets/avatars/collection/free-ranger.webp',name:'ანკესის მეგობარი',premium:false},
-    {id:'plus-eagle',emoji:'🦅',src:'assets/avatars/collection/plus-eagle.webp',name:'არწივის თვალი',premium:true},
-    {id:'plus-wolf',emoji:'🐺',src:'assets/avatars/collection/plus-wolf.webp',name:'ტყის მცველი',premium:true},
-    {id:'plus-bear',emoji:'🐻',src:'assets/avatars/collection/plus-bear.webp',name:'ტყის ექსპერტი',premium:true},
-    {id:'plus-deer',emoji:'🦌',src:'assets/avatars/collection/plus-deer.webp',name:'მწვანე ბილიკი',premium:true},
-    {id:'plus-fishing',emoji:'🎣',src:'assets/avatars/collection/plus-fishing.webp',name:'ტრაუტის პროფესიონალი',premium:true},
-    {id:'plus-compass',emoji:'🧭',src:'assets/avatars/collection/plus-compass.webp',name:'GeoNature Explorer',premium:true},
-    {id:'plus-canyon',emoji:'🏔️',src:'assets/avatars/collection/plus-canyon.webp',name:'კანიონის მკვლევარი',premium:true},
-    {id:'plus-svaneti',emoji:'⛰️',src:'assets/avatars/collection/plus-svaneti.webp',name:'სვანეთის მთამსვლელი',premium:true},
-    {id:'plus-ranger',emoji:'🌲',src:'assets/avatars/collection/plus-ranger.webp',name:'ბუნების რეინჯერი',premium:true},
-    {id:'plus-nocturne',emoji:'🌙',src:'assets/avatars/collection/plus-nocturne.webp',name:'ღამის მაძიებელი',premium:true},
-    {id:'plus-fish-photo',emoji:'🐟',src:'assets/avatars/collection/plus-fish-photo.webp',name:'ოქროს თევზი',premium:true},
-    {id:'plus-reel-photo',emoji:'🎣',src:'assets/avatars/collection/plus-reel-photo.webp',name:'სპინინგის ოსტატი',premium:true},
-    {id:'plus-hunt-photo',emoji:'🦌',src:'assets/avatars/collection/plus-hunt-photo.webp',name:'ველური ბუნება',premium:true},
-    {id:'plus-football',emoji:'⚽',src:'assets/avatars/collection/plus-football.webp',name:'Football Star',premium:true}
+    {id:'free-fish',emoji:'🐟',src:'assets/avatars/portraits-v2/free-fish.webp',name:'მდინარის მკვლევარი',premium:false},
+    {id:'free-leaf',emoji:'🌲',src:'assets/avatars/portraits-v2/free-leaf.webp',name:'ტყის მკვლევარი',premium:false},
+    {id:'free-camp',emoji:'⛺',src:'assets/avatars/portraits-v2/free-camp.webp',name:'განთიადის მეთევზე',premium:false},
+    {id:'free-fox',emoji:'🦊',src:'assets/avatars/portraits-v2/free-fox.webp',name:'მელას ბილიკი',premium:false},
+    {id:'free-wave',emoji:'🌊',src:'assets/avatars/portraits-v2/free-wave.webp',name:'ტბის დამკვირვებელი',premium:false},
+    {id:'free-ranger',emoji:'🎣',src:'assets/avatars/portraits-v2/free-ranger.webp',name:'ანკესის მეგობარი',premium:false},
+    {id:'plus-eagle',emoji:'🦅',src:'assets/avatars/portraits-v2/plus-eagle.webp',name:'არწივის თვალი',premium:true},
+    {id:'plus-wolf',emoji:'🐺',src:'assets/avatars/portraits-v2/plus-wolf.webp',name:'ტყის მცველი',premium:true},
+    {id:'plus-bear',emoji:'🐻',src:'assets/avatars/portraits-v2/plus-bear.webp',name:'ტყის ექსპერტი',premium:true},
+    {id:'plus-deer',emoji:'🦌',src:'assets/avatars/portraits-v2/plus-deer.webp',name:'მწვანე ბილიკი',premium:true},
+    {id:'plus-fishing',emoji:'🎣',src:'assets/avatars/portraits-v2/plus-fishing.webp',name:'ტრაუტის პროფესიონალი',premium:true},
+    {id:'plus-compass',emoji:'🧭',src:'assets/avatars/portraits-v2/plus-compass.webp',name:'GeoNature Explorer',premium:true},
+    {id:'plus-canyon',emoji:'🏔️',src:'assets/avatars/portraits-v2/plus-canyon.webp',name:'კანიონის მკვლევარი',premium:true},
+    {id:'plus-svaneti',emoji:'⛰️',src:'assets/avatars/portraits-v2/plus-svaneti.webp',name:'სვანეთის მთამსვლელი',premium:true},
+    {id:'plus-ranger',emoji:'🌲',src:'assets/avatars/portraits-v2/plus-ranger.webp',name:'ბუნების რეინჯერი',premium:true},
+    {id:'plus-nocturne',emoji:'🌙',src:'assets/avatars/portraits-v2/plus-nocturne.webp',name:'ღამის მაძიებელი',premium:true},
+    {id:'plus-fish-photo',emoji:'🐟',src:'assets/avatars/portraits-v2/plus-fish-photo.webp',name:'ოქროს თევზი',premium:true},
+    {id:'plus-reel-photo',emoji:'🎣',src:'assets/avatars/portraits-v2/plus-reel-photo.webp',name:'სპინინგის ოსტატი',premium:true},
+    {id:'plus-hunt-photo',emoji:'🦌',src:'assets/avatars/portraits-v2/plus-hunt-photo.webp',name:'ველური ბუნება',premium:true},
+    {id:'plus-football',emoji:'⚽',src:'assets/avatars/portraits-v2/plus-football.webp',name:'Football Star',premium:true}
   ];
   const BACKGROUNDS=[
     {id:'bg-fishing-lake',src:'assets/phone/mountain-lake.webp',name:'მთის ტბა',premium:false},
@@ -39,7 +53,7 @@
   function localProfile(email){try{const profile=JSON.parse(localStorage.getItem(profileKey(email))||'null');return profile&&typeof profile==='object'&&!Array.isArray(profile)?profile:null;}catch{return null;}}
   function saveLocalProfile(email,profile){try{localStorage.setItem(profileKey(email),JSON.stringify(profile));return true;}catch{return false;}}
   function premiumUnlocked(){if(window.GNPremium?.has)return window.GNPremium.has('plus');try{const p=localStorage.getItem('gn_plan')||'free',expires=Number(localStorage.getItem('gn_plan_expires_at')||0);return (p==='plus'||p==='pro')&&(!expires||expires>Date.now())||localStorage.getItem('gn_admin_local')==='1';}catch{return false;}}
-  function defaultProfile(user){const email=normalizeEmail(user?.email);const base=email?email.split('@')[0]:'Explorer';return {displayName:base.slice(0,20),avatarId:'free-fish',backgroundId:'bg-fishing-lake'}}
+  function defaultProfile(user){return {displayName:String(user?.displayName||'').slice(0,20),avatarId:'free-fish',backgroundId:'bg-fishing-lake',nameColor:'default'}}
   function getProfile(user){const base=defaultProfile(user),local=localProfile(user?.email)||{};return {...base,...local}}
   async function loadProfile(user){if(!user)return null;const base=defaultProfile(user),local=localProfile(user.email)||{};try{const r=await request('/profile');if(r?.profile){const remote={...base,...r.profile};const merged=usesLocalAccounts?{...remote,...local}:remote;saveLocalProfile(user.email,merged);return merged}}catch{}const merged={...base,...local};saveLocalProfile(user.email,merged);return merged}
   const isFileMode=location.protocol==='file:';
@@ -54,6 +68,10 @@
     const label=item.name+(item.premium?' · Plus':'');
     return `<button type="button" class="gn-avatar-option${item.premium?' premium':''}${locked?' is-locked':''}${selected?' selected':''}" data-avatar-id="${item.id}" aria-label="${escapeHtml(label)}" aria-pressed="${selected}"${locked?' aria-disabled="true"':''} title="${escapeHtml(item.name)}"><span class="gn-avatar-art">${profileImage(item,160,true)}</span><span class="gn-avatar-caption">${escapeHtml(item.name)}</span><span class="gn-avatar-check" aria-hidden="true">✓</span>${item.premium?'<span class="gn-avatar-tier" aria-hidden="true">PLUS</span>':''}</button>`;
   }
+  function nameColorOption(item,selected){
+    const locked=item.id!=='default'&&!premiumUnlocked();
+    return `<button type="button" class="gn-name-color-option${selected?' selected':''}${locked?' is-locked':''}" data-name-color="${item.id}" aria-label="${item.name}${item.id==='default'?'':' · Plus'}" aria-pressed="${selected}"${locked?' aria-disabled="true"':''}><span class="gn-name-color-swatch" style="--gn-swatch:${item.hex}" aria-hidden="true"></span><span class="gn-name-color-label">${item.label}</span></button>`;
+  }
   let profileImageFallbackBound=false;
   function ensureProfileImageFallback(){
     if(profileImageFallbackBound)return;
@@ -63,7 +81,7 @@
       if(!image?.matches?.('img[data-gn-profile-image]'))return;
       if(!image.dataset.gnImageFallback){
         image.dataset.gnImageFallback='true';
-        image.src=image.dataset.gnProfileImage==='background'?'assets/phone/mountain-lake.webp':'assets/avatars/collection/free-fish.webp';
+        image.src=image.dataset.gnProfileImage==='background'?'assets/phone/mountain-lake.webp':'assets/avatars/portraits-v2/free-fish.webp';
         return;
       }
       image.hidden=true;image.style.display='none';image.setAttribute('aria-hidden','true');
@@ -104,7 +122,7 @@
       const s=getLocalSession();
       if(!s)return {ok:true,user:null,localMode:true};
       const u=localReadUsers().find(x=>x.email===s.email);
-      return {ok:true,user:u?{id:u.id,email:u.email,createdAt:u.createdAt,role:'user',plan:u.plan||'free',planExpiresAt:u.planExpiresAt||null,displayName:u.displayName||'',avatarId:u.avatarId||'free-fish',backgroundId:u.backgroundId||'bg-fishing-lake'}:null,localMode:true};
+      return {ok:true,user:u?{id:u.id,email:u.email,createdAt:u.createdAt,role:'user',plan:u.plan||'free',planExpiresAt:u.planExpiresAt||null,displayName:u.displayName||'',avatarId:u.avatarId||'free-fish',backgroundId:u.backgroundId||'bg-fishing-lake',nameColor:normalizeNameColor(u.nameColor)}:null,localMode:true};
     }
     if(path==='/signup'&&options.method==='POST'){
       const email=normalizeEmail(payload.email),password=String(payload.password||'');
@@ -113,27 +131,30 @@
       const users=localReadUsers();
       if(users.some(u=>u.email===email))throw new Error('ეს ელფოსტა უკვე რეგისტრირებულია.');
       const salt=randomSalt(),passwordHash=await makeLocalHash(password,salt);
-      const user={id:'local_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8),email,passwordSalt:salt,passwordHash,createdAt:Date.now(),plan:'free',displayName:'',avatarId:'free-fish'};
+      const user={id:'local_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8),email,passwordSalt:salt,passwordHash,createdAt:Date.now(),plan:'free',displayName:'',avatarId:'free-fish',nameColor:'default'};
       const latestUsers=localReadUsers();if(latestUsers.some(u=>u.email===email))throw new Error('ეს ელფოსტა უკვე რეგისტრირებულია.');latestUsers.push(user);localWriteUsers(latestUsers);setLocalSession(user,payload.remember!==false);
-      return {ok:true,user:{id:user.id,email,createdAt:user.createdAt,role:'user',plan:'free'},localMode:true};
+      return {ok:true,user:{id:user.id,email,createdAt:user.createdAt,role:'user',plan:'free',nameColor:'default'},localMode:true};
     }
     if(path==='/signin'&&options.method==='POST'){
       const user=await localFind(payload.email,payload.password);
       if(!user)throw new Error('ელფოსტა ან პაროლი არასწორია.');
       setLocalSession(user,payload.remember!==false);
-      return {ok:true,user:{id:user.id,email:user.email,createdAt:user.createdAt,role:'user',plan:user.plan||'free',displayName:user.displayName||'',avatarId:user.avatarId||'free-fish'},localMode:true};
+      return {ok:true,user:{id:user.id,email:user.email,createdAt:user.createdAt,role:'user',plan:user.plan||'free',displayName:user.displayName||'',avatarId:user.avatarId||'free-fish',nameColor:normalizeNameColor(user.nameColor)},localMode:true};
     }
     if(path==='/profile'&&(options.method||'GET')==='GET'){
       const s=getLocalSession(); if(!s) return {ok:true,profile:null,localMode:true};
-      const u=localReadUsers().find(x=>x.email===s.email); return {ok:true,profile:u?{displayName:u.displayName||'',avatarId:u.avatarId||'free-fish',backgroundId:u.backgroundId||'bg-fishing-lake'}:defaultProfile({email:s.email}),localMode:true};
+      const u=localReadUsers().find(x=>x.email===s.email); return {ok:true,profile:u?{displayName:u.displayName||'',avatarId:u.avatarId||'free-fish',backgroundId:u.backgroundId||'bg-fishing-lake',nameColor:normalizeNameColor(u.nameColor)}:defaultProfile({email:s.email}),localMode:true};
     }
     if(path==='/profile'&&options.method==='PATCH'){
       const s=getLocalSession(); if(!s) throw new Error('შედი ანგარიშში.');
       const users=localReadUsers(),u=users.find(x=>x.email===s.email); if(!u) throw new Error('ანგარიში ვერ მოიძებნა.');
       const name=String(payload.displayName||'').trim().replace(/\s+/g,' '); const avatar=AVATARS.find(a=>a.id===String(payload.avatarId||''))||AVATARS[0]; const background=BACKGROUNDS.find(b=>b.id===String(payload.backgroundId||''))||BACKGROUNDS[0];
+      if(payload.nameColor!==undefined&&!NAME_COLORS.some(item=>item.id===payload.nameColor))throw new Error('სახელის ფერი არასწორია.');
+      const nameColor=normalizeNameColor(payload.nameColor===undefined?(premiumUnlocked()?u.nameColor:'default'):payload.nameColor);
       if(name.length<2||name.length>20) throw new Error('სახელი უნდა იყოს 2-20 სიმბოლო.');
+      if(nameColor!=='default'&&!premiumUnlocked())throw new Error('სახელის ფერები Plus-შია.');
       if(avatar.premium && !premiumUnlocked()) throw new Error('ეს ავატარი Plus-შია.'); if(background.premium&&!premiumUnlocked()) throw new Error('ეს ფონი Plus-შია.');
-      u.displayName=name;u.avatarId=avatar.id;u.backgroundId=background.id;localWriteUsers(users);return {ok:true,profile:{displayName:name,avatarId:avatar.id,backgroundId:background.id},localMode:true};
+      u.displayName=name;u.avatarId=avatar.id;u.backgroundId=background.id;u.nameColor=nameColor;localWriteUsers(users);return {ok:true,profile:{displayName:name,avatarId:avatar.id,backgroundId:background.id,nameColor},localMode:true};
     }
     if(path==='/signout'&&options.method==='POST'){clearLocalSession();return {ok:true,localMode:true};}
     throw new Error('ანგარიშის სერვერთან კავშირი ვერ მოხერხდა.');
@@ -181,14 +202,27 @@
     const user=await me();if(!nav&&!headerInner&&!user)return; if(user?.plan){ try{const expired=Number(user.planExpiresAt||0)>0&&Number(user.planExpiresAt)<=Date.now(); localStorage.setItem('gn_plan',expired?'free':String(user.plan)); if(user.planExpiresAt)localStorage.setItem('gn_plan_expires_at',String(user.planExpiresAt));else localStorage.removeItem('gn_plan_expires_at'); if(expired)localStorage.setItem('gn_plan_updated_at',new Date().toISOString());}catch{} window.GNHourlyAccess?.refresh?.(); } const wrap=document.createElement('span');wrap.id='gnAuthLink';wrap.className='gn-auth-slot'+(!nav&&!headerInner?' gn-auth-floating':'');const placeProfileSlot=()=>{if(nav){nav.appendChild(wrap);wrap.classList.remove('gn-auth-floating');}else if(headerInner){headerInner.appendChild(wrap);wrap.classList.remove('gn-auth-floating');}else{wrap.classList.add('gn-auth-floating');document.body.appendChild(wrap);}};
     if(user){
       const profile=await loadProfile(user); const avatar=AVATARS.find(a=>a.id===profile.avatarId)||AVATARS[0];
-      wrap.innerHTML=`<button class="gn-profile-trigger" id="gnProfileTrigger" type="button"><span class="gn-profile-avatar">${profileImage(avatar,34)}</span><span class="gn-profile-text"><b>${escapeHtml(profile.displayName||user.email.split('@')[0])}</b><small>${escapeHtml(user.email)}</small></span><span class="gn-profile-chevron">⌄</span></button><button class="gn-auth-btn" id="gnSignOut" type="button">გასვლა</button>`;
-      const panel=document.createElement('div');panel.className='gn-profile-panel';panel.hidden=true;panel.innerHTML=`<div class="gn-profile-panel-head"><div><b>ჩემი პროფილი</b><small>${escapeHtml(user.email)}</small></div><span class="gn-profile-plan">${String(user.plan||'free').toUpperCase()}</span></div><div class="gn-profile-hero" id="gnProfileHero"><div class="gn-profile-avatar-preview">${profileImage(avatar,82)}</div><div><strong>${escapeHtml(profile.displayName||user.email.split('@')[0])}</strong><small>${escapeHtml(avatar.name)}</small><span>${usesLocalAccounts?localAccountDescription:'აირჩიე ახალი ავატარი, ფონი და სახელი'}</span></div></div><label>სახელი<input id="gnProfileName" maxlength="20" value="${escapeHtml(profile.displayName||'')}" placeholder="მაგ. გიორგი"></label><div class="gn-profile-avatar-title"><b>უფასო ავატარები</b><small>6 ვარიანტი • ყველასთვის</small></div><div class="gn-avatar-grid free-grid" role="group" aria-label="უფასო ავატარები">${AVATARS.filter(a=>!a.premium).map(a=>avatarOption(a,a.id===avatar.id)).join('')}</div><div class="gn-profile-avatar-title premium-title"><b>✨ PLUS ავატარები</b><small>ბუნების კოლექცია • 14 ავატარი</small></div><div class="gn-avatar-grid premium-grid" role="group" aria-label="Plus ავატარები">${AVATARS.filter(a=>a.premium).map(a=>avatarOption(a,a.id===avatar.id)).join('')}</div><div class="gn-profile-avatar-title premium-title"><b>🖼️ პროფილის ფონი</b><small>სურათი პროფილის უკან • ზოგი PLUS</small></div><div class="gn-profile-bg-grid">${BACKGROUNDS.map(b=>`<button type="button" class="gn-profile-bg-option ${b.premium?'premium ':''}${b.id===(profile.backgroundId||'bg-fishing-lake')?'selected':''}" data-bg-id="${b.id}" title="${escapeHtml(b.name)}">${profileImage(b,160,true,'background')}<b>${escapeHtml(b.name)}</b>${b.premium?'<span>PLUS</span>':''}</button>`).join('')}</div><div class="gn-profile-note" id="gnProfileNote"></div><div class="gn-profile-actions"><button type="button" class="btn ghost" id="gnProfileCancel">დახურვა</button><button type="button" class="btn primary" id="gnProfileSave">შენახვა</button></div>`;panel.id='gnProfilePanel';panel.setAttribute('role','dialog');panel.setAttribute('aria-label','ჩემი პროფილი');panel.tabIndex=-1;
+      wrap.innerHTML=`<button class="gn-profile-trigger" id="gnProfileTrigger" type="button"><span class="gn-profile-avatar">${profileImage(avatar,34)}</span><span class="gn-profile-text"><b>${escapeHtml(visibleName(profile.displayName))}</b></span><span class="gn-profile-chevron">⌄</span></button><button class="gn-auth-btn" id="gnSignOut" type="button">გასვლა</button>`;
+      const panel=document.createElement('div');panel.className='gn-profile-panel';panel.hidden=true;panel.innerHTML=`<div class="gn-profile-panel-head"><div><b>ჩემი პროფილი</b></div><span class="gn-profile-plan">${String(user.plan||'free').toUpperCase()}</span></div><div class="gn-profile-hero" id="gnProfileHero"><div class="gn-profile-avatar-preview">${profileImage(avatar,82)}</div><div><strong>${escapeHtml(visibleName(profile.displayName))}</strong><small>${escapeHtml(avatar.name)}</small><span>${usesLocalAccounts?localAccountDescription:'აირჩიე ახალი ავატარი, ფონი და სახელი'}</span></div></div><label>სახელი<input id="gnProfileName" maxlength="20" value="${escapeHtml(profile.displayName||'')}" placeholder="მაგ. გიორგი"></label><section class="gn-name-color-section" aria-label="სახელის ფერი"><div class="gn-name-color-title"><b>სახელის ფერი</b><span class="gn-name-color-plus">PLUS</span></div><div class="gn-name-color-options" role="group" aria-label="აირჩიე სახელის ფერი">${NAME_COLORS.map(item=>nameColorOption(item,item.id===effectiveNameColor(profile.nameColor))).join('')}</div><small class="gn-name-color-hint" aria-live="polite">ფერადი სახელი — Plus-ის წევრებისთვის</small></section><div class="gn-profile-avatar-title"><b>უფასო ავატარები</b><small>6 ვარიანტი • ყველასთვის</small></div><div class="gn-avatar-grid free-grid" role="group" aria-label="უფასო ავატარები">${AVATARS.filter(a=>!a.premium).map(a=>avatarOption(a,a.id===avatar.id)).join('')}</div><div class="gn-profile-avatar-title premium-title"><b>✨ PLUS ავატარები</b><small>ბუნების კოლექცია • 14 ავატარი</small></div><div class="gn-avatar-grid premium-grid" role="group" aria-label="Plus ავატარები">${AVATARS.filter(a=>a.premium).map(a=>avatarOption(a,a.id===avatar.id)).join('')}</div><div class="gn-profile-avatar-title premium-title"><b>🖼️ პროფილის ფონი</b><small>სურათი პროფილის უკან • ზოგი PLUS</small></div><div class="gn-profile-bg-grid">${BACKGROUNDS.map(b=>`<button type="button" class="gn-profile-bg-option ${b.premium?'premium ':''}${b.id===(profile.backgroundId||'bg-fishing-lake')?'selected':''}" data-bg-id="${b.id}" title="${escapeHtml(b.name)}">${profileImage(b,160,true,'background')}<b>${escapeHtml(b.name)}</b>${b.premium?'<span>PLUS</span>':''}</button>`).join('')}</div><div class="gn-profile-note" id="gnProfileNote"></div><div class="gn-profile-actions"><button type="button" class="btn ghost" id="gnProfileCancel">დახურვა</button><button type="button" class="btn primary" id="gnProfileSave">შენახვა</button></div>`;panel.id='gnProfilePanel';panel.setAttribute('role','dialog');panel.setAttribute('aria-label','ჩემი პროფილი');panel.tabIndex=-1;
       const profileContent=document.createElement('div');profileContent.className='gn-profile-content';
       const profileActions=panel.querySelector('.gn-profile-actions');
       while(panel.firstChild&&panel.firstChild!==profileActions)profileContent.appendChild(panel.firstChild);
       panel.insertBefore(profileContent,profileActions);document.body.appendChild(panel);
       let selectedAvatar=avatar.id; let selectedBackground=profile.backgroundId||'bg-fishing-lake'; const trigger=wrap.querySelector('#gnProfileTrigger'); const setBackground=()=>{const bg=BACKGROUNDS.find(b=>b.id===selectedBackground)||BACKGROUNDS[0]; trigger.style.backgroundImage=`url('${bg.src}')`; const hero=panel.querySelector('#gnProfileHero'); if(hero){hero.style.backgroundImage=`linear-gradient(135deg,rgba(6,18,11,.72),rgba(5,12,8,.91)),url('${bg.src}')`;hero.style.backgroundSize='cover';hero.style.backgroundPosition='center'}}; setBackground();
-      let savedAvatar=selectedAvatar,savedBackground=selectedBackground,savedName=profile.displayName||'';
+      let selectedNameColor=effectiveNameColor(profile.nameColor);
+      let savedAvatar=selectedAvatar,savedBackground=selectedBackground,savedName=profile.displayName||'',savedNameColor=selectedNameColor;
+      applyNameColor(trigger.querySelector('.gn-profile-text b'),savedNameColor);
+      const nameInput=panel.querySelector('#gnProfileName');
+      function updateNamePreview(){
+        const heroName=panel.querySelector('#gnProfileHero strong');heroName.textContent=visibleName(nameInput.value);applyNameColor(heroName,selectedNameColor);
+        panel.querySelectorAll('[data-name-color].gn-name-color-option').forEach(button=>{
+          const selected=button.dataset.nameColor===selectedNameColor,locked=button.dataset.nameColor!=='default'&&!premiumUnlocked();
+          button.classList.toggle('selected',selected);button.classList.toggle('is-locked',locked);button.setAttribute('aria-pressed',String(selected));
+          if(locked)button.setAttribute('aria-disabled','true');else button.removeAttribute('aria-disabled');
+        });
+      }
+      nameInput.addEventListener('input',updateNamePreview);
+      updateNamePreview();
       function updateAvatarPreview(){
         const chosen=AVATARS.find(item=>item.id===selectedAvatar)||AVATARS[0];
         const hero=panel.querySelector('#gnProfileHero');
@@ -208,7 +242,7 @@
       }
       updateAvatarPreview();
 
-      const close=()=>{panel.hidden=true;document.body.classList.remove('gn-header-profile-open');trigger.setAttribute('aria-expanded','false');selectedAvatar=savedAvatar;selectedBackground=savedBackground;panel.querySelector('#gnProfileName').value=savedName;updateAvatarPreview();panel.querySelectorAll('.gn-profile-bg-option').forEach(button=>button.classList.toggle('selected',button.dataset.bgId===selectedBackground));setBackground();};
+      const close=()=>{panel.hidden=true;document.body.classList.remove('gn-header-profile-open');trigger.setAttribute('aria-expanded','false');selectedAvatar=savedAvatar;selectedBackground=savedBackground;panel.querySelector('#gnProfileName').value=savedName;selectedNameColor=effectiveNameColor(savedNameColor);updateNamePreview();updateAvatarPreview();panel.querySelectorAll('.gn-profile-bg-option').forEach(button=>button.classList.toggle('selected',button.dataset.bgId===selectedBackground));setBackground();};
       const compactProfile=()=>Boolean(window.matchMedia?.('(max-width:1024px)').matches);
       const position=()=>{
         if(panel.hidden)return;
@@ -236,8 +270,13 @@
       };
       panel.addEventListener('focusin',position);
       trigger.setAttribute('aria-controls',panel.id);trigger.setAttribute('aria-expanded','false');
-      trigger.onclick=()=>{if(!panel.hidden){close();return;}panel.hidden=false;document.body.classList.add('gn-header-profile-open');trigger.setAttribute('aria-expanded','true');updateAvatarPreview();position();profileContent.scrollTop=0;panel.scrollTop=0;if(compactProfile())panel.focus({preventScroll:true});else panel.querySelector('#gnProfileName')?.focus();};
+      trigger.onclick=()=>{if(!panel.hidden){close();return;}panel.hidden=false;document.body.classList.add('gn-header-profile-open');trigger.setAttribute('aria-expanded','true');selectedNameColor=effectiveNameColor(selectedNameColor);updateNamePreview();updateAvatarPreview();position();profileContent.scrollTop=0;panel.scrollTop=0;if(compactProfile())panel.focus({preventScroll:true});else panel.querySelector('#gnProfileName')?.focus();};
       window.addEventListener('resize',position,{passive:true});window.visualViewport?.addEventListener('resize',position,{passive:true});document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!panel.hidden){close();trigger.focus();}});
+      panel.querySelectorAll('.gn-name-color-option').forEach(button=>button.onclick=()=>{
+        const color=normalizeNameColor(button.dataset.nameColor);
+        if(color!=='default'&&!premiumUnlocked()){const explanation='🔒 სახელის ფერები Plus-შია. <a href="premium.html">Plus-ის ნახვა →</a>';panel.querySelector('#gnProfileNote').innerHTML=explanation;panel.querySelector('.gn-name-color-hint').innerHTML=explanation;return;}
+        selectedNameColor=color;updateNamePreview();panel.querySelector('#gnProfileNote').textContent='';panel.querySelector('.gn-name-color-hint').textContent='ფერადი სახელი — Plus-ის წევრებისთვის';
+      });
       panel.querySelectorAll('.gn-avatar-option').forEach(b=>b.onclick=()=>{const item=AVATARS.find(a=>a.id===b.dataset.avatarId);if(item?.premium&&!premiumUnlocked()){panel.querySelector('#gnProfileNote').innerHTML=`🔒 <b>${escapeHtml(item.name)}</b> — უკეთესი ავატარია და Plus-ში იხსნება. <a href="premium.html">Plus-ის ნახვა →</a>`;return;}selectedAvatar=b.dataset.avatarId;updateAvatarPreview();panel.querySelector('#gnProfileNote').textContent=''});
       panel.querySelectorAll('.gn-profile-bg-option').forEach(b=>b.onclick=()=>{const item=BACKGROUNDS.find(x=>x.id===b.dataset.bgId);if(item?.premium&&!premiumUnlocked()){panel.querySelector('#gnProfileNote').innerHTML=`🔒 <b>${escapeHtml(item.name)}</b> — PLUS ფონი. <a href="premium.html">Plus-ის ნახვა →</a>`;return;}selectedBackground=b.dataset.bgId;panel.querySelectorAll('.gn-profile-bg-option').forEach(x=>x.classList.toggle('selected',x===b));setBackground();panel.querySelector('#gnProfileNote').textContent='' }); panel.querySelector('#gnProfileCancel').onclick=()=>{close();trigger.focus();};
       const saveButton=panel.querySelector('#gnProfileSave');let saving=false;
@@ -246,17 +285,18 @@
         const name=panel.querySelector('#gnProfileName').value.trim().replace(/\s+/g,' '),note=panel.querySelector('#gnProfileNote');
         if(name.length<2||name.length>20){note.textContent='სახელი უნდა იყოს 2-20 სიმბოლო.';return;}
         if((AVATARS.find(a=>a.id===selectedAvatar)?.premium||BACKGROUNDS.find(b=>b.id===selectedBackground)?.premium)&&!premiumUnlocked()){note.textContent='ეს ავატარი ან ფონი Plus-შია.';return;}
-        const payload={displayName:name,avatarId:selectedAvatar,backgroundId:selectedBackground};
+        if(selectedNameColor!=='default'&&!premiumUnlocked()){note.textContent='სახელის ფერები Plus-შია.';return;}
+        const payload={displayName:name,avatarId:selectedAvatar,backgroundId:selectedBackground,nameColor:normalizeNameColor(selectedNameColor)};
         saving=true;saveButton.disabled=true;note.textContent='პროფილი ინახება…';
         try{
           const result=await request('/profile',{method:'PATCH',body:JSON.stringify(payload)});
           if(!result?.profile||typeof result.profile!=='object')throw new Error('პროფილის შენახვა ვერ დადასტურდა. სცადე ხელახლა.');
           const saved={...payload,...result.profile},av=AVATARS.find(a=>a.id===saved.avatarId)||AVATARS[0];saveLocalProfile(user.email,saved);
           trigger.querySelector('.gn-profile-avatar').innerHTML=profileImage(av,34);
-          trigger.querySelector('.gn-profile-text b').textContent=saved.displayName;
+          trigger.querySelector('.gn-profile-text b').textContent=visibleName(saved.displayName);applyNameColor(trigger.querySelector('.gn-profile-text b'),saved.nameColor);
           const hero=panel.querySelector('#gnProfileHero');hero.querySelector('strong').textContent=saved.displayName;hero.querySelector('small').textContent=av.name;hero.querySelector('.gn-profile-avatar-preview').innerHTML=profileImage(av,82);
-          savedAvatar=av.id;savedBackground=saved.backgroundId||selectedBackground;savedName=saved.displayName;
-          try{const state=window.GeoNaturePlus?.state?.();if(state){state.name=savedName;window.GeoNaturePlus.save(state);}}catch{}
+          savedAvatar=av.id;savedBackground=saved.backgroundId||selectedBackground;savedName=saved.displayName;savedNameColor=effectiveNameColor(saved.nameColor);
+          try{const state=window.GeoNaturePlus?.state?.();if(state){state.name=savedName;state.nameColor=savedNameColor;window.GeoNaturePlus.save(state);}}catch{}
           close();trigger.focus();window.GeoNaturePlus?.notify?.(result.localMode?'პროფილი შეინახა ამ ბრაუზერში.':'პროფილი შეინახა.');
         }catch(error){note.textContent=error.message||'პროფილი ვერ შეინახა. შეამოწმე კავშირი და ბრაუზერის მეხსიერება.';}
         finally{saving=false;saveButton.disabled=false;}

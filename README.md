@@ -55,8 +55,10 @@ Optional server Web Push supports notifications after closing the site when a No
 
 For production the server must stay running and the site should be served over HTTPS. Web Push keys are generated and stored locally in `push-state.json`; do not share that file if you deploy the project publicly.
 
-### Profile Backgrounds
-The account profile now supports photo backgrounds (fishing lake, fishing rod, fish, forest, mountains, lake and a PLUS football-themed background) and additional photo-style avatar choices. PLUS avatars/backgrounds are gated by the existing plan system.
+### Profile appearance
+Profiles show the chosen display name without an email address. Twenty [character portrait avatars](assets/avatars/portraits-v2/README.md) include six free choices and fourteen Plus choices. Photo backgrounds remain available, with the football background reserved for Plus. Plus and AI Pro also include seven optional name colors, with a live preview and a free default color. Avatar, name, color and background changes apply to the header after a successful save; closing the editor restores the saved appearance.
+
+Name colors use fixed, validated identifiers in both browser storage and the Node profile API. Static GitHub Pages profiles remain local to the current browser. The Node API persists profile settings for authenticated accounts and checks active plan access before accepting a Plus name color.
 
 
 ## განახლებული კატალოგები
