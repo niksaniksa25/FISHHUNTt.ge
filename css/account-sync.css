@@ -10,6 +10,10 @@
 .fh-sync-body { padding:0 12px 12px; }
 .fh-account-sync .fh-sync-note,.fh-account-sync .fh-sync-message { margin:8px 0 12px; font-size:12px!important; line-height:1.65!important; overflow-wrap:anywhere; color:#b0c3b7; }
 .fh-account-sync .fh-sync-message { color:#d4e6be; }
+.fh-account-sync .fh-sync-message[data-error="true"] { color:#ffd0c5; background:#452b253d; border-left:3px solid #dc9b7d; padding:9px 10px; border-radius:5px; }
+.fh-account-sync input[aria-invalid="true"] { border-color:#e7a28c; box-shadow:0 0 0 2px #e7a28c30; }
+.fh-sync-form[aria-busy="true"] [type="submit"] { cursor:wait; opacity:.8; }
+.fh-account-sync .fh-sync-field-error { margin:0; color:#ffd0c5; font-size:12px!important; line-height:1.5!important; }
 .fh-sync-form,.fh-sync-actions,.fh-sync-choice { display:grid; gap:9px; min-width:0; }
 .fh-account-sync label { display:grid; gap:5px; color:#b8cbbd; font-size:12px; }
 .fh-account-sync input,.fh-account-sync select { box-sizing:border-box; min-width:0; width:100%; min-height:44px; padding:9px 11px; border:1px solid #496252; border-radius:10px; background:#0c2018; color:#eef4e8; font:inherit; font-size:16px; }

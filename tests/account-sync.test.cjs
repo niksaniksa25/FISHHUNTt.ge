@@ -42,6 +42,32 @@ test('old Worker capability leaves local accounts and records unchanged',async()
   assert.ok(server.calls.every(call=>call.method==='GET'));
 });
 
+test('connection locks immediately during optional profile preparation and never posts twice',async()=>{
+  const server=await service(),client=browser(server);let releaseProfile;
+  client.context.GeoNatureAuth={request:()=>new Promise(resolve=>{releaseProfile=resolve;})};
+  const pending=client.api.connect({...credentials,mode:'signup'});
+  assert.equal(client.api.view().busy,true);
+  for(let attempt=0;!releaseProfile&&attempt<20;attempt++)await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(typeof releaseProfile,'function');
+  await assert.rejects(client.api.connect({...credentials,mode:'signup'}),/მიმდინარეობს/);
+  releaseProfile({profile:{displayName:'მეგობარი',avatarId:'free-fox',backgroundId:'bg-forest'}});
+  await pending;
+  assert.equal(server.calls.filter(call=>call.method==='POST'&&call.url.endsWith('/signup')).length,1);
+  assert.equal(client.api.view().busy,false);
+});
+
+test('invalid local transfer data releases connection controls and allows a corrected retry',async()=>{
+  const server=await service(),client=browser(server);
+  client.seed({name:'მეგობარი',catches:Array.from({length:101},(_,i)=>({id:String(i),fish:'კობრი'}))});
+  await assert.rejects(client.api.connect({...credentials,mode:'signup'}),/ლიმიტს/);
+  assert.equal(client.api.view().busy,false);
+  assert.equal(server.calls.filter(call=>call.method==='POST').length,0);
+  client.seed({name:'მეგობარი'});
+  await client.api.connect({...credentials,mode:'signup'});
+  assert.equal(client.api.sessionActive(),true);
+  assert.equal(client.api.view().busy,false);
+});
+
 test('explicit consent and transfer choice precede every first local upload, including reload',async()=>{
   const server=await service(),first=browser(server);
   first.seed({name:'გიორგი',favorites:['ჟინვალი'],xp:25});

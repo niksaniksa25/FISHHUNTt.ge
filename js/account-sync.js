@@ -10,6 +10,7 @@
   let available=null,healthPromise=null,status='local',message='',lastSaved=0,busy=false,applying=false,timer=null;
   let conflict=null,pending=null,profileRevision=null,stateRevision=null,resumed=false,resumePromise=null,configPromise=null,syncPromise=null;
   const panels=new Set();
+  let validationSerial=0;
   function read(storage,key){try{return JSON.parse(storage.getItem(key)||'null');}catch{return null;}}
   function text(value,max){return typeof value==='string'?value.trim().slice(0,max):'';}
   function origin(){
@@ -188,11 +189,13 @@
   async function connect({mode='signin',email,password,remember=false,consent=false}={}){
     if(!consent)throw new Error('მონაცემების სინქრონიზაციისთვის მონიშნე თანხმობა.');
     if(session())throw new Error('სხვა ანგარიშში შესვლამდე გათიშე მიმდინარე ანგარიშის სინქრონიზაცია.');
-    if(!await ready())throw new Error('სინქრონიზაცია ჯერ ხელმისაწვდომი არ არის. შენი მონაცემები ამ მოწყობილობაზე ინახება.');
-    let local=snapshot(),localProfile=null;
-    if(mode==='signup'&&window.GeoNatureAuth?.request){try{localProfile=(await window.GeoNatureAuth.request('/profile'))?.profile||null;}catch{}}
-    prepareBackup();busy=true;emit('connecting');
+    if(busy)throw new Error('დაკავშირება უკვე მიმდინარეობს. დაელოდე დასრულებას.');
+    busy=true;emit('connecting');
     try{
+      if(!await ready())throw new Error('სინქრონიზაცია ჯერ ხელმისაწვდომი არ არის. შენი მონაცემები ამ მოწყობილობაზე ინახება.');
+      let local=snapshot(),localProfile=null;
+      if(mode==='signup'&&window.GeoNatureAuth?.request){try{localProfile=(await window.GeoNatureAuth.request('/profile'))?.profile||null;}catch{}}
+      prepareBackup();
       const freeAvatars=['free-fish','free-leaf','free-camp','free-fox','free-wave','free-ranger'];
       const freeBackgrounds=['bg-fishing-lake','bg-fishing-rod','bg-fish','bg-forest','bg-mountains','bg-lake'];
       const profile={displayName:text(localProfile?.displayName,20)||(local.name&&local.name!=='GeoNature Explorer'&&local.name!=='FishHunt Explorer'?local.name:'მკვლევარი'),avatarId:freeAvatars.includes(localProfile?.avatarId)?localProfile.avatarId:'free-fish',backgroundId:freeBackgrounds.includes(localProfile?.backgroundId)?localProfile.backgroundId:'bg-fishing-lake',nameColor:'default',avatarFrame:'none'};
@@ -270,20 +273,82 @@
   }
   function schedule(){if(applying||!session()||session().syncBlocked||pending||conflict)return;clearTimeout(timer);emit(navigator.onLine===false?'offline':'syncing');timer=setTimeout(()=>sync().catch(()=>{}),1400);}
   function escape(value){return String(value??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
+  function formFeedback(panel,detail,error=false){
+    const note=panel.querySelector('.fh-sync-message');if(!note)return;
+    note.textContent=detail;note.dataset.error=String(error);
+    if(panel.open){
+      const bounds=note.getBoundingClientRect(),viewport=window.visualViewport;
+      let top=viewport?.offsetTop||0,bottom=top+(viewport?.height||window.innerHeight);
+      for(let parent=note.parentElement;parent;parent=parent.parentElement){
+        if(/auto|scroll|hidden|clip/.test(getComputedStyle(parent).overflowY)){
+          const clip=parent.getBoundingClientRect();top=Math.max(top,clip.top);bottom=Math.min(bottom,clip.bottom);
+        }
+      }
+      if(bounds.top<top||bounds.bottom>bottom)note.scrollIntoView({block:'nearest',inline:'nearest'});
+    }
+  }
+  function validationMessage(field){
+    if(field.name==='consent')return 'მონიშნე „მსურს პროფილისა და ჩანაწერების სინქრონიზაცია“.';
+    if(field.name==='email')return 'შეიყვანე სწორი ელფოსტის მისამართი.';
+    if(field.name==='password')return 'შეიყვანე პაროლი — 8–128 სიმბოლო.';
+    return 'შეავსე მონიშნული ველი.';
+  }
+  function bindConnectionForm(panel){
+    const form=panel.querySelector('.fh-sync-form');if(!form)return;
+    const button=form.querySelector('[type="submit"]');
+    form.setAttribute('aria-busy',String(busy));
+    form.querySelectorAll('input,select').forEach(field=>{field.disabled=busy;});
+    const label=()=>{const signup=form.elements.namedItem('mode')?.value==='signup';button.textContent=busy?'დაკავშირება მიმდინარეობს…':signup?'ანგარიშის შექმნა':'შესვლა';form.elements.namedItem('password')?.setAttribute('autocomplete',signup?'new-password':'current-password');};
+    label();form.elements.namedItem('mode')?.addEventListener('change',label);
+    let firstInvalid=null;
+    form.addEventListener('invalid',event=>{
+      event.preventDefault();
+      if(firstInvalid)return;
+      firstInvalid=event.target;firstInvalid.setAttribute('aria-invalid','true');
+      const detail=validationMessage(firstInvalid);
+      let hint=document.getElementById(firstInvalid.getAttribute('aria-describedby'));
+      if(!hint?.classList.contains('fh-sync-field-error')){hint=document.createElement('p');hint.className='fh-sync-field-error';hint.id='fh-sync-validation-'+(++validationSerial);hint.setAttribute('role','alert');firstInvalid.setAttribute('aria-describedby',hint.id);(firstInvalid.closest('label')||firstInvalid).after(hint);}
+      hint.textContent=detail;
+      formFeedback(panel,detail,true);
+      firstInvalid.focus({preventScroll:true});
+      hint.scrollIntoView({block:'nearest',inline:'nearest'});
+      setTimeout(()=>{firstInvalid=null;},0);
+    },true);
+    form.addEventListener('input',event=>{
+      if(event.target.validity?.valid){
+        const wasInvalid=event.target.hasAttribute('aria-invalid');
+        event.target.removeAttribute('aria-invalid');
+        const hint=document.getElementById(event.target.getAttribute('aria-describedby'));
+        if(hint?.classList.contains('fh-sync-field-error')){hint.remove();event.target.removeAttribute('aria-describedby');}
+        if(wasInvalid&&!form.querySelector('[aria-invalid="true"]')){const note=panel.querySelector('.fh-sync-message');note.textContent='';note.dataset.error='false';}
+      }
+    });
+    form.addEventListener('submit',async event=>{
+      event.preventDefault();if(busy)return;
+      const fields=new FormData(event.currentTarget);
+      try{
+        const attempt=connect({mode:fields.get('mode'),email:fields.get('email'),password:fields.get('password'),remember:fields.has('remember'),consent:fields.has('consent')});
+        formFeedback(panel,'დაკავშირება მიმდინარეობს…');
+        await attempt;
+        if(!pending)location.reload();else{emit('pending');panel.querySelector('.fh-sync-choice')?.scrollIntoView({block:'nearest',inline:'nearest'});}
+      }catch(error){
+        const isConflict=error.data?.code==='sync_conflict';
+        emit(isConflict?'conflict':'error',error.message);
+        formFeedback(panel,error.message,true);
+      }
+    });
+  }
   function renderPanels(){
     for(const panel of panels){
       if(!panel.isConnected){panels.delete(panel);continue;}
       const open=panel.open,values={};panel.querySelectorAll('input,select').forEach(field=>{values[field.name]=field.type==='checkbox'?field.checked:field.value;});
       const connected=Boolean(session()||blockedSession());
       const last=lastSaved?new Date(lastSaved).toLocaleString('ka-GE',{timeZone:'Asia/Tbilisi'}):'';
-      panel.innerHTML=`<summary><span>☁ ანგარიშის სინქრონიზაცია</span><small>${escape(statuses[status]||statuses.local)}</small></summary><div class="fh-sync-body"><p class="fh-sync-message" role="status" aria-live="polite">${escape(message||statuses[status]||'')}${last?' · '+escape(last):''}</p>${!available&&!connected?'<button type="button" class="btn ghost" data-sync-action="check">კავშირის შემოწმება</button>':connected?`<p class="fh-sync-note">რჩეულები, გეგმები და დაჭერის ჩანაწერები ინახება შენს ანგარიშში. ფოტოები ამ მოწყობილობაზე რჩება. სინქრონიზაციის ლიმიტია 100 რჩეული, 50 გეგმა და თითოეულ დღიურში 100 დაჭერა; ლიმიტს მიღმა მონაცემები ავტომატურად არ იჭრება.</p>${pending?'<div class="fh-sync-choice"><b>ამ მოწყობილობაზეც გაქვს ჩანაწერები</b><p>გაერთიანება ორივე მხარის ჩანაწერებს შეინარჩუნებს. სერვერიდან ჩატვირთვა ამ მოწყობილობის სიებს შეცვლის.</p><button type="button" class="btn primary" data-sync-action="merge-pending">გაერთიანება და შენახვა</button><button type="button" class="btn ghost" data-sync-action="cloud-pending">სერვერიდან ჩატვირთვა</button><button type="button" class="btn ghost" data-sync-action="local-pending">ამ მოწყობილობის ატვირთვა</button></div>':''}${conflict?`<div class="fh-sync-choice"><b>სხვა მოწყობილობიდან ცვლილებაა</b><p>აირჩიე, რომ შენახული ცვლილებები შემთხვევით არ დაიკარგოს.</p>${conflict.kind==='state'?'<button type="button" class="btn primary" data-sync-action="merge-conflict">ყველა ჩანაწერის გაერთიანება</button>':''}<button type="button" class="btn ghost" data-sync-action="cloud-conflict">სერვერის ვერსიის გამოყენება</button></div>`:''}<div class="fh-sync-actions"><button type="button" class="btn primary" data-sync-action="save">ახლა სინქრონიზაცია</button><button type="button" class="btn ghost" data-sync-action="restore">სერვერიდან ჩატვირთვა</button><button type="button" class="btn ghost" data-sync-action="disconnect">სინქრონიზაციის გათიშვა</button></div>`:`<form class="fh-sync-form"><p class="fh-sync-note">შექმენი სინქრონიზაციის ანგარიში ან შედი სხვა ტელეფონზე უკვე შექმნილი ანგარიშით. არსებული ლოკალური ანგარიში შენარჩუნდება. Plus-ის შეძენა აქ არ ხდება; ახალი ანგარიში უფასოა.</p><label>მოქმედება<select name="mode"><option value="signin">არსებულ ანგარიშში შესვლა</option><option value="signup">სინქრონიზაციის ანგარიშის შექმნა</option></select></label><label>ელფოსტა<input name="email" type="email" autocomplete="username" maxlength="160" required></label><label>პაროლი<input name="password" type="password" autocomplete="current-password" minlength="8" maxlength="128" required></label><label class="fh-sync-checkbox"><input name="remember" type="checkbox">დამიმახსოვრე ამ მოწყობილობაზე</label><label class="fh-sync-checkbox"><input name="consent" type="checkbox" required>მსურს პროფილისა და ჩანაწერების სინქრონიზაცია</label><p class="fh-sync-note">უფასო ავატარი და ფონი ახალ ანგარიშშიც გადაგყვება. Plus-ის ფერები და სტილები ახალ უფასო ანგარიშში ავტომატურად არ გადაიტანება. პაროლის აღდგენის ელფოსტა ჯერ არ იგზავნება — შეინახე პაროლი.</p><button class="btn primary" type="submit">ანგარიშთან დაკავშირება</button></form>`}</div>`;
+      panel.innerHTML=`<summary><span>☁ ანგარიშის სინქრონიზაცია</span><small>${escape(statuses[status]||statuses.local)}</small></summary><div class="fh-sync-body">${!available&&!connected?'<button type="button" class="btn ghost" data-sync-action="check">კავშირის შემოწმება</button>':connected?`<p class="fh-sync-note">რჩეულები, გეგმები და დაჭერის ჩანაწერები ინახება შენს ანგარიშში. ფოტოები ამ მოწყობილობაზე რჩება. სინქრონიზაციის ლიმიტია 100 რჩეული, 50 გეგმა და თითოეულ დღიურში 100 დაჭერა; ლიმიტს მიღმა მონაცემები ავტომატურად არ იჭრება.</p>${pending?'<div class="fh-sync-choice"><b>ამ მოწყობილობაზეც გაქვს ჩანაწერები</b><p>გაერთიანება ორივე მხარის ჩანაწერებს შეინარჩუნებს. სერვერიდან ჩატვირთვა ამ მოწყობილობის სიებს შეცვლის.</p><button type="button" class="btn primary" data-sync-action="merge-pending">გაერთიანება და შენახვა</button><button type="button" class="btn ghost" data-sync-action="cloud-pending">სერვერიდან ჩატვირთვა</button><button type="button" class="btn ghost" data-sync-action="local-pending">ამ მოწყობილობის ატვირთვა</button></div>':''}${conflict?`<div class="fh-sync-choice"><b>სხვა მოწყობილობიდან ცვლილებაა</b><p>აირჩიე, რომ შენახული ცვლილებები შემთხვევით არ დაიკარგოს.</p>${conflict.kind==='state'?'<button type="button" class="btn primary" data-sync-action="merge-conflict">ყველა ჩანაწერის გაერთიანება</button>':''}<button type="button" class="btn ghost" data-sync-action="cloud-conflict">სერვერის ვერსიის გამოყენება</button></div>`:''}<div class="fh-sync-actions"><button type="button" class="btn primary" data-sync-action="save">ახლა სინქრონიზაცია</button><button type="button" class="btn ghost" data-sync-action="restore">სერვერიდან ჩატვირთვა</button><button type="button" class="btn ghost" data-sync-action="disconnect">სინქრონიზაციის გათიშვა</button></div>`:`<form class="fh-sync-form"><p class="fh-sync-note">შექმენი სინქრონიზაციის ანგარიში ან შედი სხვა ტელეფონზე უკვე შექმნილი ანგარიშით. არსებული ლოკალური ანგარიში შენარჩუნდება. Plus-ის შეძენა აქ არ ხდება; ახალი ანგარიში უფასოა.</p><label>მოქმედება<select name="mode"><option value="signin">არსებულ ანგარიშში შესვლა</option><option value="signup">სინქრონიზაციის ანგარიშის შექმნა</option></select></label><label>ელფოსტა<input name="email" type="email" autocomplete="username" maxlength="160" required></label><label>პაროლი<input name="password" type="password" autocomplete="current-password" minlength="8" maxlength="128" required></label><label class="fh-sync-checkbox"><input name="remember" type="checkbox">დამიმახსოვრე ამ მოწყობილობაზე</label><label class="fh-sync-checkbox"><input name="consent" type="checkbox" required>მსურს პროფილისა და ჩანაწერების სინქრონიზაცია</label><p class="fh-sync-note">უფასო ავატარი და ფონი ახალ ანგარიშშიც გადაგყვება. Plus-ის ფერები და სტილები ახალ უფასო ანგარიშში ავტომატურად არ გადაიტანება. პაროლის აღდგენის ელფოსტა ჯერ არ იგზავნება — შეინახე პაროლი.</p><button class="btn primary" type="submit">ანგარიშთან დაკავშირება</button><p class="fh-sync-message" role="status" aria-live="polite" data-error="${status==='error'||status==='expired'}">${escape(message||statuses[status]||'')}${last?' · '+escape(last):''}</p></form>`}${connected||!available?`<p class="fh-sync-message" role="status" aria-live="polite" data-error="${status==='error'||status==='expired'}">${escape(message||statuses[status]||'')}${last?' · '+escape(last):''}</p>`:''}</div>`;
       panel.open=open;
       panel.querySelectorAll('input,select').forEach(field=>{if(values[field.name]!==undefined){if(field.type==='checkbox')field.checked=values[field.name];else field.value=values[field.name];}});
       panel.querySelectorAll('button').forEach(button=>{button.disabled=busy;});
-      panel.querySelector('form')?.addEventListener('submit',async event=>{
-        event.preventDefault();const form=event.currentTarget,fields=new FormData(form);
-        try{await connect({mode:fields.get('mode'),email:fields.get('email'),password:fields.get('password'),remember:fields.has('remember'),consent:fields.has('consent')});if(!pending)location.reload();else emit('pending');}catch(error){emit(error.status===409?'conflict':'error',error.message);}
-      });
+      bindConnectionForm(panel);
       panel.querySelectorAll('[data-sync-action]').forEach(button=>button.addEventListener('click',async()=>{
         try{const action=button.dataset.syncAction;
           if(action==='check'){await ready({force:true});return;}

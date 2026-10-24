@@ -48,6 +48,12 @@
 .gn-profile-panel .gn-avatar-option:hover { border-color:#a2c18f; transform:translateY(-1px); }
 .gn-profile-panel .gn-profile-note { font-size:12px; line-height:1.6; margin-top:12px; }
 .gn-profile-panel .gn-profile-note a { display:inline-flex; align-items:center; min-height:44px; }
+.gn-profile-panel>.gn-profile-actions { flex-wrap:wrap; }
+.gn-profile-panel .gn-profile-action-note { flex:0 0 100%; min-width:0; max-height:96px; overflow:auto; margin:0!important; color:#f0d6ac; }
+.gn-profile-panel .gn-profile-action-note:empty { display:none; }
+.gn-profile-panel .gn-profile-name-error { display:block; margin:7px 0; color:#ffd0c5; font-size:12px!important; line-height:1.5!important; }
+.gn-profile-panel .gn-profile-name-error[hidden] { display:none!important; }
+.gn-profile-panel #gnProfileName[aria-invalid="true"] { border-color:#e7a28c; box-shadow:0 0 0 2px #e7a28c30; }
 .gn-profile-panel .gn-name-color-section { margin:16px 0 6px; padding:13px; border:1px solid #385344; border-radius:15px; background:#10271f; }
 .gn-profile-panel .gn-name-color-title { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; color:#e4eddf; font-size:12px; font-weight:700; }
 .gn-profile-panel .gn-name-color-plus { padding:4px 7px; border:1px solid #9e8a5580; border-radius:6px; color:#eed697; background:#2d3221; font-size:9px; letter-spacing:.04em; }
