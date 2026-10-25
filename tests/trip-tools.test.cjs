@@ -37,6 +37,18 @@ test('storage failures are reported without overwriting old data or unrelated ac
 test('saved sharing text exposes its observation time and omits a misleading live index',()=>{
   const text=trip.snapshotText({...snapshot,status:'saved',index:99});assert.match(text,/ბოლო შენახული ამინდი/);assert.match(text,/2026-10-23 13:55/);assert.doesNotMatch(text,/99\/100|AM|PM/);assert.match(text,/place-details\.html\?id=lisi/);assert.match(text,/ტერიტორიის რეჟიმი/);
 });
+test('offline places retain bounded personal access notes without publishing them in share text',()=>{
+  const area=storage(),access={road:'gravel',parking:'limited',walkingMinutes:25,notes:'პირადი მისასვლელი შენიშვნა',updatedAt:'2026-10-23T09:00:00Z',personal:true};
+  trip.savePlace({...snapshot,access},area,now);
+  const restored=trip.list(area)[0];assert.deepEqual(restored.access,{...access,updatedAt:'2026-10-23T09:00:00.000Z'});
+  assert.equal(restored.status,'saved');assert.equal(restored.index,null);
+  assert.doesNotMatch(trip.snapshotText(restored),/პირადი მისასვლელი შენიშვნა|25 წთ/);
+  assert.equal(trip.cleanAccess({...access,personal:false}),null);
+  assert.equal(trip.cleanAccess({...access,updatedAt:'invalid'}),null);
+  assert.equal(trip.cleanAccess({...access,updatedAt:new Date(Date.now()+3600000).toISOString()}),null);
+  const malformed=trip.cleanAccess({...access,road:'verified',parking:'<script>',walkingMinutes:25.5,notes:'x'.repeat(2000)});
+  assert.equal(malformed.road,'unknown');assert.equal(malformed.parking,'unknown');assert.equal(malformed.walkingMinutes,null);assert.equal(malformed.notes.length,600);
+});
 test('Georgian wrapping bounds every line, splits unbroken labels and ellipsizes overflow',()=>{
   const context={measureText:value=>({width:Array.from(value).length*9})};
   for(const text of ['საქართველოს ულამაზესი სათევზაო ადგილი მთის ფერდობზე','ძალიანგრძელიუწყვეტისაქართველოსსათევზაოლოკაცია'.repeat(8)]){
@@ -94,7 +106,7 @@ test('offline saved-place and dashboard navigation use the prepared shell, but A
   assert.equal(await value.get('offline.html','cors','POST'),undefined);
 });
 test('activation removes only superseded FishHunt offline caches',async()=>{
-  const value=worker();await value.install();value.cacheMap.set('fishhunt-offline-old',new Map());value.cacheMap.set('other-app-account-cache',new Map());await value.activate();assert.equal(value.cacheMap.has('fishhunt-offline-old'),false);assert.equal(value.cacheMap.has('other-app-account-cache'),true);assert.equal(value.cacheMap.has('fishhunt-offline-20261023b-v1'),true);
+  const value=worker();await value.install();value.cacheMap.set('fishhunt-offline-old',new Map());value.cacheMap.set('other-app-account-cache',new Map());await value.activate();assert.equal(value.cacheMap.has('fishhunt-offline-old'),false);assert.equal(value.cacheMap.has('other-app-account-cache'),true);assert.equal(value.cacheMap.has('fishhunt-offline-20261025a-v1'),true);
 });
 test('bad or oversized responses cannot acknowledge a fully prepared offline shell',async()=>{
   for(const mode of ['bad','oversized']){const value=worker();if(mode==='bad')value.setBad(true);else value.setOversized(true);await value.install();assert.ok(value.listeners.push,'offline preparation failure never disables push install');assert.equal((await value.message()).ok,false);}

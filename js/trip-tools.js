@@ -26,6 +26,15 @@
     const parsed = Date.parse(explicit);
     return Number.isFinite(parsed) ? parsed : null;
   }
+  function cleanAccess(input) {
+    if (!input || typeof input !== 'object' || input.personal !== true) return null;
+    const updated = stamp(input.updatedAt);
+    if (updated === null || updated <= 0 || updated > Date.now() + 600000) return null;
+    const road = ['unknown', 'paved', 'gravel', 'rough', 'foot-only'].includes(input.road) ? input.road : 'unknown';
+    const parking = ['unknown', 'available', 'limited', 'none'].includes(input.parking) ? input.parking : 'unknown';
+    const minutes = number(input.walkingMinutes, 0, 720);
+    return { road, parking, walkingMinutes: minutes !== null && Number.isInteger(minutes) ? minutes : null, notes: text(input.notes, 600), updatedAt: new Date(updated).toISOString(), personal: true };
+  }
   function cleanSnapshot(input, now = Date.now()) {
     const source = input && typeof input === 'object' ? input : {}, weather = source.weather || {};
     const observation = stamp(source.sourceTime), live = source.status === 'live' && observation !== null && now - observation <= 3 * 3600000 && observation <= now + 600000;
@@ -40,7 +49,8 @@
       bestHour: live ? text(source.bestHour, 5) : '', sourceTime: observation === null ? null : new Date(observation).toISOString(),
       at: new Date(now).toISOString(), timezone: 'Asia/Tbilisi', status,
       legalSummary: text(source.legalSummary, 900) || 'კონკრეტული ადგილისა და სახეობის მოქმედი შეზღუდვები გასვლამდე გადაამოწმე.',
-      legalStatus: text(source.legalStatus, 30), savedAt: stamp(source.savedAt) === null ? null : new Date(stamp(source.savedAt)).toISOString()
+      legalStatus: text(source.legalStatus, 30), savedAt: stamp(source.savedAt) === null ? null : new Date(stamp(source.savedAt)).toISOString(),
+      access: cleanAccess(source.access)
     };
   }
   function placeSnapshot(id) {
@@ -204,7 +214,8 @@
   }
   async function saveForOffline(input) {
     const canonical = placeSnapshot(input?.placeId), merged = canonical ? { ...canonical, ...input, description: canonical.description, fishNames: canonical.fishNames, region: canonical.region, kind: canonical.kind } : input;
-    const saved = savePlace(merged);
+    const access = root.FishHuntPlaceAccess?.snapshot?.(input?.placeId);
+    const saved = savePlace(access ? { ...merged, access } : merged);
     refreshLibraries(); root.dispatchEvent(new CustomEvent('fishhunt:offline-places', { detail: readPlaces() }));
     let ready;
     try { ready = await prepareOffline(); }
@@ -243,6 +254,15 @@
     if (item.lat !== null && item.lon !== null) article.appendChild(element('p', 'fh-trip-coordinates', item.lat.toFixed(4) + ', ' + item.lon.toFixed(4)));
     if (item.fishNames.length) article.appendChild(element('p', '', 'სახეობები: ' + item.fishNames.join(', ')));
     if (item.sourceTime && item.weather.temperature !== null) article.appendChild(element('p', 'fh-offline-weather', 'ბოლო შენახული ამინდი · ' + formatTime(item.sourceTime) + ': ' + item.weather.temperature + '°C' + (item.weather.wind === null ? '' : ', ქარი ' + item.weather.wind + ' კმ/სთ') + '. მიმდინარე პირობები ინტერნეტით გადაამოწმე.'));
+    if (item.access) {
+      const access = item.access, details = element('details', 'fh-offline-access'), title = element('summary', '', 'მისასვლელი · ჩემი შენიშვნები');
+      const roads = { unknown: 'არ არის მითითებული', paved: 'ასფალტიანი გზა', gravel: 'გრუნტის გზა', rough: 'რთული მონაკვეთი', 'foot-only': 'მხოლოდ ფეხით მისვლა' }, parking = { unknown: 'არ არის მითითებული', available: 'არის გასაჩერებელი ადგილი', limited: 'ადგილი შეზღუდულია', none: 'გასაჩერებელი ადგილი არ არის' };
+      details.append(title, element('p', 'fh-trip-muted', 'პირადი ჩანაწერი ამ ბრაუზერიდან · ' + formatTime(access.updatedAt) + '. მისასვლელისა და პარკინგის მდგომარეობა გასვლამდე გადაამოწმე.'));
+      details.appendChild(element('p', '', 'გზა: ' + roads[access.road] + ' · პარკინგი: ' + parking[access.parking]));
+      if (access.walkingMinutes !== null) details.appendChild(element('p', '', 'ფეხით: ' + access.walkingMinutes + ' წთ · შენი ჩანაწერი'));
+      if (access.notes) details.appendChild(element('p', '', access.notes));
+      article.appendChild(details);
+    }
     article.appendChild(element('p', 'fh-offline-legal', item.legalSummary));
     const actions = element('div', 'fh-trip-tools'), open = element('a', 'btn ghost', 'ადგილზე გადასვლა'), remove = element('button', 'btn ghost', 'წაშლა'), share = element('button', 'btn ghost', 'გაზიარება'); open.href = 'place-details.html?id=' + encodeURIComponent(item.placeId); remove.type = share.type = 'button';
     remove.onclick = () => { try { removePlace(item.placeId); refreshLibraries(); } catch { rootNode.querySelector('[role="status"]').textContent = 'წაშლა ვერ მოხერხდა. სცადე ისევ.'; } };
@@ -276,5 +296,5 @@
     root.addEventListener('storage', event => { if (event.key === KEY) refreshLibraries(); });
     root.addEventListener('online', () => { root.document.querySelectorAll('[data-fh-offline-connection]').forEach(node => { node.textContent = 'კავშირი აღდგა. მიმდინარე ინფორმაცია ადგილის გვერდზე გადაამოწმე.'; }); });
   }
-  return { init, mount, share: openShare, save: saveForOffline, list: readPlaces, remove: removePlace, refresh: refreshLibraries, cleanSnapshot, placeSnapshot, savePlace, clearPlaces, persistPlaces, stamp, wrapLines, snapshotText, renderCard, shareFile, prepareOffline, safety: SAFETY, storageKey: KEY };
+  return { init, mount, share: openShare, save: saveForOffline, list: readPlaces, remove: removePlace, refresh: refreshLibraries, cleanSnapshot, cleanAccess, placeSnapshot, savePlace, clearPlaces, persistPlaces, stamp, wrapLines, snapshotText, renderCard, shareFile, prepareOffline, safety: SAFETY, storageKey: KEY };
 });

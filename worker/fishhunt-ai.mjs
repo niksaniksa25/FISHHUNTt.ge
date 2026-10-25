@@ -86,7 +86,8 @@ export default {
     if (url.pathname === "/api/health" && request.method === "GET") {
       return json({ok:true,service:"FishHunt AI",configured:Boolean(env.GEMINI_API_KEY),
         adminConfigured:Boolean(env.ADMIN_KV && String(env.ADMIN_PASSWORD||"").length>=12),
-        analyticsConfigured:Boolean(env.ADMIN_KV),accountConfigured:Boolean(env.FISHHUNT_ACCOUNTS)},200,origin,allowed);
+        analyticsConfigured:Boolean(env.ADMIN_KV),accountConfigured:Boolean(env.FISHHUNT_ACCOUNTS),
+        accountRecoveryConfigured:Boolean(env.FISHHUNT_ACCOUNTS)},200,origin,allowed);
     }
     if (url.pathname.startsWith("/api/account/")) {
       if (!allowed) return json({ok:false,message:"Origin not permitted"},403,origin,false);
@@ -99,7 +100,7 @@ export default {
           // Consume the HTTP body before the RPC boundary. Returning early from
           // a DO (for example sign-out or expired auth) must not leave a proxied
           // request stream attempting to drain after its response was sent.
-          const input=await accountInput(request,/\/(?:signup|signin)$/.test(url.pathname)?8000:160000);
+          const input=await accountInput(request,/\/(?:signup|signin|recover|recovery-code)$/.test(url.pathname)?8000:160000);
           forwarded=new Request(request,{body:JSON.stringify(input)});
         }
         const id=env.FISHHUNT_ACCOUNTS.idFromName("fishhunt-accounts-v1");
@@ -415,7 +416,9 @@ async function accountPassword(password,salt){
 function accountConstantEqual(a,b){if(typeof a!=='string'||typeof b!=='string')return false;let diff=a.length^b.length;for(let i=0;i<Math.max(a.length,b.length);i++)diff|=(a.charCodeAt(i)||0)^(b.charCodeAt(i)||0);return diff===0;}
 function accountPlus(user){const expires=Number(user.planExpiresAt||0);return user.role==='admin'||(['plus','pro'].includes(user.plan)&&Number.isFinite(expires)&&(!expires||expires>Date.now()));}
 function accountProfile(user){const p={...ACCOUNT_DEFAULT_PROFILE,...user.profile};if(!ACCOUNT_COLORS.has(p.nameColor)||!accountPlus(user))p.nameColor='default';if(!ACCOUNT_FRAMES.has(p.avatarFrame)||(['aurora','copper'].includes(p.avatarFrame)&&!accountPlus(user)))p.avatarFrame='none';return p;}
-function accountPublicUser(user){return {id:user.id,email:user.email,createdAt:user.createdAt,plan:accountPlus(user)?user.plan:'free',planExpiresAt:user.planExpiresAt||null,...accountProfile(user)};}
+function accountPublicUser(user){return {id:user.id,email:user.email,createdAt:user.createdAt,plan:accountPlus(user)?user.plan:'free',planExpiresAt:user.planExpiresAt||null,recoveryConfigured:Boolean(user.recoveryHash),...accountProfile(user)};}
+function accountSessionVersion(value){return Number.isSafeInteger(value)&&value>=0?value:0;}
+function accountRecoveryCode(value){return typeof value==='string'&&value.length<=128?value.replace(/[\s-]/g,'').toLowerCase():'';}
 async function accountInput(request,max=160000){
   if(!String(request.headers.get('Content-Type')||'').toLowerCase().startsWith('application/json'))throw new AccountError(415,'საჭიროა JSON ფორმატი.');
   const claimed=Number(request.headers.get('Content-Length')||0);if(claimed>max)throw new AccountError(413,'მონაცემების ზომა ზედმეტად დიდია.');
@@ -500,9 +503,14 @@ export class FishHuntAccountsDO {
     const match=/^Bearer ([0-9a-f]{64})$/.exec(request.headers.get('Authorization')||'');if(!match)throw new AccountError(401,'ანგარიშში შესვლა საჭიროა.','authentication_required');
     const key='session:'+await sha256(match[1]),session=await this.get(key);
     if(!session||!Number.isFinite(session.expiresAt)||session.expiresAt<=Date.now()){if(session)await this.storage.delete(key);throw new AccountError(401,'შესვლის ვადა ამოიწურა. შედი ხელახლა.','session_expired');}
-    const user=await this.get('user:'+session.userId);if(!user)throw new AccountError(401,'ანგარიში ვერ მოიძებნა.','authentication_required');return {user,key};
+    const user=await this.get('user:'+session.userId);if(!user)throw new AccountError(401,'ანგარიში ვერ მოიძებნა.','authentication_required');
+    // Version zero preserves sessions created before recovery was available.
+    // Resetting a password revokes every device atomically without scanning an
+    // unbounded number of session rows during a public recovery request.
+    if(accountSessionVersion(session.version)!==accountSessionVersion(user.sessionVersion)){await this.storage.delete(key);throw new AccountError(401,'პაროლი შეიცვალა. შედი ახალი პაროლით.','session_expired');}
+    return {user,key};
   }
-  async session(user,remember){const token=accountRandom(),expiresAt=Date.now()+(remember?30*86400000:86400000);await this.put('session:'+await sha256(token),{userId:user.id,expiresAt});return {token,expiresAt};}
+  async session(user,remember){const token=accountRandom(),expiresAt=Date.now()+(remember?30*86400000:86400000);await this.put('session:'+await sha256(token),{userId:user.id,expiresAt,version:accountSessionVersion(user.sessionVersion)});return {token,expiresAt};}
   async snapshot(user,kind){return await this.get('snapshot:'+user.id+':'+kind)||{revision:null,savedAt:0,[kind]:null};}
   conflict(snapshot,kind){throw new AccountError(409,'სხვა მოწყობილობაზე მონაცემები შეიცვალა. აირჩიე რომელი ვერსია შეინახო.','sync_conflict',{conflict:true,revision:snapshot.revision,revisions:[{revision:snapshot.revision,savedAt:snapshot.savedAt,[kind]:snapshot[kind]}]});}
   async saveSnapshot(user,kind,value,input){
@@ -528,7 +536,27 @@ export class FishHuntAccountsDO {
     try{
       await this.scheduleMaintenance();
       const route=new URL(request.url).pathname.replace('/api/account/',''),method=request.method;
-      if(!['signup','signin','signout','me','profile','state'].includes(route))throw new AccountError(404,'გვერდი ვერ მოიძებნა.');
+      if(!['signup','signin','signout','me','profile','state','recovery-code','recover'].includes(route))throw new AccountError(404,'გვერდი ვერ მოიძებნა.');
+      if(route==='recover'){
+        if(method!=='POST')throw new AccountError(405,'Method not allowed');
+        const input=await accountInput(request,8000),email=accountEmail(input.email),code=accountRecoveryCode(input.recoveryCode),password=input.newPassword;
+        if(!validAccountEmail(email)||typeof password!=='string'||password.length<8||password.length>128||!/^[0-9a-f]{64}$/.test(code))throw new AccountError(400,'მიუთითე სწორი ელფოსტა, აღდგენის სრული კოდი და ახალი პაროლი (8–128 სიმბოლო).');
+        const ip=await sha256(request.headers.get('CF-Connecting-IP')||'unknown'),emailHash=await sha256(email);
+        await this.limit('recovery-global',200,3600000);await this.limit('recovery-ip:'+ip,12,3600000);await this.limit('recovery-email:'+emailHash,6,900000);
+        const user=await this.get('email:'+emailHash),salt=accountRandom(16);
+        // Derive on both known and unknown emails, including invalid-code cases.
+        // The public response never reveals whether an account has recovery set.
+        const passwordHash=await accountPassword(password,salt),codeHash=await sha256('fishhunt-recovery-v1:'+(user?.id||'missing')+':'+code);
+        if(!user||!user.recoveryHash||!accountConstantEqual(codeHash,user.recoveryHash))throw new AccountError(401,'ელფოსტა ან აღდგენის კოდი არასწორია.','invalid_recovery');
+        await this.storage.transaction(async txn=>{
+          const latest=await txn.get('user:'+user.id);
+          if(!latest||!latest.recoveryHash||!accountConstantEqual(latest.recoveryHash,codeHash))throw new AccountError(401,'ელფოსტა ან აღდგენის კოდი არასწორია.','invalid_recovery');
+          const changed={...latest,passwordSalt:salt,passwordHash,passwordIterations:ACCOUNT_PBKDF2_ITERATIONS,sessionVersion:accountSessionVersion(latest.sessionVersion)+1};
+          delete changed.recoveryHash;delete changed.recoveryCreatedAt;
+          await txn.put('user:'+user.id,changed);await txn.put('email:'+emailHash,changed);
+        });
+        return accountResponse({ok:true,message:'პაროლი შეიცვალა. ყველა მოწყობილობიდან გამოსული ხარ. შედი ახალი პაროლით და შექმენი აღდგენის ახალი კოდი.'});
+      }
       if(['signup','signin'].includes(route)){
         if(method!=='POST')throw new AccountError(405,'Method not allowed');
         const input=await accountInput(request,8000),email=accountEmail(input.email),password=input.password;
@@ -558,6 +586,18 @@ export class FishHuntAccountsDO {
       const {user,key}=await this.authenticate(request);
       if(route==='signout'){if(method!=='POST')throw new AccountError(405,'Method not allowed');await this.storage.delete(key);return accountResponse({ok:true});}
       if(route==='me'){if(method!=='GET')throw new AccountError(405,'Method not allowed');const snapshot=await this.snapshot(user,'profile');return accountResponse({ok:true,user:accountPublicUser(user),profile:accountProfile(user),revision:snapshot.revision});}
+      if(route==='recovery-code'){
+        if(method!=='POST')throw new AccountError(405,'Method not allowed');
+        const input=await accountInput(request,8000),password=input.password;
+        if(typeof password!=='string'||password.length<8||password.length>128)throw new AccountError(400,'მიუთითე მიმდინარე პაროლი (8–128 სიმბოლო).');
+        await this.limit('recovery-setup:'+user.id,6,900000);
+        const hash=await accountPassword(password,user.passwordSalt);
+        if(!accountConstantEqual(hash,user.passwordHash))throw new AccountError(403,'მიმდინარე პაროლი არასწორია.','invalid_current_password');
+        const code=accountRandom(),recoveryHash=await sha256('fishhunt-recovery-v1:'+user.id+':'+code),changed={...user,recoveryHash,recoveryCreatedAt:Date.now()};
+        await this.storage.transaction(async txn=>{await txn.put('user:'+user.id,changed);await txn.put('email:'+await sha256(user.email),changed);});
+        // Plaintext is returned once and is never persisted or included in /me.
+        return accountResponse({ok:true,recoveryCode:code.toUpperCase().match(/.{8}/g).join('-'),recoveryConfigured:true,user:accountPublicUser(changed)});
+      }
       if(method==='GET'){const snapshot=await this.snapshot(user,route);return accountResponse({ok:true,...snapshot,...(route==='profile'?{profile:accountProfile(user)}:{progressVerified:false})});}
       if((route==='profile'&&method!=='PATCH')||(route==='state'&&method!=='PUT'))throw new AccountError(405,'Method not allowed');
       await this.limit('write:'+user.id,120,3600000);

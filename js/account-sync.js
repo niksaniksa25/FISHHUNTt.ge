@@ -7,7 +7,7 @@
   const ARCHIVE_PREFIX='fishhunt_cloud_device_records_v1:';
   const CLOUD_PATH='/api/account';
   const statuses={local:'მხოლოდ ამ მოწყობილობაზე',checking:'კავშირი მოწმდება…',ready:'სინქრონიზაცია ხელმისაწვდომია',connecting:'ანგარიშთან დაკავშირება…',syncing:'მონაცემები ინახება…',saved:'სინქრონიზებულია',offline:'ინტერნეტის კავშირი არ არის',pending:'გასაერთიანებელი მონაცემები გაქვს',conflict:'სხვა მოწყობილობიდან ცვლილებაა',error:'სინქრონიზაცია ვერ შესრულდა',expired:'ანგარიშში ხელახლა შედი',unavailable:'ამ მოწყობილობაზე შენახვა მუშაობს'};
-  let available=null,healthPromise=null,status='local',message='',lastSaved=0,busy=false,applying=false,timer=null;
+  let available=null,recoveryAvailable=false,recoveryBusy=false,healthPromise=null,status='local',message='',lastSaved=0,busy=false,applying=false,timer=null;
   let conflict=null,pending=null,profileRevision=null,stateRevision=null,resumed=false,resumePromise=null,configPromise=null,syncPromise=null;
   const panels=new Set();
   let validationSerial=0;
@@ -58,7 +58,7 @@
     profileRevision=value.profileRevision||null;stateRevision=value.stateRevision||null;
   }
   function updateSession(patch){const current=session();if(current)storeSession({...current,...patch},current.remember);}
-  function view(){return {available,status,message:message||statuses[status]||'',connected:Boolean(session()||blockedSession()),lastSaved,busy,conflict:conflict?{kind:conflict.kind,count:conflict.revisions.length}:null,pending:Boolean(pending)};}
+  function view(){return {available,recoveryAvailable,status,message:message||statuses[status]||'',connected:Boolean(session()||blockedSession()),lastSaved,busy,conflict:conflict?{kind:conflict.kind,count:conflict.revisions.length}:null,pending:Boolean(pending)};}
   function emit(next,detail=''){status=next;message=detail;renderPanels();try{document.dispatchEvent(new CustomEvent('fishhunt:sync',{detail:view()}));}catch{}}
   function clone(value){return JSON.parse(JSON.stringify(value));}
   function list(value,max){return Array.isArray(value)?value.slice(0,max):[];}
@@ -136,7 +136,7 @@
     try{
       const response=await fetch(base+CLOUD_PATH+path,{method,headers:{'Content-Type':'application/json',...(bearer?{Authorization:'Bearer '+bearer}:{})},...(body!==undefined?{body:JSON.stringify(body)}:{}),signal:controller.signal,cache:'no-store',credentials:'omit'});
       let value={};try{value=await response.json();}catch{}
-      if(!response.ok){const error=new Error(value.message||'ანგარიშის სერვერთან კავშირი ვერ მოხერხდა.');error.status=response.status;error.data=value;if(response.status===401&&!skipSession){restoreLocalBaseline();clearSession();emit('expired');}if(response.status===409&&value.conflict){conflict={kind:path==='/profile'?'profile':'state',revisions:list(value.revisions,20)};updateSession({syncBlocked:'conflict'});emit('conflict',error.message);}throw error;}
+      if(!response.ok){const error=new Error(value.message||'ანგარიშის სერვერთან კავშირი ვერ მოხერხდა.');error.status=response.status;error.data=value;if(response.status===401&&!skipSession&&bearer===(session()||blockedSession())?.token){restoreLocalBaseline();clearSession();emit('expired');}if(response.status===409&&value.conflict){conflict={kind:path==='/profile'?'profile':'state',revisions:list(value.revisions,20)};updateSession({syncBlocked:'conflict'});emit('conflict',error.message);}throw error;}
       return value;
     }catch(error){if(!error.status)emit(navigator.onLine===false?'offline':'error','კავშირი ვერ შედგა. მოწყობილობაზე შენახული ჩანაწერები შენარჩუნებულია.');throw error;}finally{clearTimeout(timeout);}
   }
@@ -158,7 +158,7 @@
       if(!origin()){available=false;emit('unavailable');return false;}
       if(!session())emit('checking');
       const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),8000);
-      try{const response=await fetch(origin()+'/api/health',{headers:{Accept:'application/json'},signal:controller.signal,cache:'no-store',credentials:'omit'});const health=await response.json();available=Boolean(response.ok&&health.accountConfigured===true);emit(available?(session()?'saved':'ready'):'unavailable',available?'':'სინქრონიზაცია ჯერ ხელმისაწვდომი არ არის. შენი მონაცემები ამ მოწყობილობაზე ინახება.');return available;}catch{available=false;emit(navigator.onLine===false?'offline':'unavailable');return false;}finally{clearTimeout(timeout);healthPromise=null;}
+      try{const response=await fetch(origin()+'/api/health',{headers:{Accept:'application/json'},signal:controller.signal,cache:'no-store',credentials:'omit'});const health=await response.json();available=Boolean(response.ok&&health.accountConfigured===true);recoveryAvailable=available&&health.accountRecoveryConfigured===true;emit(available?(session()?'saved':'ready'):'unavailable',available?'':'სინქრონიზაცია ჯერ ხელმისაწვდომი არ არის. შენი მონაცემები ამ მოწყობილობაზე ინახება.');return available;}catch{available=false;recoveryAvailable=false;emit(navigator.onLine===false?'offline':'unavailable');return false;}finally{clearTimeout(timeout);healthPromise=null;}
     })();return healthPromise;
   }
   async function request(path,options={}){
@@ -189,7 +189,7 @@
   async function connect({mode='signin',email,password,remember=false,consent=false}={}){
     if(!consent)throw new Error('მონაცემების სინქრონიზაციისთვის მონიშნე თანხმობა.');
     if(session())throw new Error('სხვა ანგარიშში შესვლამდე გათიშე მიმდინარე ანგარიშის სინქრონიზაცია.');
-    if(busy)throw new Error('დაკავშირება უკვე მიმდინარეობს. დაელოდე დასრულებას.');
+    if(busy||recoveryBusy)throw new Error('დაკავშირება უკვე მიმდინარეობს. დაელოდე დასრულებას.');
     busy=true;emit('connecting');
     try{
       if(!await ready())throw new Error('სინქრონიზაცია ჯერ ხელმისაწვდომი არ არის. შენი მონაცემები ამ მოწყობილობაზე ინახება.');
@@ -271,6 +271,30 @@
     catch(error){if(read(localStorage,BACKUP_KEY)?.owner){emit('error',error.message);throw error;}}
     clearSession();pending=null;conflict=null;resumed=false;emit('local');
   }
+  async function createRecoveryCode(password){
+    if(recoveryBusy||busy)throw new Error('მოქმედება უკვე მიმდინარეობს. დაელოდე დასრულებას.');
+    const initiating=session();if(!initiating)throw new Error('აღდგენის კოდის შესაქმნელად ჯერ შედი სინქრონიზაციის ანგარიშში.');
+    recoveryBusy=true;
+    try{
+      if(!await ready()||!recoveryAvailable)throw new Error('პაროლის აღდგენა სერვერზე ჯერ არ გააქტიურებულა. სცადე მოგვიანებით.');
+      if(session()?.token!==initiating.token)throw new Error('ანგარიში შეიცვალა. კოდის შექმნა თავიდან სცადე.');
+      const result=await call('/recovery-code',{method:'POST',body:{password},token:initiating.token});
+      if(session()?.token!==initiating.token)throw new Error('ანგარიში შეიცვალა. კოდის შესანახად ხელახლა შედი და ახალი კოდი შექმენი.');
+      if(typeof result.recoveryCode!=='string'||!/^(?:[A-F0-9]{8}-){7}[A-F0-9]{8}$/.test(result.recoveryCode))throw new Error('აღდგენის კოდი ვერ დადასტურდა. სცადე ხელახლა.');
+      updateSession({user:{...session().user,recoveryConfigured:true}});
+      return result.recoveryCode;
+    }finally{recoveryBusy=false;}
+  }
+  async function recoverPassword({email,recoveryCode,newPassword}={}){
+    if(recoveryBusy||busy)throw new Error('მოქმედება უკვე მიმდინარეობს. დაელოდე დასრულებას.');
+    if(session()||blockedSession())throw new Error('პაროლის აღდგენამდე გათიშე მიმდინარე ანგარიშის სინქრონიზაცია.');
+    recoveryBusy=true;
+    try{
+      if(!await ready()||!recoveryAvailable)throw new Error('პაროლის აღდგენა სერვერზე ჯერ არ გააქტიურებულა. სცადე მოგვიანებით.');
+      if(session()||blockedSession())throw new Error('პაროლის აღდგენამდე გათიშე მიმდინარე ანგარიშის სინქრონიზაცია.');
+      return await call('/recover',{method:'POST',body:{email,recoveryCode,newPassword},skipSession:true});
+    }finally{recoveryBusy=false;}
+  }
   function schedule(){if(applying||!session()||session().syncBlocked||pending||conflict)return;clearTimeout(timer);emit(navigator.onLine===false?'offline':'syncing');timer=setTimeout(()=>sync().catch(()=>{}),1400);}
   function escape(value){return String(value??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
   function formFeedback(panel,detail,error=false){
@@ -338,17 +362,93 @@
       }
     });
   }
+  function recoveryMarkup(connected){
+    if(!recoveryAvailable)return '<p class="fh-sync-note">პაროლის აღდგენა სერვერის განახლების შემდეგ გახდება ხელმისაწვდომი.</p>';
+    if(connected){
+      const configured=session()?.user?.recoveryConfigured===true;
+      return `<details class="fh-recovery-settings"><summary>პაროლის აღდგენის კოდი <small>${configured?'მომზადებულია':'დაცვა მოამზადე'}</small></summary><p class="fh-sync-note">თუ პაროლი დაგავიწყდება, ანგარიშს ამ პირადი კოდით აღადგენ. კოდი უსაფრთხო ადგილას შეინახე, ბრაუზერის გარეთ; სხვას არ გაუზიარო. ${configured?'ახალი კოდის შექმნა ძველს გააუქმებს.':'ჯერ კოდი შექმენი, სანამ ანგარიშზე წვდომა გაქვს.'}</p><form class="fh-recovery-code-form"><label>მიმდინარე პაროლი<input type="password" name="recoveryPassword" autocomplete="current-password" minlength="8" maxlength="128" required></label><button class="btn ghost" type="submit">${configured?'ახალი კოდის შექმნა':'აღდგენის კოდის შექმნა'}</button><p class="fh-recovery-message" role="status" aria-live="polite"></p></form><div class="fh-recovery-secret" role="region" aria-label="შენი პირადი აღდგენის კოდი" hidden><p class="fh-sync-note">ეს კოდი მხოლოდ ახლა გამოჩნდება. შეინახე პირად ადგილას. პაროლის აღდგენისას ის ერთხელ გამოიყენება.</p><label>შენი აღდგენის კოდი<textarea readonly rows="4" spellcheck="false" autocomplete="off" aria-label="პირადი აღდგენის კოდი"></textarea></label><div class="fh-recovery-secret-actions"><button type="button" class="btn ghost" data-recovery-action="copy">კოპირება</button><button type="button" class="btn ghost" data-recovery-action="download">კოდის ჩამოტვირთვა</button><button type="button" class="btn primary" data-recovery-action="done">შევინახე · დახურვა</button></div><p class="fh-recovery-result-message" role="status" aria-live="polite"></p></div></details>`;
+    }
+    return '<details class="fh-recover"><summary>პაროლი დაგავიწყდა?</summary><p class="fh-sync-note">აღდგენას სჭირდება ამ ანგარიშისთვის ადრე შექმნილი პირადი კოდი. ელფოსტით წერილი არ იგზავნება. კოდი წინასწარ, პროფილიდან უნდა შექმნა, სანამ მიმდინარე პაროლი გახსოვს. კოდის გარეშე პაროლის აღდგენა შეუძლებელია.</p><form class="fh-recover-form"><label>ანგარიშის ელფოსტა<input type="email" name="recoveryEmail" autocomplete="username" maxlength="160" required></label><label>პირადი აღდგენის კოდი<input name="recoveryCode" autocomplete="off" autocapitalize="characters" spellcheck="false" minlength="64" maxlength="120" required></label><label>ახალი პაროლი<input type="password" name="newPassword" autocomplete="new-password" minlength="8" maxlength="128" required></label><p class="fh-sync-note">აღდგენა ყველა მოწყობილობაზე ანგარიშიდან გაგიყვანს. ჩანაწერები ანგარიშში დარჩება. შემდეგ ახალი პაროლით შედი და ახალი აღდგენის კოდი შექმენი.</p><button type="submit" class="btn primary">პაროლის აღდგენა</button><p class="fh-recovery-message" role="status" aria-live="polite"></p></form></details>';
+  }
+  function clearRecoverySecrets(panel){
+    panel.querySelectorAll('[name="recoveryPassword"],[name="recoveryCode"],[name="newPassword"],.fh-recovery-secret textarea').forEach(field=>{field.value='';});
+    panel.querySelectorAll('.fh-recovery-secret').forEach(secret=>{secret.hidden=true;});
+    panel.querySelectorAll('.fh-recovery-code-form').forEach(form=>{form.hidden=false;form.dataset.generation=String(Number(form.dataset.generation||0)+1);});
+    panel.querySelectorAll('.fh-recovery-message').forEach(note=>{note.textContent='';note.dataset.error='false';});
+    panel.querySelectorAll('.fh-recovery-result-message').forEach(note=>{note.textContent='';});
+  }
+  function recoveryFeedback(form,detail,error=false){
+    const note=form?.querySelector('.fh-recovery-message');if(!note)return;
+    note.textContent=detail;note.dataset.error=String(error);note.scrollIntoView({block:'nearest',inline:'nearest'});
+  }
+  function bindRecoveryValidation(form){
+    let firstInvalid=null;
+    form.addEventListener('invalid',event=>{
+      event.preventDefault();if(firstInvalid)return;firstInvalid=event.target;
+      firstInvalid.setAttribute('aria-invalid','true');
+      const detail=['recoveryEmail'].includes(firstInvalid.name)?'შეიყვანე ანგარიშის სწორი ელფოსტა.':firstInvalid.name==='recoveryCode'?'შეიყვანე შენახული აღდგენის კოდი სრულად.':'შეიყვანე პაროლი — 8–128 სიმბოლო.';
+      let hint=document.getElementById(firstInvalid.getAttribute('aria-describedby'));
+      if(!hint?.classList.contains('fh-sync-field-error')){hint=document.createElement('p');hint.className='fh-sync-field-error';hint.id='fh-sync-validation-'+(++validationSerial);hint.setAttribute('role','alert');firstInvalid.setAttribute('aria-describedby',hint.id);firstInvalid.closest('label').after(hint);}
+      hint.textContent=detail;recoveryFeedback(form,detail,true);firstInvalid.focus({preventScroll:true});hint.scrollIntoView({block:'nearest',inline:'nearest'});setTimeout(()=>{firstInvalid=null;},0);
+    },true);
+    form.addEventListener('input',event=>{if(event.target.validity?.valid){const hint=document.getElementById(event.target.getAttribute('aria-describedby'));event.target.removeAttribute('aria-invalid');if(hint?.classList.contains('fh-sync-field-error')){hint.remove();event.target.removeAttribute('aria-describedby');}if(!form.querySelector('[aria-invalid="true"]')){const note=form.querySelector('.fh-recovery-message');note.textContent='';note.dataset.error='false';}}});
+  }
+  function bindRecoveryPanel(panel){
+    panel.querySelectorAll('.fh-recovery-settings,.fh-recover').forEach(details=>details.addEventListener('toggle',()=>{if(!details.open)clearRecoverySecrets(panel);}));
+    const settings=panel.querySelector('.fh-recovery-settings'),codeForm=panel.querySelector('.fh-recovery-code-form'),recoverForm=panel.querySelector('.fh-recover-form');
+    const lock=(form,locked,label)=>{form.setAttribute('aria-busy',String(locked));form.querySelectorAll('input,button').forEach(field=>{field.disabled=locked;});form.querySelector('[type="submit"]').textContent=label;};
+    if(codeForm){
+      bindRecoveryValidation(codeForm);
+      codeForm.addEventListener('submit',async event=>{
+        event.preventDefault();if(recoveryBusy||busy)return;
+        const password=new FormData(codeForm).get('recoveryPassword'),generation=codeForm.dataset.generation||'0';codeForm.elements.namedItem('recoveryPassword').value='';
+        lock(codeForm,true,'კოდი იქმნება…');recoveryFeedback(codeForm,'კოდი იქმნება…');
+        try{
+          const code=await createRecoveryCode(password),current=panel.querySelector('.fh-recovery-code-form');
+          if(current!==codeForm||(codeForm.dataset.generation||'0')!==generation||!settings.open||!panel.open||panel.hidden||panel.closest('#gnProfilePanel')?.hidden)return;
+          const secret=panel.querySelector('.fh-recovery-secret');secret.querySelector('textarea').value=code;secret.hidden=false;codeForm.hidden=true;settings.querySelector('summary small').textContent='მომზადებულია';
+          secret.querySelector('textarea').focus({preventScroll:true});secret.scrollIntoView({block:'nearest',inline:'nearest'});
+        }catch(error){const current=panel.querySelector('.fh-recovery-code-form');if(current)recoveryFeedback(current,error.message,true);else formFeedback(panel,error.message,true);}
+        finally{if(codeForm.isConnected)lock(codeForm,false,'ახალი კოდის შექმნა');}
+      });
+      panel.querySelectorAll('[data-recovery-action]').forEach(button=>button.addEventListener('click',async()=>{
+        const secret=panel.querySelector('.fh-recovery-secret'),field=secret?.querySelector('textarea'),note=secret?.querySelector('.fh-recovery-result-message');if(!field?.value)return;
+        if(button.dataset.recoveryAction==='done'){clearRecoverySecrets(panel);settings.open=false;settings.querySelector('summary').focus();return;}
+        if(button.dataset.recoveryAction==='copy'){
+          try{if(!navigator.clipboard?.writeText)throw new Error();await navigator.clipboard.writeText(field.value);note.textContent='კოდი დაკოპირებულია. შეინახე პირად, უსაფრთხო ადგილას.';}catch{field.focus();field.select();note.textContent='კოდი მონიშნულია. გამოიყენე მოწყობილობის „კოპირება“.';}
+        }else if(button.dataset.recoveryAction==='download'){
+          const file=new Blob(['FishHunt — პირადი აღდგენის კოდი\n\n'+field.value+'\n\nშეინახე უსაფრთხო ადგილას. სხვას არ გაუზიარო. გამოიყენება მხოლოდ ერთხელ. ახალი კოდის შექმნა ძველს აუქმებს.\n'],{type:'text/plain;charset=utf-8'}),url=URL.createObjectURL(file),link=document.createElement('a');link.href=url;link.download='fishhunt-recovery-code.txt';secret.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);note.textContent='კოდის ფაილის ჩამოტვირთვა დაიწყო. შეინახე უსაფრთხო ადგილას.';
+        }
+      }));
+    }
+    if(recoverForm){
+      bindRecoveryValidation(recoverForm);
+      const email=panel.querySelector('.fh-sync-form [name="email"]');if(email?.value&&!recoverForm.elements.namedItem('recoveryEmail').value)recoverForm.elements.namedItem('recoveryEmail').value=email.value;
+      recoverForm.addEventListener('submit',async event=>{
+        event.preventDefault();if(recoveryBusy||busy)return;const fields=new FormData(recoverForm),email=fields.get('recoveryEmail');
+        lock(recoverForm,true,'პაროლი ახლდება…');recoveryFeedback(recoverForm,'პაროლი ახლდება…');
+        try{
+          await recoverPassword({email,recoveryCode:fields.get('recoveryCode'),newPassword:fields.get('newPassword')});clearRecoverySecrets(panel);
+          const signin=panel.querySelector('.fh-sync-form');if(signin){signin.elements.namedItem('email').value=email;signin.elements.namedItem('password').value='';signin.elements.namedItem('mode').value='signin';signin.elements.namedItem('mode').dispatchEvent(new Event('change'));}
+          const details=panel.querySelector('.fh-recover');if(details)details.open=false;formFeedback(panel,'პაროლი განახლებულია. ახლა შედი ახალი პაროლით. შესვლის შემდეგ ახალი აღდგენის კოდი შექმენი.');signin?.elements.namedItem('password').focus({preventScroll:true});
+        }catch(error){recoveryFeedback(panel.querySelector('.fh-recover-form'),error.message,true);}
+        finally{if(recoverForm.isConnected)lock(recoverForm,false,'პაროლის აღდგენა');}
+      });
+    }
+  }
   function renderPanels(){
     for(const panel of panels){
       if(!panel.isConnected){panels.delete(panel);continue;}
-      const open=panel.open,values={};panel.querySelectorAll('input,select').forEach(field=>{values[field.name]=field.type==='checkbox'?field.checked:field.value;});
+      const open=panel.open,recoverOpen=panel.querySelector('.fh-recover')?.open||false,values={};panel.querySelectorAll('input,select').forEach(field=>{if(!['recoveryPassword','recoveryCode','newPassword'].includes(field.name))values[field.name]=field.type==='checkbox'?field.checked:field.value;});
       const connected=Boolean(session()||blockedSession());
       const last=lastSaved?new Date(lastSaved).toLocaleString('ka-GE',{timeZone:'Asia/Tbilisi'}):'';
-      panel.innerHTML=`<summary><span>☁ ანგარიშის სინქრონიზაცია</span><small>${escape(statuses[status]||statuses.local)}</small></summary><div class="fh-sync-body">${!available&&!connected?'<button type="button" class="btn ghost" data-sync-action="check">კავშირის შემოწმება</button>':connected?`<p class="fh-sync-note">რჩეულები, გეგმები და დაჭერის ჩანაწერები ინახება შენს ანგარიშში. ფოტოები ამ მოწყობილობაზე რჩება. სინქრონიზაციის ლიმიტია 100 რჩეული, 50 გეგმა და თითოეულ დღიურში 100 დაჭერა; ლიმიტს მიღმა მონაცემები ავტომატურად არ იჭრება.</p>${pending?'<div class="fh-sync-choice"><b>ამ მოწყობილობაზეც გაქვს ჩანაწერები</b><p>გაერთიანება ორივე მხარის ჩანაწერებს შეინარჩუნებს. სერვერიდან ჩატვირთვა ამ მოწყობილობის სიებს შეცვლის.</p><button type="button" class="btn primary" data-sync-action="merge-pending">გაერთიანება და შენახვა</button><button type="button" class="btn ghost" data-sync-action="cloud-pending">სერვერიდან ჩატვირთვა</button><button type="button" class="btn ghost" data-sync-action="local-pending">ამ მოწყობილობის ატვირთვა</button></div>':''}${conflict?`<div class="fh-sync-choice"><b>სხვა მოწყობილობიდან ცვლილებაა</b><p>აირჩიე, რომ შენახული ცვლილებები შემთხვევით არ დაიკარგოს.</p>${conflict.kind==='state'?'<button type="button" class="btn primary" data-sync-action="merge-conflict">ყველა ჩანაწერის გაერთიანება</button>':''}<button type="button" class="btn ghost" data-sync-action="cloud-conflict">სერვერის ვერსიის გამოყენება</button></div>`:''}<div class="fh-sync-actions"><button type="button" class="btn primary" data-sync-action="save">ახლა სინქრონიზაცია</button><button type="button" class="btn ghost" data-sync-action="restore">სერვერიდან ჩატვირთვა</button><button type="button" class="btn ghost" data-sync-action="disconnect">სინქრონიზაციის გათიშვა</button></div>`:`<form class="fh-sync-form"><p class="fh-sync-note">შექმენი სინქრონიზაციის ანგარიში ან შედი სხვა ტელეფონზე უკვე შექმნილი ანგარიშით. არსებული ლოკალური ანგარიში შენარჩუნდება. Plus-ის შეძენა აქ არ ხდება; ახალი ანგარიში უფასოა.</p><label>მოქმედება<select name="mode"><option value="signin">არსებულ ანგარიშში შესვლა</option><option value="signup">სინქრონიზაციის ანგარიშის შექმნა</option></select></label><label>ელფოსტა<input name="email" type="email" autocomplete="username" maxlength="160" required></label><label>პაროლი<input name="password" type="password" autocomplete="current-password" minlength="8" maxlength="128" required></label><label class="fh-sync-checkbox"><input name="remember" type="checkbox">დამიმახსოვრე ამ მოწყობილობაზე</label><label class="fh-sync-checkbox"><input name="consent" type="checkbox" required>მსურს პროფილისა და ჩანაწერების სინქრონიზაცია</label><p class="fh-sync-note">უფასო ავატარი და ფონი ახალ ანგარიშშიც გადაგყვება. Plus-ის ფერები და სტილები ახალ უფასო ანგარიშში ავტომატურად არ გადაიტანება. პაროლის აღდგენის ელფოსტა ჯერ არ იგზავნება — შეინახე პაროლი.</p><button class="btn primary" type="submit">ანგარიშთან დაკავშირება</button><p class="fh-sync-message" role="status" aria-live="polite" data-error="${status==='error'||status==='expired'}">${escape(message||statuses[status]||'')}${last?' · '+escape(last):''}</p></form>`}${connected||!available?`<p class="fh-sync-message" role="status" aria-live="polite" data-error="${status==='error'||status==='expired'}">${escape(message||statuses[status]||'')}${last?' · '+escape(last):''}</p>`:''}</div>`;
+      panel.innerHTML=`<summary><span>☁ ანგარიშის სინქრონიზაცია</span><small>${escape(statuses[status]||statuses.local)}</small></summary><div class="fh-sync-body">${!available&&!connected?'<button type="button" class="btn ghost" data-sync-action="check">კავშირის შემოწმება</button>':connected?`<p class="fh-sync-note">რჩეულები, გეგმები და დაჭერის ჩანაწერები ინახება შენს ანგარიშში. ფოტოები ამ მოწყობილობაზე რჩება. სინქრონიზაციის ლიმიტია 100 რჩეული, 50 გეგმა და თითოეულ დღიურში 100 დაჭერა; ლიმიტს მიღმა მონაცემები ავტომატურად არ იჭრება.</p>${pending?'<div class="fh-sync-choice"><b>ამ მოწყობილობაზეც გაქვს ჩანაწერები</b><p>გაერთიანება ორივე მხარის ჩანაწერებს შეინარჩუნებს. სერვერიდან ჩატვირთვა ამ მოწყობილობის სიებს შეცვლის.</p><button type="button" class="btn primary" data-sync-action="merge-pending">გაერთიანება და შენახვა</button><button type="button" class="btn ghost" data-sync-action="cloud-pending">სერვერიდან ჩატვირთვა</button><button type="button" class="btn ghost" data-sync-action="local-pending">ამ მოწყობილობის ატვირთვა</button></div>':''}${conflict?`<div class="fh-sync-choice"><b>სხვა მოწყობილობიდან ცვლილებაა</b><p>აირჩიე, რომ შენახული ცვლილებები შემთხვევით არ დაიკარგოს.</p>${conflict.kind==='state'?'<button type="button" class="btn primary" data-sync-action="merge-conflict">ყველა ჩანაწერის გაერთიანება</button>':''}<button type="button" class="btn ghost" data-sync-action="cloud-conflict">სერვერის ვერსიის გამოყენება</button></div>`:''}<div class="fh-sync-actions"><button type="button" class="btn primary" data-sync-action="save">ახლა სინქრონიზაცია</button><button type="button" class="btn ghost" data-sync-action="restore">სერვერიდან ჩატვირთვა</button><button type="button" class="btn ghost" data-sync-action="disconnect">სინქრონიზაციის გათიშვა</button></div>`:`<form class="fh-sync-form"><p class="fh-sync-note">შექმენი სინქრონიზაციის ანგარიში ან შედი სხვა ტელეფონზე უკვე შექმნილი ანგარიშით. არსებული ლოკალური ანგარიში შენარჩუნდება. Plus-ის შეძენა აქ არ ხდება; ახალი ანგარიში უფასოა.</p><label>მოქმედება<select name="mode"><option value="signin">არსებულ ანგარიშში შესვლა</option><option value="signup">სინქრონიზაციის ანგარიშის შექმნა</option></select></label><label>ელფოსტა<input name="email" type="email" autocomplete="username" maxlength="160" required></label><label>პაროლი<input name="password" type="password" autocomplete="current-password" minlength="8" maxlength="128" required></label><label class="fh-sync-checkbox"><input name="remember" type="checkbox">დამიმახსოვრე ამ მოწყობილობაზე</label><label class="fh-sync-checkbox"><input name="consent" type="checkbox" required>მსურს პროფილისა და ჩანაწერების სინქრონიზაცია</label><p class="fh-sync-note">უფასო ავატარი და ფონი ახალ ანგარიშშიც გადაგყვება. Plus-ის ფერები და სტილები ახალ უფასო ანგარიშში ავტომატურად არ გადაიტანება. პაროლის დასაცავად შესვლის შემდეგ პირადი აღდგენის კოდი შექმენი.</p><button class="btn primary" type="submit">ანგარიშთან დაკავშირება</button><p class="fh-sync-message" role="status" aria-live="polite" data-error="${status==='error'||status==='expired'}">${escape(message||statuses[status]||'')}${last?' · '+escape(last):''}</p></form>`}${connected||!available?`<p class="fh-sync-message" role="status" aria-live="polite" data-error="${status==='error'||status==='expired'}">${escape(message||statuses[status]||'')}${last?' · '+escape(last):''}</p>`:''}${available||connected?recoveryMarkup(connected):''}</div>`;
       panel.open=open;
       panel.querySelectorAll('input,select').forEach(field=>{if(values[field.name]!==undefined){if(field.type==='checkbox')field.checked=values[field.name];else field.value=values[field.name];}});
       panel.querySelectorAll('button').forEach(button=>{button.disabled=busy;});
       bindConnectionForm(panel);
+      if(recoverOpen&&panel.querySelector('.fh-recover'))panel.querySelector('.fh-recover').open=true;
+      bindRecoveryPanel(panel);
       panel.querySelectorAll('[data-sync-action]').forEach(button=>button.addEventListener('click',async()=>{
         try{const action=button.dataset.syncAction;
           if(action==='check'){await ready({force:true});return;}
@@ -378,16 +478,17 @@
     const local=choice==='local';localNodes.forEach(node=>{node.hidden=!local;});panel.hidden=local;if(!local)panel.open=true;
     scope.querySelectorAll('button').forEach(button=>{const selected=button.dataset.authScope===(local?'local':'cloud');button.setAttribute('aria-pressed',String(selected));button.classList.toggle('selected',selected);});
   }
-  function mount(host){if(!host||host.querySelector('.fh-account-sync'))return;const panel=document.createElement('details');panel.className='fh-account-sync';panels.add(panel);const gallery=host.closest('#gnProfilePanel')?host.querySelector('.gn-profile-avatar-title'):null;if(gallery)gallery.before(panel);else host.appendChild(panel);renderPanels();}
+  function mount(host){if(!host||host.querySelector('.fh-account-sync'))return;const panel=document.createElement('details');panel.className='fh-account-sync';panel.addEventListener('toggle',()=>{if(!panel.open)clearRecoverySecrets(panel);});panels.add(panel);const profile=host.closest('#gnProfilePanel'),gallery=profile?host.querySelector('.gn-profile-avatar-title'):null;if(gallery)gallery.before(panel);else host.appendChild(panel);if(profile&&typeof MutationObserver==='function')new MutationObserver(()=>{if(profile.hidden)clearRecoverySecrets(panel);}).observe(profile,{attributes:true,attributeFilter:['hidden']});renderPanels();}
   function mountAll(){const profile=document.querySelector('#gnProfilePanel .gn-profile-content'),form=document.getElementById('authForm');if(profile){const old=form?.parentElement?.querySelector('.fh-account-sync');if(old){panels.delete(old);old.remove();}mount(profile);}else if(form)mount(form.parentElement);const dashboard=document.getElementById('gnDashboard');if(dashboard)mount(dashboard);configureAuthScope();}
   function init(){
     mountAll();if(typeof MutationObserver==='function')new MutationObserver(mountAll).observe(document.body,{childList:true,subtree:true});
     ready().catch(()=>{});document.addEventListener('geonature:state',schedule);document.addEventListener('fishhunt:local-records',schedule);
-    window.addEventListener('storage',event=>{if([PLUS_KEY,CATCH_KEY].includes(event.key))schedule();});
+    window.addEventListener('storage',event=>{if(event.key===SESSION_KEY||event.key===null)for(const panel of panels)clearRecoverySecrets(panel);if([PLUS_KEY,CATCH_KEY].includes(event.key))schedule();});
     window.addEventListener('online',()=>{ready({force:true}).then(()=>{if(session())sync().catch(()=>{});});});
     window.addEventListener('offline',()=>{if(session())emit('offline');});
+    window.addEventListener('pagehide',()=>{for(const panel of panels)clearRecoverySecrets(panel);});
   }
-  window.FishHuntAccountSync={ready,request,handles:path=>Boolean(session()||blockedSession())&&['/me','/profile','/signout'].includes(path),connect,disconnect,sync,restore,resolvePending,resolveConflict,snapshot,normalizeState,mergeStates,applyState,view,sessionActive:()=>Boolean(session())};
+  window.FishHuntAccountSync={ready,request,handles:path=>Boolean(session()||blockedSession())&&['/me','/profile','/signout'].includes(path),connect,disconnect,createRecoveryCode,recoverPassword,sync,restore,resolvePending,resolveConflict,snapshot,normalizeState,mergeStates,applyState,view,sessionActive:()=>Boolean(session())};
   if(read(localStorage,BACKUP_KEY)?.owner){
     const active=[sessionStorage,localStorage].some(storage=>{const value=read(storage,SESSION_KEY);return value&&/^[a-f0-9]{64}$/.test(value.token||'')&&Number(value.expiresAt)>Date.now();});
     if(!active){try{restoreLocalBaseline();clearSession();}catch(error){message=error.message;status='error';}}

@@ -157,3 +157,105 @@ test('state rejects over-limit known text instead of acknowledging truncated pri
   ])assert.equal((await call(instance,'state',{method:'PUT',token:created.token,body:{baseRevision:initial.body.revision,state}})).status,400);
   const after=await call(instance,'state',{token:created.token});assert.equal(after.body.revision,initial.body.revision);assert.equal(after.body.state.catches[0].note,'ერთი ხაზი\nმეორე ხაზი');
 });
+
+test('recovery setup requires a current password and returns a code once while persisting only its hash',async()=>{
+  const instance=await app(),created=await signup(instance);
+  const health=await instance.worker.fetch(new Request(BASE+'/api/health'),instance.env);assert.equal((await health.json()).accountRecoveryConfigured,true);
+  assert.equal(created.user.recoveryConfigured,false);
+  assert.equal((await call(instance,'recovery-code',{method:'POST',body:{password:'private-test-password-123'}})).status,401);
+  const denied=await call(instance,'recovery-code',{method:'POST',token:created.token,body:{password:'wrong-current-password'}});
+  assert.equal(denied.status,403);assert.equal(denied.body.code,'invalid_current_password');
+  assert.equal((await call(instance,'me',{token:created.token})).status,200);
+  const result=await call(instance,'recovery-code',{method:'POST',token:created.token,body:{password:'private-test-password-123'}});
+  assert.equal(result.status,200);assert.match(result.body.recoveryCode,/^[A-F0-9]{8}(?:-[A-F0-9]{8}){7}$/);assert.equal(result.body.user.recoveryConfigured,true);
+  const serialized=JSON.stringify([...instance.storage.values]);assert.ok(!serialized.includes(result.body.recoveryCode));assert.ok(!serialized.includes(result.body.recoveryCode.replace(/-/g,'').toLowerCase()));
+  const stored=await instance.storage.get('user:'+created.user.id);assert.match(stored.recoveryHash,/^[a-f0-9]{64}$/);assert.ok(stored.recoveryCreatedAt>0);
+  for(const route of ['me','profile','state']){const response=await call(instance,route,{token:created.token});assert.equal(response.status,200);assert.ok(!JSON.stringify(response.body).includes(stored.recoveryHash));assert.ok(!JSON.stringify(response.body).includes(result.body.recoveryCode));}
+  const profile=await call(instance,'profile',{method:'PATCH',token:created.token,body:{displayName:'მეთევზე',baseRevision:created.revision}});assert.equal(profile.status,200);
+  assert.equal((await instance.storage.get('user:'+created.user.id)).recoveryHash,stored.recoveryHash);
+  assert.equal((await call(instance,'recover',{method:'POST',body:{email:created.user.email,recoveryCode:result.body.recoveryCode,newPassword:'replacement-password-123'}})).status,200);
+  const signed=await call(instance,'signin',{method:'POST',body:{email:created.user.email,password:'replacement-password-123'}});assert.equal(signed.body.user.displayName,'მეთევზე');
+});
+
+test('password recovery consumes the code, revokes every existing device and preserves profile and private records',async()=>{
+  const instance=await app(),created=await signup(instance),second=await call(instance,'signin',{method:'POST',body:{email:created.user.email,password:'private-test-password-123'}});
+  const profile=await call(instance,'profile',{method:'PATCH',token:created.token,body:{displayName:'მეთევზე',baseRevision:created.revision}});assert.equal(profile.status,200);
+  const saved=await call(instance,'state',{method:'PUT',token:created.token,body:{baseRevision:null,state:{favorites:['ჟინვალი'],catches:[{id:'fish-1',fish:'კობრი',note:'პირადი ჩანაწერი'}]}}});assert.equal(saved.status,200);
+  const code=(await call(instance,'recovery-code',{method:'POST',token:created.token,body:{password:'private-test-password-123'}})).body.recoveryCode;
+  const recovered=await call(instance,'recover',{method:'POST',body:{email:' ANGLER@EXAMPLE.TEST ',recoveryCode:code.toLowerCase().replace(/-/g,' '),newPassword:'replacement-test-password-456'}});
+  assert.equal(recovered.status,200);assert.equal(recovered.body.ok,true);assert.equal(recovered.body.token,undefined);
+  for(const token of [created.token,second.body.token])for(const route of ['me','profile','state'])assert.equal((await call(instance,route,{token})).status,401);
+  const stored=await instance.storage.get('user:'+created.user.id);assert.equal(stored.sessionVersion,1);assert.equal(stored.recoveryHash,undefined);assert.equal(stored.recoveryCreatedAt,undefined);
+  assert.equal((await call(instance,'signin',{method:'POST',body:{email:created.user.email,password:'private-test-password-123'}})).status,401);
+  const signed=await call(instance,'signin',{method:'POST',body:{email:created.user.email,password:'replacement-test-password-456'}});assert.equal(signed.status,200);assert.equal(signed.body.user.recoveryConfigured,false);assert.equal(signed.body.user.displayName,'მეთევზე');
+  const restored=await call(instance,'state',{token:signed.body.token});assert.equal(restored.body.revision,saved.body.revision);assert.equal(restored.body.state.catches[0].note,'პირადი ჩანაწერი');
+  assert.deepEqual((await instance.storage.get('email:'+await crypto.subtle.digest('SHA-256',new TextEncoder().encode(created.user.email)).then(value=>Buffer.from(value).toString('hex')))),stored);
+  assert.equal((await call(instance,'recover',{method:'POST',body:{email:created.user.email,recoveryCode:code,newPassword:'cannot-reuse-this-code-789'}})).status,401);
+  const fresh=await call(instance,'recovery-code',{method:'POST',token:signed.body.token,body:{password:'replacement-test-password-456'}});assert.equal(fresh.status,200);assert.notEqual(fresh.body.recoveryCode,code);
+});
+
+test('unknown accounts and wrong or rotated recovery codes have the same response without consuming a valid code',async()=>{
+  const instance=await app(),created=await signup(instance);
+  const first=(await call(instance,'recovery-code',{method:'POST',token:created.token,body:{password:'private-test-password-123'}})).body.recoveryCode;
+  const second=(await call(instance,'recovery-code',{method:'POST',token:created.token,body:{password:'private-test-password-123'}})).body.recoveryCode;
+  const wrong=await call(instance,'recover',{method:'POST',body:{email:created.user.email,recoveryCode:first,newPassword:'replacement-password-123'}});
+  const absent=await call(instance,'recover',{method:'POST',body:{email:'missing@example.test',recoveryCode:first,newPassword:'replacement-password-123'}});
+  assert.equal(wrong.status,401);assert.deepEqual(absent.body,wrong.body);assert.equal(absent.status,wrong.status);
+  assert.equal((await call(instance,'me',{token:created.token})).status,200);
+  assert.equal((await call(instance,'recover',{method:'POST',body:{email:created.user.email,recoveryCode:second,newPassword:'replacement-password-123'}})).status,200);
+});
+
+test('simultaneous uses of a recovery code permit exactly one password replacement',async()=>{
+  const instance=await app(),created=await signup(instance),code=(await call(instance,'recovery-code',{method:'POST',token:created.token,body:{password:'private-test-password-123'}})).body.recoveryCode;
+  const passwords=['first-reset-password-123','second-reset-password-456'];
+  const attempts=await Promise.all(passwords.map(newPassword=>call(instance,'recover',{method:'POST',body:{email:created.user.email,recoveryCode:code,newPassword}})));
+  assert.deepEqual(attempts.map(value=>value.status).sort(),[200,401]);
+  const winning=passwords[attempts.findIndex(value=>value.status===200)];
+  assert.equal((await call(instance,'signin',{method:'POST',body:{email:created.user.email,password:winning}})).status,200);
+  assert.equal((await instance.storage.get('user:'+created.user.id)).sessionVersion,1);
+});
+
+test('failed recovery transactions leave passwords, the recovery code, and existing sessions intact',async()=>{
+  const instance=await app(),created=await signup(instance),code=(await call(instance,'recovery-code',{method:'POST',token:created.token,body:{password:'private-test-password-123'}})).body.recoveryCode;
+  const before=await instance.storage.get('user:'+created.user.id);instance.storage.failKey='email:';
+  const failed=await call(instance,'recover',{method:'POST',body:{email:created.user.email,recoveryCode:code,newPassword:'replacement-password-123'}});assert.equal(failed.status,503);
+  instance.storage.failKey='';assert.deepEqual(await instance.storage.get('user:'+created.user.id),before);
+  assert.equal((await call(instance,'me',{token:created.token})).status,200);
+  assert.equal((await call(instance,'signin',{method:'POST',body:{email:created.user.email,password:'private-test-password-123'}})).status,200);
+  assert.equal((await call(instance,'recover',{method:'POST',body:{email:created.user.email,recoveryCode:code,newPassword:'replacement-password-123'}})).status,200);
+});
+
+test('failed code rotation at the email index write preserves the previously acknowledged code',async()=>{
+  const instance=await app(),created=await signup(instance),code=(await call(instance,'recovery-code',{method:'POST',token:created.token,body:{password:'private-test-password-123'}})).body.recoveryCode;
+  const before=await instance.storage.get('user:'+created.user.id);instance.storage.failKey='email:';
+  const failed=await call(instance,'recovery-code',{method:'POST',token:created.token,body:{password:'private-test-password-123'}});assert.equal(failed.status,503);assert.equal(failed.body.recoveryCode,undefined);
+  instance.storage.failKey='';assert.deepEqual(await instance.storage.get('user:'+created.user.id),before);
+  assert.equal((await call(instance,'recover',{method:'POST',body:{email:created.user.email,recoveryCode:code,newPassword:'replacement-password-123'}})).status,200);
+});
+
+test('legacy sessions remain valid before reset, then fail the same epoch check as new sessions',async()=>{
+  const instance=await app(),created=await signup(instance),key=[...instance.storage.values.keys()].find(value=>value.startsWith('session:'));
+  const legacy=await instance.storage.get(key);delete legacy.version;await instance.storage.put(key,legacy);
+  assert.equal((await call(instance,'me',{token:created.token})).status,200);
+  const code=(await call(instance,'recovery-code',{method:'POST',token:created.token,body:{password:'private-test-password-123'}})).body.recoveryCode;
+  assert.equal((await call(instance,'recover',{method:'POST',body:{email:created.user.email,recoveryCode:code,newPassword:'replacement-password-123'}})).status,200);
+  assert.equal((await call(instance,'me',{token:created.token})).status,401);
+});
+
+test('recovery endpoints reject bad methods, oversized input and invalid schema without changing credentials',async()=>{
+  const instance=await app(),created=await signup(instance),before=await instance.storage.get('user:'+created.user.id);
+  assert.equal((await call(instance,'recover')).status,405);
+  assert.equal((await call(instance,'recovery-code',{token:created.token})).status,405);
+  for(const body of [{email:created.user.email,recoveryCode:'bad',newPassword:'replacement-password-123'},{email:created.user.email,recoveryCode:'a'.repeat(64),newPassword:'short'},{email:'invalid',recoveryCode:'a'.repeat(64),newPassword:'replacement-password-123'}])assert.equal((await call(instance,'recover',{method:'POST',body})).status,400);
+  for(const route of ['recover','recovery-code'])assert.equal((await call(instance,route,{method:'POST',token:created.token,body:{junk:'x'.repeat(8001)}})).status,413);
+  assert.deepEqual(await instance.storage.get('user:'+created.user.id),before);
+});
+
+test('recovery throttles targeted emails and authenticated code rotation before unlimited derivations',async()=>{
+  const instance=await app();let last;
+  for(let index=0;index<7;index++)last=await call(instance,'recover',{method:'POST',body:{email:'missing@example.test',recoveryCode:'a'.repeat(64),newPassword:'replacement-password-123'}});
+  assert.equal(last.status,429);assert.equal(last.body.code,'rate_limited');
+  const created=await signup(instance);
+  for(let index=0;index<7;index++)last=await call(instance,'recovery-code',{method:'POST',token:created.token,body:{password:'wrong-current-password'}});
+  assert.equal(last.status,429);assert.equal(last.body.code,'rate_limited');
+});

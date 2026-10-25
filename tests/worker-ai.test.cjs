@@ -21,7 +21,7 @@ test('free worker health has no secret and reports setup status', async () => {
   const app = await worker();
   const res = await app.fetch(new Request('https://fishhunt-ai.example.workers.dev/api/health'), {});
   assert.equal(res.status, 200);
-  assert.deepEqual(await res.json(), {ok:true, service:'FishHunt AI', configured:false,adminConfigured:false,analyticsConfigured:false,accountConfigured:false});
+  assert.deepEqual(await res.json(), {ok:true, service:'FishHunt AI', configured:false,adminConfigured:false,analyticsConfigured:false,accountConfigured:false,accountRecoveryConfigured:false});
 });
 
 test('free worker accepts configured frontend CORS preflight only', async () => {

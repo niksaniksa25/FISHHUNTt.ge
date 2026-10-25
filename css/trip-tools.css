@@ -25,6 +25,8 @@
 .fh-offline-place p { font-size:13px; line-height:1.7; margin:8px 0; overflow-wrap:anywhere; }
 .fh-offline-place .fh-trip-coordinates { font-variant-numeric:tabular-nums; color:#d6deb4; }
 .fh-offline-weather,.fh-offline-legal { padding:10px; border-radius:10px; background:#1e3526; }
+.fh-offline-access { margin-top:12px; padding:10px; border:1px solid #385343; border-radius:10px; }
+.fh-offline-access>summary { cursor:pointer; min-height:44px; align-content:center; font-size:13px; }
 .fh-offline-safety { margin-top:16px; }
 .fh-offline-safety li { font-size:13px; line-height:1.8; margin:8px 0; }
 .fh-offline-clear { margin-top:16px; min-height:44px; }

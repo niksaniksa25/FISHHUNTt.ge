@@ -72,6 +72,10 @@ Profiles also include a collapsed frame chooser. Three achievement frames use ac
 
 Cloud accounts can synchronize profile settings, favorites, plans and text catch records between devices after explicit sign-in and transfer choices. Photos stay on the original device. A dedicated free Cloudflare Worker with a SQLite Durable Object provides private account storage and revision checks; the browser keeps local accounts working until the account service is deployed. Publishing GitHub Pages alone does not activate cloud storage. Follow the [owner deployment instructions](docs/ACCOUNT-SYNC.md); the existing AI and admin Worker can remain unchanged.
 
+Cloud accounts also support password recovery with a personal, single-use recovery code. Create and save the code while signed in by confirming the current password. Resetting the password consumes the code and revokes every old session while preserving account records. This flow does not send email and cannot recover an account that never prepared a code. The frontend enables it only when the deployed account Worker advertises `accountRecoveryConfigured: true`.
+
+Place pages include a compact access section with driving/walking links to the catalogue's reference coordinates, explicit unknown parking and entrance information, and optional personal road/parking/walking notes. These notes stay in the current browser and can be included in an explicitly saved offline place; they are excluded from the public share card. See [access information and its limits](docs/PLACE-ACCESS-KA.md).
+
 
 ## განახლებული კატალოგები
 - თევზები: 84 სახეობა (`js/fishing-data.js`).

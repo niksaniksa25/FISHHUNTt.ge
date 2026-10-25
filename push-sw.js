@@ -19,7 +19,7 @@ self.addEventListener('push',event=>{
 
 // Public offline shell only. No auth, admin, API, weather responses or map tiles
 // enter this cache. Notification subscriptions and handlers above stay intact.
-const FH_OFFLINE_CACHE='fishhunt-offline-20261023b-v1';
+const FH_OFFLINE_CACHE='fishhunt-offline-20261025a-v1';
 const FH_OFFLINE_FILES=['offline.html','css/trip-tools.css','js/trip-tools.js','assets/icons/fishhunt-mark.svg'];
 function fhScopeURL(path){return new URL(path,self.registration.scope).href;}
 function fhPublicPath(url){

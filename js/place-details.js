@@ -41,9 +41,11 @@ function showMissingPlace(){
   document.getElementById('environment').innerHTML='<div class="empty">აირჩიე ადგილი ცნობარიდან, რომ მისი რუკა და ამინდის პირობები ნახო.</div>';
   document.getElementById('weatherRefresh').disabled=true;
   for(const id of ['infoGrid','history','fishLinks','assessmentFactors','forecast','hourly','mapBtn'])document.getElementById(id)?.closest?.('section')?.setAttribute('hidden','');
+  document.getElementById('placeAccess')?.setAttribute('hidden','');
   const image=document.getElementById('heroImg');image.src=GeoImage.placeholder('სათევზაო ადგილები','water');image.alt='სათევზაო ადგილები';
 }
 async function init(){const w=findPlace(),nameEl=document.getElementById('placeName');if(!w){showMissingPlace();return;}document.title=`FishHunt • ${w[1]}`;document.getElementById('placeTags').innerHTML=`<span class="catalog-tag">${esc(w[2])}</span><span class="catalog-tag">${esc(w[3])}</span><span class="catalog-tag live-place-tag">ამინდი მოწმდება</span>`;nameEl.textContent=w[1];document.getElementById('placeLead').textContent=w[7]||'საქართველოს წყალსატევის საინფორმაციო ლოკაცია.';
+window.FishHuntPlaceAccess?.render(w);
 const queryParams=new URLSearchParams(location.search);
 const mapScore=common().numberOrNull(queryParams.get('score')),incomingChance=common().numberOrNull(queryParams.get('chance'));
 const rawDate=queryParams.get('date')||'',rawHour=queryParams.get('hour');

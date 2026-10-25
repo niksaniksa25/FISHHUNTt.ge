@@ -16,6 +16,8 @@ Saving is explicit. At most 24 canonical place snapshots are stored in `fishhunt
 
 Snapshots contain place information, species, the saved legal reminder and the time of any retained weather observation. Stored indices are removed. The offline library includes static safety guidance and emergency number 112. Maps, new forecasts and current legal verification still need connectivity. Saved information is not a permit.
 
+If the access section has a personal road, parking, walking-time or text note, explicitly saving that place also copies the note into its offline snapshot. The library shows these separately as personal browser notes with their original date. Update the saved place after editing or removing notes. Notes are excluded from share text and exported PNGs; they are not verified public entrance or parking information.
+
 The existing `push-sw.js` also prepares a small offline shell. Its four-file public allowlist is:
 
 - `offline.html`
@@ -23,7 +25,7 @@ The existing `push-sw.js` also prepares a small offline shell. Its four-file pub
 - `js/trip-tools.js`
 - `assets/icons/fishhunt-mark.svg`
 
-These files use the cache namespace `fishhunt-offline-20261023b-v1`. Each body is bounded to 1.2MB. Bump this namespace when changing a cached shell asset. Offline preparation is best effort during worker installation, so an unavailable shell asset cannot disable Push. The explicit Save action requires a successful preparation acknowledgement before saying offline use is ready.
+These files use the cache namespace `fishhunt-offline-20261025a-v1`. Each body is bounded to 1.2MB. Bump this namespace when changing a cached shell asset. Offline preparation is best effort during worker installation, so an unavailable shell asset cannot disable Push. The explicit Save action requires a successful preparation acknowledgement before saying offline use is ready.
 
 Offline home, dashboard and place-page navigations fall back to `offline.html`, where the current browser's saved snapshots remain available. Auth pages, admin pages, **all API routes**, weather responses, remote images and map tiles are neither cached nor used as offline fallbacks. Existing Push subscriptions and notification click handling are retained. Cache cleanup affects only superseded `fishhunt-offline-` caches, once the current shell is prepared.
 

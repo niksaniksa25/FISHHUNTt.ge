@@ -43,7 +43,11 @@ There is no Cloudflare deployment credential in this Codex environment. The owne
 
 Pasting the JavaScript into the dashboard editor alone is insufficient for a new Durable Object class: the first deployment also needs the `new_sqlite_classes` migration. The provided Wrangler command applies the migration and adds the binding together. The template is intentionally **not** named `wrangler.toml`, so a Git-connected build cannot accidentally deploy placeholder bindings or remove the existing administrator KV binding.
 
-No email delivery service is configured. The app does not claim to verify email ownership or send password-reset messages. The owner should keep a secure copy of their chosen password; a password reset flow needs a real email provider or another verified recovery method.
+No email delivery service is configured. The app does not claim to verify email ownership or send password-reset messages. Cloud accounts instead support a personal, one-use recovery code. While signed in, open the account's recovery section and confirm the current password to create a code. Save it in a password manager or another private place away from this browser. Only its hash is stored by the backend; the original code is shown once and cannot be retrieved later. Generating a replacement invalidates the previous code. A code remains valid until replaced or used.
+
+On the sign-in form, **Forgot password** accepts the cloud account's email, its saved recovery code and a new password. Successful recovery consumes the code and immediately revokes all sessions on all devices. The user must sign in with the new password and create a new recovery code. Profiles, plans, favorites and private records remain intact. Existing accounts require a successful sign-in to prepare their first code: knowing an email alone cannot reset a password. Local browser accounts are separate and are not reset by this cloud endpoint.
+
+The health endpoint exposes `accountRecoveryConfigured: true` only in the Worker version supporting these routes. After publishing a frontend update, the Git-connected `fishhunt-accounts` Worker also needs its successful deployment before recovery actions become available. Existing sync stays available if an older Worker has not yet deployed.
 
 ## API contract
 
@@ -55,6 +59,8 @@ All account routes accept only the existing approved frontend origins and the Wo
 | `POST /api/account/signin` | `email`, `password`, optional `remember` | Same session fields, HTTP 200 |
 | `POST /api/account/signout` | Authenticated request | Revokes that actual bearer session |
 | `GET /api/account/me` | Authenticated request | Safe account, profile and profile revision |
+| `POST /api/account/recovery-code` | Authenticated `password` (current password) | One-time plaintext `recoveryCode`, `recoveryConfigured: true`, safe `user`; previous code invalidated |
+| `POST /api/account/recover` | `email`, saved `recoveryCode`, `newPassword` | Password replaced, code consumed and every session revoked; no automatic login |
 | `GET /api/account/profile` | Authenticated request | `profile`, `revision`, `savedAt` |
 | `PATCH /api/account/profile` | Profile fields and exact `baseRevision` | Updated acknowledged profile and new revision |
 | `GET /api/account/state` | Authenticated request | `state` and `revision`, both `null` before first upload |
@@ -67,6 +73,8 @@ Personal state includes `name`, personal unverified `xp`, `favorites`, `plans`, 
 Each successful update creates an immutable revision, retaining the most recent twenty versions as a private backup. A stale update returns HTTP 409 with `code: "sync_conflict"`, a message and `revisions` containing the latest saved content. The app must ask which version to keep. An explicit resolution may send `resolveRevisions: [latestRevision]` and `baseRevision: null`; it is rejected again if another device changes that revision first. Failed persistence leaves the acknowledged version intact.
 
 Passwords use a random per-account salt and PBKDF2-SHA256 with 100,000 iterations. Tokens use 256 random bits; only token hashes are stored. Sessions expire after one day, or thirty days when Remember me is selected. Session expiry and sign-out are checked by the backend. Authentication and write rates are limited; failed requests do not expose credentials or administrator secrets.
+
+Recovery codes contain 256 random bits, displayed as eight groups of eight hexadecimal characters. Case, hyphens and spaces are ignored when entering them. A domain-separated SHA-256 digest is stored with the account; no plaintext code is persisted. Code setup requires an active bearer session plus the current password and is rate-limited. Public recovery has bounded global, IP and email limits, derives a password hash on both known and unknown emails, and uses the same `invalid_recovery` response for an unknown email, absent code, wrong code or previously used code. A failed attempt never consumes a valid code. Code consumption, the new salted password and a session-version increment share one transaction updating both account indexes. Every authenticated route checks the session version, including legacy sessions (version zero); reset cannot leave another device authenticated. No unbounded session scan is needed. A failed storage transaction preserves the previous password, code and sessions.
 
 A scheduled hourly Durable Object alarm removes expired sessions and authentication rate-limit rows in bounded batches, resuming from a saved cursor. Active sessions, accounts, current snapshots and revision backups are preserved. This prevents unused expired credentials and unique login targets from accumulating indefinitely in free storage.
 
