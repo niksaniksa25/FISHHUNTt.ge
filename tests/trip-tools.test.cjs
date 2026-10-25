@@ -49,6 +49,19 @@ test('offline places retain bounded personal access notes without publishing the
   const malformed=trip.cleanAccess({...access,road:'verified',parking:'<script>',walkingMinutes:25.5,notes:'x'.repeat(2000)});
   assert.equal(malformed.road,'unknown');assert.equal(malformed.parking,'unknown');assert.equal(malformed.walkingMinutes,null);assert.equal(malformed.notes.length,600);
 });
+test('saving from the home plan retains access notes even without the place-page module',async()=>{
+  const area=storage(),access={road:'gravel',parking:'limited',walkingMinutes:25,notes:'პირადი მისასვლელი შენიშვნა',updatedAt:'2026-10-23T09:00:00Z',personal:true};
+  area.setItem('fishhunt_place_access_v1',JSON.stringify({lisi:access}));
+  const window={document:{readyState:'loading',addEventListener(){},querySelectorAll(){return [];}},localStorage:area,dispatchEvent(){},isSecureContext:false};
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../js/trip-tools.js'),'utf8'),{window,URL,Date,Intl,TextEncoder,CustomEvent:class{}});
+  const api=window.FishHuntTripTools;
+  assert.equal(window.FishHuntPlaceAccess,undefined);
+  const result=await api.save(snapshot);assert.equal(result.saved.access.notes,access.notes);assert.equal(result.ready,false);
+  area.setItem('fishhunt_place_access_v1','{}');
+  const updated=await api.save({...snapshot,access});assert.equal(updated.saved.access,null,'explicit update clears a deleted note even when its old snapshot still has the copy');
+  assert.equal(api.list()[0].access,null);
+  area.setItem('fishhunt_place_access_v1','{broken');assert.equal(api.placeAccessSnapshot('lisi'),null);
+});
 test('Georgian wrapping bounds every line, splits unbroken labels and ellipsizes overflow',()=>{
   const context={measureText:value=>({width:Array.from(value).length*9})};
   for(const text of ['საქართველოს ულამაზესი სათევზაო ადგილი მთის ფერდობზე','ძალიანგრძელიუწყვეტისაქართველოსსათევზაოლოკაცია'.repeat(8)]){
@@ -106,7 +119,7 @@ test('offline saved-place and dashboard navigation use the prepared shell, but A
   assert.equal(await value.get('offline.html','cors','POST'),undefined);
 });
 test('activation removes only superseded FishHunt offline caches',async()=>{
-  const value=worker();await value.install();value.cacheMap.set('fishhunt-offline-old',new Map());value.cacheMap.set('other-app-account-cache',new Map());await value.activate();assert.equal(value.cacheMap.has('fishhunt-offline-old'),false);assert.equal(value.cacheMap.has('other-app-account-cache'),true);assert.equal(value.cacheMap.has('fishhunt-offline-20261025a-v1'),true);
+  const value=worker();await value.install();value.cacheMap.set('fishhunt-offline-old',new Map());value.cacheMap.set('other-app-account-cache',new Map());await value.activate();assert.equal(value.cacheMap.has('fishhunt-offline-old'),false);assert.equal(value.cacheMap.has('other-app-account-cache'),true);assert.equal(value.cacheMap.has('fishhunt-offline-20261025b-v1'),true);
 });
 test('bad or oversized responses cannot acknowledge a fully prepared offline shell',async()=>{
   for(const mode of ['bad','oversized']){const value=worker();if(mode==='bad')value.setBad(true);else value.setOversized(true);await value.install();assert.ok(value.listeners.push,'offline preparation failure never disables push install');assert.equal((await value.message()).ok,false);}

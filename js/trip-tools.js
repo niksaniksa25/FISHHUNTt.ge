@@ -35,6 +35,16 @@
     const minutes = number(input.walkingMinutes, 0, 720);
     return { road, parking, walkingMinutes: minutes !== null && Number.isInteger(minutes) ? minutes : null, notes: text(input.notes, 600), updatedAt: new Date(updated).toISOString(), personal: true };
   }
+  function placeAccessSnapshot(id, storage) {
+    if (typeof id !== 'string' || !id || id.length > 80) return null;
+    if (!storage && root.FishHuntPlaceAccess?.snapshot) return cleanAccess(root.FishHuntPlaceAccess.snapshot(id));
+    try {
+      const raw = (storage || root.localStorage).getItem('fishhunt_place_access_v1');
+      if (!raw || raw.length > 200000) return null;
+      const records = JSON.parse(raw);
+      return records && typeof records === 'object' && !Array.isArray(records) && Object.prototype.hasOwnProperty.call(records, id) ? cleanAccess(records[id]) : null;
+    } catch { return null; }
+  }
   function cleanSnapshot(input, now = Date.now()) {
     const source = input && typeof input === 'object' ? input : {}, weather = source.weather || {};
     const observation = stamp(source.sourceTime), live = source.status === 'live' && observation !== null && now - observation <= 3 * 3600000 && observation <= now + 600000;
@@ -214,8 +224,7 @@
   }
   async function saveForOffline(input) {
     const canonical = placeSnapshot(input?.placeId), merged = canonical ? { ...canonical, ...input, description: canonical.description, fishNames: canonical.fishNames, region: canonical.region, kind: canonical.kind } : input;
-    const access = root.FishHuntPlaceAccess?.snapshot?.(input?.placeId);
-    const saved = savePlace(access ? { ...merged, access } : merged);
+    const saved = savePlace({ ...merged, access: placeAccessSnapshot(input?.placeId) });
     refreshLibraries(); root.dispatchEvent(new CustomEvent('fishhunt:offline-places', { detail: readPlaces() }));
     let ready;
     try { ready = await prepareOffline(); }
@@ -296,5 +305,5 @@
     root.addEventListener('storage', event => { if (event.key === KEY) refreshLibraries(); });
     root.addEventListener('online', () => { root.document.querySelectorAll('[data-fh-offline-connection]').forEach(node => { node.textContent = 'კავშირი აღდგა. მიმდინარე ინფორმაცია ადგილის გვერდზე გადაამოწმე.'; }); });
   }
-  return { init, mount, share: openShare, save: saveForOffline, list: readPlaces, remove: removePlace, refresh: refreshLibraries, cleanSnapshot, cleanAccess, placeSnapshot, savePlace, clearPlaces, persistPlaces, stamp, wrapLines, snapshotText, renderCard, shareFile, prepareOffline, safety: SAFETY, storageKey: KEY };
+  return { init, mount, share: openShare, save: saveForOffline, list: readPlaces, remove: removePlace, refresh: refreshLibraries, cleanSnapshot, cleanAccess, placeAccessSnapshot, placeSnapshot, savePlace, clearPlaces, persistPlaces, stamp, wrapLines, snapshotText, renderCard, shareFile, prepareOffline, safety: SAFETY, storageKey: KEY };
 });
