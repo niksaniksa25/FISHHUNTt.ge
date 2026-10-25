@@ -158,7 +158,7 @@
         for(const [key] of fields)display(key,unavailable,key==='WaterTemp'||key==='WaterLevel'?'ადგილზე გაზომვა საჭიროა':'არჩეული ადგილის მონაცემი ვერ ჩაიტვირთა');
         set('factorWeather',unavailable);set('factorLocation',snapshot.locationName||'არჩეული ადგილი');set('factorHour','მონაცემის დრო უცნობია');set('factorMode','მონაცემი მიუწვდომელია');set('assessmentLiveState','○ მონაცემი მიუწვდომელია');set('factorUpdated','განახლება ვერ მოხერხდა');set('factorSource','ამინდის წყარო დროებით მიუწვდომელია');
         set('factorModelExplanation','შეფასების მონაცემი არასაკმარისია. შეამოწმე ინტერნეტი და ხელით განაახლე.');
-        window.dispatchEvent?.(new CustomEvent('gn:assessmentUpdated',{detail:{data:null,live:snapshot.live!==false&&live,selectedCurrent:false,isMissing:true,locationName:snapshot.locationName||''}}));
+        window.dispatchEvent?.(new CustomEvent('gn:assessmentUpdated',{detail:{data:null,weatherData:snapshot.data||null,live:snapshot.live!==false&&live,selectedCurrent:false,isMissing:true,stale:!!(snapshot.error||snapshot.stale||snapshot.data?.__meta?.stale),locationName:snapshot.locationName||''}}));
       }
       return;
     }
@@ -218,7 +218,7 @@
     set('factorSource',`${data.__meta?.source||'Open-Meteo'} • ${source}${stale?' • მოძველებული':missing?' • არასრული მონაცემი':''} • NOAA SWPC (Kp)`);
     set('factorWeather',numeric(row.code)===null?unavailable:typeof window.codeMeta==='function'?(window.codeMeta(row.code)[1]||'ამინდის კოდი '+row.code):'ამინდის კოდი '+row.code);
     modelExplanation(snapshot,row);
-    window.dispatchEvent?.(new CustomEvent('gn:assessmentUpdated',{detail:{data,live:automatic,selectedCurrent:isCurrent,isMissing:missing||stale,stale,locationName:snapshot.locationName||''}}));
+    window.dispatchEvent?.(new CustomEvent('gn:assessmentUpdated',{detail:{data,weatherData:data,live:automatic,selectedCurrent:isCurrent,isMissing:missing||stale,stale,locationName:snapshot.locationName||''}}));
     const showKp=value=>display('Kp',Number.isFinite(value)?`Kp ${value.toFixed(1)} • ${kpLabel(value)}`:unavailable,Number.isFinite(value)?`NOAA SWPC • ბოლო 3-საათიანი გლობალური ინდექსი • ${new Date(cache.kpObservedAt).toISOString().slice(0,16).replace('T',' ')} UTC • არჩეული მომავალი საათის პროგნოზი არ არის`:'NOAA SWPC-ის ბოლო 6 საათის მონაცემი მიუწვდომელია',Number.isFinite(value)?value/9*100:0);
     const kp=cache.kpObservedAt&&Date.now()-cache.kpObservedAt<6*3600000?cache.kp:null;
     showKp(kp);

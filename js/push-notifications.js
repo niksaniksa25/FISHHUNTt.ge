@@ -140,10 +140,18 @@
     toast.hidden=false;toast.querySelector('button').onclick=()=>{toast.hidden=true;};
   }
   function forecastPath(fishId,waterId){return 'fishing.html?fish='+encodeURIComponent(fishId)+'&place='+encodeURIComponent(waterId)+'#fishProfile';}
+  function hazardFeed(){
+    const feed=window.FishHuntHazardAlerts?.snapshot?.()?.feed;
+    return Array.isArray(feed)?feed:[];
+  }
+  function combinedFeed(fishFeed){
+    return [...(Array.isArray(fishFeed)?fishFeed:[]),...hazardFeed()].sort((a,b)=>b.at-a.at).slice(0,50);
+  }
+  function alertPath(item){return item.kind==='hazard'&&item.waterId?'place-details.html?id='+encodeURIComponent(item.waterId)+'#fhWeatherHazards':item.fishId?forecastPath(item.fishId,item.waterId):'dashboard.html#gnNotificationCenter';}
   async function deliverSystem(item,enabled){
     if(!enabled||!systemSupport().supported||Notification.permission!=='granted')return;
-    const url=item.fishId?new URL(forecastPath(item.fishId,item.waterId),document.baseURI).href:new URL('dashboard.html#gnNotificationCenter',document.baseURI).href;
-    const options={body:item.body,tag:'gn-foreground-'+(item.fishId||'test')+'-'+(item.waterId||''),icon:new URL('assets/icons/icon-192.png',document.baseURI).href,data:{url}};
+    const url=new URL(alertPath(item),document.baseURI).href;
+    const options={body:item.body,tag:item.kind==='hazard'?'fh-hazard-'+item.hazardKind+'-'+(item.waterId||''):'gn-foreground-'+(item.fishId||'test')+'-'+(item.waterId||''),icon:new URL('assets/icons/icon-192.png',document.baseURI).href,data:{url}};
     try{
       if('serviceWorker'in navigator){
         const scope=new URL('./',document.baseURI),worker=new URL('push-sw.js',document.baseURI),registration=await navigator.serviceWorker.register(worker.pathname,{scope:scope.pathname});
@@ -170,6 +178,11 @@
       deliver:(item,system)=>{deliverSystem(item,system);showSiteAlert(item);document.dispatchEvent(new CustomEvent('geonature:alert',{detail:item}));}
     });
     return foregroundController;
+  }
+  function showHazard(item){
+    if(!item||item.kind!=='hazard')return;
+    deliverSystem(item,foreground()?.snapshot()?.system===true);showSiteAlert(item);
+    document.dispatchEvent(new CustomEvent('geonature:alert',{detail:item}));
   }
   function selectedItems(container,data,type){return [...container.querySelectorAll('input[type="checkbox"]:checked')].map(input=>{const item=data.find(value=>value[0]===input.value);return type==='fish'?{id:item[0],name:item[1]}:{id:item[0],name:item[1],lat:item[4],lon:item[5]};});}
   function populateChoices(container,items,selected,type){
@@ -205,9 +218,11 @@
     const render=value=>{
       if(mode==='foreground')updateStatus();
       if(mode==='foreground'&&value.enabled&&value.lastCheck)note.textContent=checkMessage(value.lastCheck);
-      host.querySelector('#gnPushTotal').textContent=value.feed.length;
-      host.querySelector('#gnPushFeed').innerHTML=value.feed.length?value.feed.map(item=>'<article class="gn-push-entry'+(item.test?' is-test':'')+'"><strong>'+esc(item.title)+'</strong><time>'+esc(new Date(item.at).toLocaleString('ka-GE',{timeZone:'Asia/Tbilisi',hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'}))+'</time><p>'+esc(item.body)+'</p>'+(item.fishId?'<a href="'+esc(forecastPath(item.fishId,item.waterId))+'">პროგნოზის გახსნა →</a>':'')+'</article>').join(''):'<p class="muted">ჯერ შეტყობინება არ არის. სატესტო ღილაკი მუშაობას ამინდისგან დამოუკიდებლად ამოწმებს.</p>';
+      const feed=combinedFeed(value.feed);
+      host.querySelector('#gnPushTotal').textContent=feed.length;
+      host.querySelector('#gnPushFeed').innerHTML=feed.length?feed.map(item=>'<article class="gn-push-entry'+(item.test?' is-test':'')+(item.kind==='hazard'?' is-hazard':'')+'"><strong>'+esc(item.title)+'</strong><time>'+esc(new Date(item.at).toLocaleString('ka-GE',{timeZone:'Asia/Tbilisi',hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'}))+'</time><p>'+esc(item.body)+'</p>'+((item.fishId||item.kind==='hazard'&&item.waterId)?'<a href="'+esc(alertPath(item))+'">'+(item.kind==='hazard'?'ადგილის ამინდის ნახვა →':'პროგნოზის გახსნა →')+'</a>':'')+'</article>').join(''):'<p class="muted">ჯერ შეტყობინება არ არის. სატესტო ღილაკი მუშაობას ამინდისგან დამოუკიდებლად ამოწმებს.</p>';
     };
+    document.addEventListener('fishhunt:hazard-alerts',()=>render(engine?.snapshot()||{feed:[]}));
     engine?.subscribe(render);updateStatus();
     function checkMessage(result){
       if(result.cancelled)return 'არჩევანი შეიცვალა; წინა შემოწმება გაუქმდა.';
@@ -235,7 +250,7 @@
     host.querySelector('#gnPushCheck').onclick=()=>action(host.querySelector('#gnPushCheck'),async()=>{note.textContent='ამინდი მოწმდება…';if(mode==='push'){const result=await checkNow();note.textContent=result.message||'სერვერის შემოწმება დაიწყო.';}else note.textContent=checkMessage(await engine.run(true));});
     host.querySelector('#gnPushTest').onclick=()=>action(host.querySelector('#gnPushTest'),async()=>{if(mode==='push'){const result=await testPush();note.textContent=result.message||'სერვერმა სატესტო გაგზავნა დაადასტურა.';}else{if(!engine)throw new Error('შეტყობინებების მოდული ვერ ჩაიტვირთა.');engine.test();note.textContent='სატესტო შეტყობინება ქვემოთ გამოჩნდა. ამინდის მონაცემის გარეშე სატესტო ჩანაწერია.';}});
     host.querySelector('#gnPushOff').onclick=()=>action(host.querySelector('#gnPushOff'),async()=>{if(mode==='push')await unsubscribe();else engine?.disable();note.textContent='არჩეული რეჟიმის შეტყობინებები გამორთულია.';});
-    host.querySelector('#gnPushClearFeed').onclick=()=>engine?.clearFeed();
+    host.querySelector('#gnPushClearFeed').onclick=()=>{engine?.clearFeed();window.FishHuntHazardAlerts?.controller?.()?.clearFeed?.();};
     modeField.onchange=()=>{mode=modeField.value;storeMode(mode);load(mode==='push'?prefs():engine?.snapshot());updateStatus();note.textContent=mode==='push'?'სერვერის Push-ს HTTPS, ბრაუზერის ნებართვა და დაკავშირებული სერვერი სჭირდება.':'გვერდზე შეტყობინებები მუშაობს, სანამ საიტი ღიაა.';};
     const support=systemSupport(),systemButton=host.querySelector('#gnPushSystem'),systemNote=host.querySelector('#gnPushSystemNote');
     systemNote.textContent=support.ios&&!support.standalone?'iPhone-ზე შეტყობინება ამ გვერდზე გამოჩნდება. სისტემური Web Push-ისთვის საჭიროა iOS 16.4+, მთავარ ეკრანზე დამატება და Push სერვერი.':support.supported?'ბრაუზერის ნებართვა სურვილისამებრ შეგიძლია დაუშვა. გვერდზე შეტყობინებები მის გარეშეც მუშაობს; საიტის დახურვისას ამ რეჟიმის შემოწმება წყდება.':'ამ ბრაუზერში სისტემური შეტყობინება მიუწვდომელია. გვერდზე შეტყობინებები ჩვეულებრივ მუშაობს.';
@@ -250,7 +265,8 @@
     const anchor=nav.querySelector('a[href*="gnNotificationCenter"]')||document.createElement('a');
     if(!anchor.parentNode){anchor.href='dashboard.html#gnNotificationCenter';anchor.className='gn-alert-nav';anchor.innerHTML='🔔 <span>შეტყობინებები</span> <b class="gn-alert-count" hidden></b>';nav.appendChild(anchor);}
     let count=anchor.querySelector('.gn-alert-count');if(!count){count=document.createElement('b');count.className='gn-alert-count';anchor.appendChild(count);}
-    engine.subscribe(value=>{count.textContent=value.feed.length;count.hidden=!value.feed.length;anchor.setAttribute('aria-label','შეტყობინებები: '+value.feed.length);});
+    const update=value=>{const total=combinedFeed(value.feed).length;count.textContent=total;count.hidden=!total;anchor.setAttribute('aria-label','შეტყობინებები: '+total);};
+    engine.subscribe(update);document.addEventListener('fishhunt:hazard-alerts',()=>update(engine.snapshot()));
   }
   function initialise(){
     if(initialised)return;initialised=true;
@@ -258,5 +274,5 @@
     mount();mountCompact();
   }
   document.addEventListener('DOMContentLoaded',initialise);
-  window.GeoNaturePush={clientId,prefs,subscribe,savePreferences,testPush,checkNow,unsubscribe,mount,foreground,initialise,forecastPath,parseFishTemp,normalHourTags};
+  window.GeoNaturePush={clientId,prefs,subscribe,savePreferences,testPush,checkNow,unsubscribe,mount,foreground,initialise,forecastPath,showHazard,parseFishTemp,normalHourTags};
 })();

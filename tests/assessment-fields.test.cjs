@@ -34,6 +34,18 @@ function fixture() {
 }
 function snapshot(env, data = fixture(), type = 'weather') { return { data, row: env.context.GeoNatureCommon.currentWeatherRow(data), type, locationName: 'თბილისი' }; }
 
+test('missing selected forecast rows preserve actual weather for current hazard checks and mark source failures',()=>{
+  const env=environment(),events=[],data=fixture();
+  env.context.CustomEvent=class{constructor(type,options){this.type=type;this.detail=options.detail;}};
+  env.context.dispatchEvent=event=>events.push(event);
+  env.context.GNLiveFactors.render({data,row:null,locationName:'თბილისი'});
+  let detail=events.at(-1).detail;assert.equal(detail.data,null);assert.equal(detail.isMissing,true);assert.equal(detail.weatherData,data);assert.equal(detail.stale,false);
+  env.context.GNLiveFactors.render({data,row:null,error:true,locationName:'თბილისი'});
+  detail=events.at(-1).detail;assert.equal(detail.weatherData,data);assert.equal(detail.stale,true);
+  env.context.GNLiveFactors.render({data:null,row:null,error:true,locationName:'ბათუმი'});
+  detail=events.at(-1).detail;assert.equal(detail.weatherData,null);assert.equal(detail.locationName,'ბათუმი');
+});
+
 test('assessment shows precipitation amount and probability separately with precise current and forecast periods', () => {
   const env = environment(), state = snapshot(env);
   env.context.GNLiveFactors.render(state);

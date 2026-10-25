@@ -46,6 +46,8 @@ Open admin.html from the AI page using the Admin Panel button. Admin password is
 ### Real Push Notifications
 Notifications work on GitHub Pages while the site is open: choose up to five fish and five places using the searchable checkbox lists. The browser checks fresh forecasts every 15 minutes and shows a saved in-page feed, counter and alerts for confirmed fish/location associations. Unsupported browser notification permissions do not disable the in-page feed. Each pair is limited to one conditions alert every four hours. These checks stop when the site is closed; the local test button demonstrates the interface without sending a real Push or fetching weather.
 
+The dashboard also has a collapsed weather-risk subscription for up to five places, independent of fish selections. It checks actual current conditions and the next six hourly forecast periods for wind/gusts, thunderstorms and heavy precipitation. Fresh, partial, stale and unavailable data stay distinct; rain probability alone cannot trigger heavy-rain warnings. Alerts join the existing feed and bell count, with a four-hour category limit and an immediate exception for greater severity. These are model-based assessments, not official emergency alerts, and checking stops when the site closes. Existing optional browser-notification permission applies; permission is never requested automatically. See [thresholds and data handling](docs/WEATHER-HAZARDS.md).
+
 Optional server Web Push supports notifications after closing the site when a Node backend and browser support are configured:
 
 1. Run `START_GeoNature.bat` (or `node server.js`). For local development use `http://localhost:8787/`; do not use Live Server for Push.
@@ -75,6 +77,8 @@ Cloud accounts can synchronize profile settings, favorites, plans and text catch
 Cloud accounts also support password recovery with a personal, single-use recovery code. Create and save the code while signed in by confirming the current password. Resetting the password consumes the code and revokes every old session while preserving account records. This flow does not send email and cannot recover an account that never prepared a code. The frontend enables it only when the deployed account Worker advertises `accountRecoveryConfigured: true`.
 
 Place pages include a compact access section with driving/walking links to the catalogue's reference coordinates, explicit unknown parking and entrance information, and optional personal road/parking/walking notes. These notes stay in the current browser and can be included in an explicitly saved offline place; they are excluded from the public share card. See [access information and its limits](docs/PLACE-ACCESS-KA.md).
+
+The fishing planner, home daily plan, place details and dashboard include a collapsed trip budget. Manually entered distance, consumption and fuel price produce a fuel estimate; bait, food and other costs are split in exact cents among 1–50 people. Missing costs stay incomplete, and the one-way-distance switch explicitly includes the return journey. One draft is stored only in the current browser, with private summary copying and conflict checks between tabs. See [the budget guide](docs/TRIP-BUDGET-KA.md).
 
 
 ## განახლებული კატალოგები

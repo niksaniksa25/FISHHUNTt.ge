@@ -72,6 +72,13 @@ test('simultaneous location reads share one request and forced refresh reaches t
   assert.equal(urls.length,1);assert.ok(urls[0].includes('refresh=1'));assert.equal(first,second);
   await c.openMeteo(41,44);assert.equal(urls.length,2);
 });
+test('weather metadata identifies requested coordinates without replacing model provenance or freshness',async()=>{
+  const c=client(async()=>({ok:true,json:async()=>({data:{...forecast(),latitude:41.25,longitude:44.25},meta:{source:'cached-provider',stale:true,updatedAt:1000,requestedLatitude:0,requestedLongitude:0}})}));
+  const result=await c.openMeteo(41.12345,44.98765);
+  assert.equal(result.__meta.requestedLatitude,41.12345);assert.equal(result.__meta.requestedLongitude,44.98765);
+  assert.equal(result.latitude,41.25);assert.equal(result.longitude,44.25);
+  assert.equal(result.__meta.source,'cached-provider');assert.equal(result.__meta.stale,true);assert.equal(result.__meta.updatedAt,1000);
+});
 test('malformed gateway data falls back to explicitly requested provider units',async()=>{
   const urls=[];const c=client(async url=>{urls.push(url);return{ok:true,json:async()=>url.startsWith('/api/')?{data:{current:{}}}:forecast()};});
   const data=await c.openMeteo(41,44);
@@ -87,6 +94,7 @@ test('malformed timestamps and timezones cannot be marked as fresh current weath
 test('static GitHub Pages reads the public provider and never claims an index is a catch percentage',async()=>{
   const urls=[];const c=client(async url=>{urls.push(url);return{ok:true,json:async()=>forecast()};});c.window.location.hostname='niksaniksa25.github.io';
   await c.openMeteo(41,44);assert.equal(urls.length,1);assert.ok(urls[0].startsWith('https://api.open-meteo.com/'));
+  const source=await c.openMeteo(41.12345,44.98765);assert.equal(source.__meta.requestedLatitude,41.12345);assert.equal(source.__meta.requestedLongitude,44.98765);
   assert.ok(c.chanceMarkup(70).includes('70/100'));assert.equal(c.chanceMarkup(70).includes('70%'),false);assert.ok(c.chanceMarkup(null).includes('მონაცემი მიუწვდომელია'));
   assert.ok(c.chanceMarkup(70,'<img>').includes('&lt;img&gt;'));
 });

@@ -200,13 +200,13 @@ async function fetchWeather(lat,lon,options){
   const controller=()=>{const c=new AbortController();const t=setTimeout(()=>c.abort(),12000);return {signal:c.signal,done:()=>clearTimeout(t)};};
   if(!String(window.location?.hostname||'').endsWith('.github.io')||window.GN_API_BASE_URL){
     try{
-      const c=controller();try{const route=`/api/weather?${coords}${options.force?'&refresh=1':''}`;const r=await fetch(window.GN_API_URL?window.GN_API_URL(route):route,{cache:'no-store',signal:c.signal});const d=await r.json();if(r.ok&&d?.data){validateForecast(d.data);d.data.__meta=d.meta||{};return d.data}}finally{c.done()}
+      const c=controller();try{const route=`/api/weather?${coords}${options.force?'&refresh=1':''}`;const r=await fetch(window.GN_API_URL?window.GN_API_URL(route):route,{cache:'no-store',signal:c.signal});const d=await r.json();if(r.ok&&d?.data){validateForecast(d.data);d.data.__meta={...(d.meta||{}),requestedLatitude:lat,requestedLongitude:lon};return d.data}}finally{c.done()}
     }catch{}
   }
   const u=`https://api.open-meteo.com/v1/forecast?${coords}&timezone=auto&forecast_days=16&models=best_match&temperature_unit=celsius&wind_speed_unit=kmh&precipitation_unit=mm&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,rain,showers,snowfall,weather_code,cloud_cover,pressure_msl,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m,is_day&hourly=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation_probability,precipitation,weather_code,cloud_cover,pressure_msl,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m,visibility,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,wind_speed_10m_max,sunrise,sunset,uv_index_max`;
   let lastErr=null;
   for(let i=0;i<2;i++){
-    try{const c=controller();try{const r=await fetch(u,{cache:'no-store',signal:c.signal});if(!r.ok)throw new Error('weather unavailable');const d=validateForecast(await r.json());const updatedAt=Date.now(),currentTime=weatherObservationTime(d);d.__meta={source:'Open-Meteo',updatedAt,fetchedAt:updatedAt,currentTime,stale:currentTime===null||updatedAt-currentTime>90*60*1000||currentTime-updatedAt>30*60*1000};return d}finally{c.done()}}catch(e){lastErr=e;if(i===0)await new Promise(r=>setTimeout(r,350))}
+    try{const c=controller();try{const r=await fetch(u,{cache:'no-store',signal:c.signal});if(!r.ok)throw new Error('weather unavailable');const d=validateForecast(await r.json());const updatedAt=Date.now(),currentTime=weatherObservationTime(d);d.__meta={source:'Open-Meteo',updatedAt,fetchedAt:updatedAt,currentTime,requestedLatitude:lat,requestedLongitude:lon,stale:currentTime===null||updatedAt-currentTime>90*60*1000||currentTime-updatedAt>30*60*1000};return d}finally{c.done()}}catch(e){lastErr=e;if(i===0)await new Promise(r=>setTimeout(r,350))}
   }
   throw lastErr||new Error('weather unavailable')
 }
@@ -243,7 +243,7 @@ async function initWeatherPage(lat,lon,city){
     if(box)box.innerHTML=`<div class="selected-hour-grid"><div><span>${meta[0]}</span><b>${esc(row.time)}</b><small>${trackCurrent?'მიმდინარე პირობები':'საათობრივი პროგნოზი'} • ${esc(meta[1])}</small></div><div><small>ტემპერატურა</small><b>${fmt(row.temperature,'°C')}</b></div><div><small>წნევა</small><b>${fmt(row.pressure,' hPa')}</b></div><div><small>ქარი</small><b>${fmt(row.wind,' კმ/სთ')}</b></div><div><small>ნალექი</small><b>${fmt(row.precip,' მმ')}</b></div><div><small>ღრუბლიანობა</small><b>${fmt(row.cloud,'%',0)}</b></div><div><small>Outdoor Score</small><b class="selected-score">${score===null?'—':score+'/100'}</b></div></div>`;
     document.querySelectorAll('#weatherHourlyStrip .weather-hour-card').forEach(el=>el.classList.toggle('active',el.dataset.iso===chosenHour));
     renderFactors();
-    window.dispatchEvent(new CustomEvent('gn:weatherUpdated',{detail:{data,locationName:activeCity,selectedCurrent:trackCurrent}}));
+    window.dispatchEvent(new CustomEvent('gn:weatherUpdated',{detail:{data,lat:activeLat,lon:activeLon,locationName:activeCity,selectedCurrent:trackCurrent}}));
   }
   function renderHours(){
     const date=data.current.time.slice(0,10),rows=hourlyRows(data,date),select=get('weatherHourSelect'),strip=get('weatherHourlyStrip');
@@ -271,7 +271,7 @@ async function initWeatherPage(lat,lon,city){
     for(const id of ['weatherDaily','weatherHourlyStrip','weatherHourlySelected'])if(get(id))get(id).replaceChildren();
     if(get('weatherHourSelect'))get('weatherHourSelect').replaceChildren();
     if(window.GNLiveFactors)GNLiveFactors.render({data:null,row:null,type:'weather',locationName:activeCity,live:false,error:true});
-    window.dispatchEvent(new CustomEvent('gn:weatherUpdated',{detail:{data:null,locationName:activeCity}}));
+    window.dispatchEvent(new CustomEvent('gn:weatherUpdated',{detail:{data:null,lat:activeLat,lon:activeLon,locationName:activeCity}}));
   }
   async function load(a=activeLat,b=activeLon,name=activeCity,options={}){
     const token=++requestId,changed=a!==activeLat||b!==activeLon;
