@@ -6,20 +6,26 @@ const path=require('node:path');
 function fixture(raw='[]'){
   const ids=['catchDate','catchTime','catchPhoto','photoPreview','catchForm','catchSpecies','catchPlace','catchWeight','catchLength','catchBait','catchNotes','clearCatch','clearAllCatches','catchList'];
   const elements=Object.fromEntries(ids.map(id=>[id,{value:id==='catchPlace'?'ჟინვალი':'',innerHTML:'',textContent:'',listeners:{},addEventListener(type,fn){this.listeners[type]=fn;},querySelectorAll(){return[];},reset(){}}]));
-  let stored=raw,failed=false,drawn='';const alerts=[],readers=[];
+  let stored=raw,failed=false,failedRead=false,readFailures=0,drawn='';const alerts=[],readers=[];
   const context=vm.createContext({
     window:{GeoNatureCommon:{localDateISO:()=> '2026-10-13',zonedDateTime:()=>({time:'01:30'})}},
     document:{getElementById:id=>elements[id],addEventListener:(type,fn)=>{if(type==='DOMContentLoaded')fn();},createElement:()=>({getContext:()=>({drawImage:image=>{drawn=image.source;}}),toDataURL:()=>drawn})},
-    localStorage:{getItem:()=>stored,setItem:(key,value)=>{if(failed)throw Error('QuotaExceededError');stored=value;}},
+    localStorage:{getItem:()=>{if(failedRead||readFailures>0){readFailures=Math.max(0,readFailures-1);throw Error('Storage read unavailable');}return stored;},setItem:(key,value)=>{if(failed)throw Error('QuotaExceededError');stored=value;}},
     FileReader:class{readAsDataURL(){readers.push(this);}},Image:class{width=100;height=100;set src(value){this.source=value;this.onload();}},
     Date,crypto:{randomUUID:()=> 'local-fixture-id'},alert:message=>alerts.push(message),confirm:()=>true,
   });
   vm.runInContext(fs.readFileSync(path.join(__dirname,'../js/catch-log.js'),'utf8'),context);
-  return {elements,alerts,readers,get stored(){return JSON.parse(stored);},fail(){failed=true;},submit(){elements.catchForm.listeners.submit({preventDefault(){},target:elements.catchForm});},
-    photo(name){return elements.catchPhoto.listeners.change({target:{files:[{name}]}});},finish(index,data){readers[index].result=data;readers[index].onload();}};
+  return {elements,alerts,readers,get stored(){return JSON.parse(stored);},get raw(){return stored;},fail(){failed=true;},failRead(){failedRead=true;},failNextRead(){readFailures++;},submit(){elements.catchForm.listeners.submit({preventDefault(){},target:elements.catchForm});},
+    photo(name){return elements.catchPhoto.listeners.change({target:{files:[{name}]}});},finish(index,data){readers[index].result=data;readers[index].onload();},rejectPhoto(index){readers[index].onerror(new Error('Photo read failed'));}};
 }
-test('malformed catch storage is recoverable rather than crashing the list',()=>{
-  for(const raw of ['{}','null','[null,1]','not json']){const f=fixture(raw);f.elements.catchSpecies.value='კობრი';f.submit();assert.equal(f.stored.length,1);assert.equal(f.stored[0].species,'კობრი');}
+test('malformed catch storage is not silently overwritten and only an explicit reset replaces it',()=>{
+  for(const raw of ['{}','null','[null,1]','not json']){const f=fixture(raw);f.elements.catchSpecies.value='კობრი';f.submit();assert.equal(f.raw,raw);assert.match(f.elements.catchList.innerHTML,/ვერ ჩაიტვირთა/);assert.match(f.alerts.at(-1),/არ შეცვლილა/);f.elements.clearAllCatches.onclick();assert.deepEqual(f.stored,[]);f.submit();assert.equal(f.stored[0].species,'კობრი');}
+});
+test('temporarily unreadable catch storage never becomes an empty successful save',()=>{
+  const raw='[{"id":"old","species":"კობრი"}]',f=fixture(raw);f.failRead();f.elements.catchSpecies.value='ლოქო';f.submit();assert.equal(f.raw,raw);assert.equal(f.elements.catchSpecies.value,'ლოქო');assert.match(f.alerts.at(-1),/არ შეცვლილა/);
+});
+test('a single failed catch read cannot erase old records when the next read succeeds',()=>{
+  const raw='[{"id":"old","species":"კობრი"}]',f=fixture(raw);f.failNextRead();f.elements.catchSpecies.value='ლოქო';f.submit();assert.equal(f.raw,raw);assert.equal(f.elements.catchSpecies.value,'ლოქო');f.submit();assert.equal(f.stored.length,2);assert.equal(f.stored[0].id,'old');assert.equal(f.stored[1].species,'ლოქო');
 });
 test('quota failures preserve the form and do not clear saved catches',()=>{
   const f=fixture('[{"id":"old","species":"კობრი"}]');f.fail();f.elements.catchSpecies.value='ლოქო';f.submit();
@@ -37,6 +43,12 @@ test('clearing a pending photo invalidates it and saving waits for compression',
   const f=fixture(),pending=f.photo('A');f.submit();assert.equal(f.stored.length,0);assert.ok(f.alerts[0].includes('მუშავდება'));
   f.elements.clearCatch.onclick();f.finish(0,'data:image/jpeg;base64,QQ==');await pending;
   f.elements.catchSpecies.value='კობრი';f.submit();assert.equal(f.stored[0].photo,'');assert.equal(f.elements.photoPreview.innerHTML.includes('QQ=='),false);
+});
+test('failed photo processing clears its loading preview and permits selecting the same file again',async()=>{
+  const f=fixture(),pending=f.photo('bad');f.elements.catchPhoto.value='bad-photo';f.rejectPhoto(0);await pending;
+  assert.match(f.elements.photoPreview.textContent,/ვერ დამუშავდა/);assert.equal(f.elements.photoPreview.textContent.includes('მუშავდება…'),false);assert.equal(f.elements.catchPhoto.value,'');
+  f.elements.catchSpecies.value='კობრი';f.submit();assert.equal(f.stored[0].photo,'');
+  const retry=f.photo('bad');f.finish(1,'data:image/jpeg;base64,Qg==');await retry;assert.ok(f.elements.photoPreview.innerHTML.includes('Qg=='));
 });
 test('stored photo markup cannot inject a new image attribute',()=>{
   const f=fixture(JSON.stringify([{id:'1',species:'კობრი',photo:'x" onerror="alert(1)'}]));assert.equal(f.elements.catchList.innerHTML.includes('<img'),false);

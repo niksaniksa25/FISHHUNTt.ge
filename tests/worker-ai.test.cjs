@@ -21,7 +21,7 @@ test('free worker health has no secret and reports setup status', async () => {
   const app = await worker();
   const res = await app.fetch(new Request('https://fishhunt-ai.example.workers.dev/api/health'), {});
   assert.equal(res.status, 200);
-  assert.deepEqual(await res.json(), {ok:true, service:'FishHunt AI', configured:false,adminConfigured:false,analyticsConfigured:false,accountConfigured:false,accountRecoveryConfigured:false});
+  assert.deepEqual(await res.json(), {ok:true, service:'FishHunt AI', configured:false,photoConfigured:false,adminConfigured:false,analyticsConfigured:false,accountConfigured:false,accountRecoveryConfigured:false});
 });
 
 test('free worker accepts configured frontend CORS preflight only', async () => {
@@ -64,4 +64,28 @@ test('free worker exchanges real user messages with Gemini REST endpoint', async
     assert.equal(observed.opts.headers['x-goog-api-key'], 'local-test-only');
     assert.equal(observed.payload.contents.at(-1).role, 'user');
   } finally {global.fetch = prior;}
+});
+
+test('Georgian multi-turn conversations fit the byte bound and retain the established history limits',async()=>{
+  const app=await worker(),prior=global.fetch;let observed;
+  const history=Array.from({length:8},(_,index)=>({role:index%2?'assistant':'user',content:'ა'.repeat(1200)}));
+  const payload={message:'ბ'.repeat(1600),history};assert.ok(Buffer.byteLength(JSON.stringify(payload))>16000);assert.ok(Buffer.byteLength(JSON.stringify(payload))<65536);
+  global.fetch=async(url,options)=>{observed=JSON.parse(options.body);return Response.json({candidates:[{content:{parts:[{text:'ქართული პასუხი'}]}}]});};
+  try{
+    const response=await app.fetch(request('POST',payload),{GEMINI_API_KEY:'local-test-only'});assert.equal(response.status,200);
+    assert.equal(observed.contents.length,9);assert.equal(observed.contents[0].parts[0].text.length,1200);assert.equal(observed.contents.at(-1).parts[0].text.length,1600);
+  }finally{global.fetch=prior;}
+});
+
+test('chat enforces the 64KiB byte cap on chunked UTF8 input and cannot trust a small Content-Length',async()=>{
+  const app=await worker(),prior=global.fetch;let calls=0;
+  global.fetch=async()=>{calls++;throw new Error('Unexpected provider call');};
+  try{
+    const encoded=new TextEncoder().encode(JSON.stringify({message:'ა'.repeat(30000)}));assert.ok(encoded.byteLength>65536);
+    const body=new ReadableStream({start(controller){for(let i=0;i<encoded.length;i+=8192)controller.enqueue(encoded.slice(i,i+8192));controller.close();}});
+    const req=new Request('https://fishhunt-ai.example.workers.dev/api/ai/chat',{method:'POST',headers:{Origin:'https://niksaniksa25.github.io','Content-Type':'application/json','Content-Length':'1'},body,duplex:'half'});
+    const response=await app.fetch(req,{GEMINI_API_KEY:'local-test-only'});assert.equal(response.status,413);assert.doesNotMatch((await response.json()).message,/ფოტო/);
+    const declared=request('POST',{message:'კობრი'});declared.headers.set('Content-Length','65537');assert.equal((await app.fetch(declared,{GEMINI_API_KEY:'local-test-only'})).status,413);
+    assert.equal(calls,0);
+  }finally{global.fetch=prior;}
 });

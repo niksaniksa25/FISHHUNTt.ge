@@ -141,11 +141,12 @@ async function safety(){
   if(!$('safetyPanel'))return;
   let gps= navigator.geolocation?'ადგილმდებარეობა არ არის გაზიარებული':'ბრაუზერი GPS-ს არ უჭერს მხარს';
   try{if(navigator.geolocation&&navigator.permissions){const permission=await navigator.permissions.query({name:'geolocation'});gps=permission.state==='granted'?'მდებარეობის ნებართვა მიღებულია; ზუსტი მდებარეობისთვის დააჭირე GPS-ს':permission.state==='denied'?'მდებარეობის ნებართვა უარყოფილია':'მდებარეობის ნებართვა ჯერ არ არის მიღებული';}}catch{}
-  const row=currentRow(),c=conditions(row),clock=weather&&locationClock(weather),index=weather?.daily?.time?.indexOf(clock?.date)??-1;
+  const clock=weather&&locationClock(weather),index=weather?.daily?.time?.indexOf(clock?.date)??-1;
   const sunset=index>=0?weather.daily.sunset?.[index]:null;
-  const wind=num(c?.wind_speed_10m),gust=num(c?.wind_gusts_10m),rain=num(c?.precipitation),code=num(c?.weather_code);
-  const hazard=[95,96,99].includes(code)||(wind!==null&&wind>=35)||(gust!==null&&gust>=50)||(rain!==null&&rain>=5);
-  setHTML('safetyPanel',`<b>🛟 გასვლამდე გადაამოწმე</b><br>GPS: ${esc(gps)}<br>მზის ჩასვლა: ${sunset?esc(sunset.slice(11,16))+' (არჩეული ადგილის დრო)':'მონაცემი მიუწვდომელია'}<br>ამინდი: ${!row?'მიუწვდომელია — რისკი ვერ შეფასდა':hazard?'⚠️ პროგნოზში საშიში ამინდის ნიშანია':'პროგნოზში ძლიერი ქარის/ნალექის ან ჭექა-ქუხილის ნიშანი არ ჩანს'}<br>ბატარეა: დატენე მოწყობილობა; დონე აქ არ იზომება.<br>📞 საგანგებო: <a href="tel:112">112</a><br><span class="muted">ადგილობრივი საფრთხე, წყლის დონე და ტალღა აქ არ იზომება. გადაამოწმე ოფიციალური გაფრთხილებები.</span>`);
+  const assessment=window.FishHuntWeatherHazards?.evaluate?.(weather,{lat:water?.[4],lon:water?.[5]});
+  const assessed=assessment&&['live','partial'].includes(assessment.status),risks=assessed?assessment.hazards:[];
+  const riskText=!assessed?'მონაცემი მოძველებულია ან არასაკმარისია — რისკი ვერ შეფასდა':risks.length?'⚠️ '+risks.map(item=>item.title).join(' • ')+(assessment.status==='partial'?' • მონაცემები ნაწილობრივია':''):assessment.status==='partial'?'მონაცემები არასრულია — ყველა რისკი ვერ შემოწმდა':'შემოწმებული ქარის, ჭექა-ქუხილისა და ნალექის ზღვარი არ გადაჭარბებულა';
+  setHTML('safetyPanel',`<b>🛟 გასვლამდე გადაამოწმე</b><br>GPS: ${esc(gps)}<br>მზის ჩასვლა: ${sunset?esc(sunset.slice(11,16))+' (არჩეული ადგილის დრო)':'მონაცემი მიუწვდომელია'}<br>ამინდი: ${esc(riskText)}<br>ბატარეა: დატენე მოწყობილობა; დონე აქ არ იზომება.<br>📞 საგანგებო: <a href="tel:112">112</a><br><span class="muted">ამინდის მოდელი აფასებს მიმდინარე და უახლოეს ექვს საათობრივ პერიოდს. ადგილობრივი საფრთხე, წყლის დონე და ტალღა აქ არ იზომება. გადაამოწმე ოფიციალური გაფრთხილებები.</span>`);
   $('safetyPanel').classList.remove('hidden');
 }
 function renderWeather(){stamp();renderBest();renderBite();fishTimeline();stargazing();smartAlert();if($('safetyPanel')&&!$('safetyPanel').classList.contains('hidden'))safety();}

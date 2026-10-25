@@ -360,7 +360,7 @@ function initAI() {
         headers: {'Content-Type': 'application/json'},
         cache: 'no-store',
         signal: controller.signal,
-        body: JSON.stringify({message: text, history: chatHistory.slice(-8), context: {category: current, entity: selected?.name || ''}})
+        body: JSON.stringify({message: text, history: chatHistory.slice(-8).map(turn=>({role:turn.role,content:turn.content.slice(0,1200)})), context: {category: current, entity: selected?.name || ''}})
       });
       let data = {};
       try {data = await reply.json();} catch {}
@@ -376,6 +376,7 @@ function initAI() {
         ? 'პასუხი დაგვიანდა. სცადე ხელახლა.'
         : error.message || 'AI-სთან კავშირი ვერ შედგა. სცადე ხელახლა.';
       responseBubble.classList.add('ai-message-error');
+      if(!input.value.trim())input.value=text;
       updateStatus('error', 'პასუხი ვერ მივიღეთ');
     } finally {
       clearTimeout(timeout);

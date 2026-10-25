@@ -6,6 +6,8 @@ Use Node.js 20 or newer (`npm start`); cloud development uses Node.js 24 with `N
 
 Run `npm run check` to check every active JavaScript file and `npm test` for weather, conditions scoring, live state, account storage, API persistence, private-file protection and wildlife restrictions. The GitHub validation workflow runs both commands.
 
+Fish-photo identification is available on the AI page and dashboard. The visitor explicitly sends a locally resized JPEG to the existing private-key Gemini Worker; the model returns up to three catalogue-bound possibilities and visible distinguishing traits, without a fabricated confidence percentage. Images remain out of local/cloud records, and manual catalogue search stays a separate fallback. See the [photo guide](docs/PHOTO-AI-KA.md). The repository-root Wrangler config deploys the AI/admin Worker while preserving existing variables, secrets and KV bindings; accounts keep their separate explicit deployment config.
+
 Current conditions, selected-hour forecasts, stale data and unavailable measurements are separate. Fishing scores are comparative indices out of 100, not measured catch percentages. See [live data behavior and limitations](docs/LIVE-DATA.md).
 
 Shared responsive layouts are in `css/responsive.css`, with separate `css/responsive-ios.css` and `css/responsive-android.css` platform adjustments. `js/device-responsive.js` applies device classes and visible-viewport sizing; `css/nature-theme.css` supplies the shared forest/river palette.

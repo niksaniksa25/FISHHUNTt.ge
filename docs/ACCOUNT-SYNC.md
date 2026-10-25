@@ -1,5 +1,7 @@
 # FishHunt accounts and device sync
 
+The repository-root `wrangler.toml` deploys **fishhunt-ai**. For **fishhunt-accounts**, keep the explicit `--config cloudflare/accounts/wrangler.toml` command at root, or use `cloudflare/accounts` as the project root. Do not point the accounts project at the default AI config.
+
 The website can keep an account local to one browser or use a private Cloudflare account service. Local accounts continue to work independently. Creating a cloud account or signing into it is an explicit choice; a local password hash is never uploaded or treated as a cloud password.
 
 The account service is implemented in the existing `worker/fishhunt-ai.mjs`. **Publishing GitHub Pages does not deploy that Worker.** The browser enables cloud account actions only after the public health endpoint reports `accountConfigured: true`.

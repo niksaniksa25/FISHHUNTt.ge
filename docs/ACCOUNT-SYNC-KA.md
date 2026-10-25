@@ -1,5 +1,7 @@
 # ანგარიშის სინქრონიზაციის ჩართვა
 
+რეპოზიტორიის ძირის `wrangler.toml` აქვეყნებს **fishhunt-ai** სერვისს. **fishhunt-accounts**-ისთვის დატოვე ცალკე `--config cloudflare/accounts/wrangler.toml` ბრძანება, ან Root directory მიუთითე `cloudflare/accounts`. ანგარიშების პროექტი AI-ის ნაგულისხმევ კონფიგურაციაზე არ გადაიყვანო.
+
 საიტის განახლებები GitHub Pages-ზე ავტომატურად ქვეყნდება. მოწყობილობებს შორის პირადი მონაცემების გადატანას ცალკე ანგარიშების სერვისის გამოქვეყნებაც სჭირდება. პროექტი Cloudflare Workers Free-სთვისაა გამზადებული.
 
 1. Cloudflare-ში გახსენი **Workers & Pages → Create application / Create Worker → Import a repository** და აირჩიე **niksaniksa25/FISHHUNTt.ge**, ტოტი **main**.

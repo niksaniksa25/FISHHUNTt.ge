@@ -53,6 +53,7 @@ label { line-height:1.5; }
 #main-content,main section[id],main article[id],main .panel[id],main #fishResults,main #huntResults,main #fishProfile,main #huntProfile,main #planner,main #huntPlanner,main #weatherDaily,main #weatherHourlyStrip,main #mapSearch,main #map { scroll-margin-top:calc(var(--gn-header-height) + 20px)!important; }
 .header [id],.gn-finder [id] { scroll-margin-top:0!important; }
 .gn-photo-preview[hidden],.gn-finder[hidden],.gn-back-top[hidden] { display:none!important; }
+.btn[hidden],.trip-share[hidden] { display:none!important; }
 
 /* Compact brand row and the user-selected horizontal page-title navigation. */
 .header { background:rgba(11,25,25,.98)!important; box-shadow:0 4px 20px rgba(0,0,0,.12)!important; }

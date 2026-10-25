@@ -256,6 +256,25 @@ test('an unselected species placeholder does not invent a first-species context'
   assert.equal(app.requests[0].payload.context.entity, '');
 });
 
+test('long Georgian answers remain visible while follow-up history fits the bounded UTF-8 gateway body',async()=>{
+  const answer='გრძელი პასუხი '.repeat(400).trim(),app=conversation(async()=>({ok:true,answer}));
+  for(let i=0;i<7;i++){app.submit('ქართული შეკითხვა '+i+' '+ 'თევზი '.repeat(150));await app.settle();}
+  const last=app.requests.at(-1);
+  assert.equal(last.payload.history.length,8);
+  assert.ok(last.payload.history.every(turn=>turn.content.length<=1200));
+  assert.ok(Buffer.byteLength(last.options.body,'utf8')<64000);
+  assert.equal(app.node('chatMessages').children.at(-1).textContent,answer);
+});
+
+test('failed questions return to an empty composer without replacing a newer draft',async()=>{
+  let reject;
+  const app=conversation(()=>new Promise((_,fail)=>{reject=fail;}));
+  app.submit('პირველი შეკითხვა');reject(new Error('დროებითი შეცდომა'));await app.settle();
+  assert.equal(app.node('aiInput').value,'პირველი შეკითხვა');
+  app.submit('ხელახლა ვცადოთ');app.node('aiInput').value='შემდეგი მონახაზი';reject(new Error('დროებითი შეცდომა'));await app.settle();
+  assert.equal(app.node('aiInput').value,'შემდეგი მონახაზი');
+});
+
 test('the completed long answer is revealed from its beginning, not only the pending placeholder', async () => {
   const answer='პასუხის დასაწყისი\n' + 'დეტალური ახსნა '.repeat(350) + '\nპასუხის დასასრული';
   const app = conversation(async () => ({ok:true, answer}));

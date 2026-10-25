@@ -5,7 +5,7 @@
     'fishing.html':[['fishResults','თევზები'],['fishProfile','არჩეული თევზი'],['planner','გასვლის გეგმა'],['assessmentFactors','ფაქტორები']],
     'hunting.html':[['huntResults','სახეობები'],['huntProfile','არჩეული სახეობა'],['huntPlanner','გასვლის გეგმა'],['assessmentFactors','ფაქტორები']],
     'weather.html':[['weatherHourlyStrip','საათები'],['assessmentFactors','ფაქტორები'],['weatherDaily','დღეები']],
-    'dashboard.html':[['gnDashboard','ჩემი ჩანაწერები'],['badges','მიღწევები'],['photoid','სახეობის ძებნა'],['gnNotificationCenter','შეტყობინებები']],
+    'dashboard.html':[['gnDashboard','ჩემი ჩანაწერები'],['badges','მიღწევები'],['photoid','ფოტოთი ამოცნობა'],['gnNotificationCenter','შეტყობინებები']],
     'map.html':[['mapSearch','ადგილის ძებნა'],['map','რუკა']]
   };
   function find(query,pages,fish=[],waters=[],wild=[]){

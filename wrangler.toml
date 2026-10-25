@@ -1,0 +1,16 @@
+# Default repository-root deployment updates the existing AI/admin Worker.
+# Accounts use their own explicit config: cloudflare/accounts/wrangler.toml.
+name = "fishhunt-ai"
+main = "worker/fishhunt-ai.mjs"
+compatibility_date = "2026-10-23"
+
+# The dashboard owns GEMINI_MODEL and other non-secret environment variables.
+# Wrangler also preserves existing secrets when publishing a new version.
+keep_vars = true
+
+# The existing ADMIN_KV namespace was attached in the dashboard. Preserve that
+# binding by type instead of guessing or publishing its namespace identifier.
+# These are Cloudflare upload-metadata binding types, applied by Wrangler last.
+# Omitting kv_namespace here could disconnect the existing admin/analytics data.
+[unsafe.metadata]
+keep_bindings = ["plain_text", "json", "secret_text", "secret_key", "kv_namespace"]

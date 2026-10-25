@@ -29,7 +29,7 @@ function harness(stored = {}) {
     localStorage: { getItem: key => data.get(key) || null, setItem: (key, value) => data.set(key, value) },
     setInterval: () => 1, clearInterval() {}, setTimeout, clearTimeout,
   });
-  for (const file of ['common.js', 'fishing-data.js', 'wildlife-rules.js', 'premium-extras.js']) {
+  for (const file of ['common.js', 'fishing-data.js', 'wildlife-rules.js', 'weather-hazards.js', 'premium-extras.js']) {
     vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js', file), 'utf8'), context, { filename: file });
   }
   return { window, elements, createElement, events, data, tools: window.GeoNaturePremiumTools,
@@ -150,4 +150,15 @@ test('slower previous destination fetch cannot replace the current location fore
   completeOld(forecast());
   await Promise.resolve();
   assert.equal(h.elements.get('bestPlace').textContent, destination[1]);
+});
+
+test('premium safety uses the same interval-aware hazards and cannot call missing measurements clear',async()=>{
+  const h=harness();for(const id of ['toolsLocation','toolsFish','safetyMode','safetyPanel'])h.createElement(id);
+  const water=h.window.WATERS.find(item=>typeof item[4]==='number'&&typeof item[5]==='number'),data=forecast();
+  data.current.interval=900;data.current.precipitation=1.5;data.__meta={...data.__meta,updatedAt:Date.now(),requestedLatitude:water[4],requestedLongitude:water[5]};
+  h.window.GeoNatureCommon.openMeteo=async()=>data;h.init();await h.tools.refresh();await h.elements.get('safetyMode').fire('click');
+  assert.match(h.elements.get('safetyPanel').innerHTML,/⚠️/);assert.match(h.elements.get('safetyPanel').innerHTML,/ნალექი/);
+  data.current.precipitation=0;data.current.wind_speed_10m=null;await h.tools.refresh();await h.elements.get('safetyMode').fire('click');
+  assert.match(h.elements.get('safetyPanel').innerHTML,/ყველა რისკი ვერ შემოწმდა/);assert.doesNotMatch(h.elements.get('safetyPanel').innerHTML,/ზღვარი არ გადაჭარბებულა/);
+  data.__meta.stale=true;await h.tools.refresh();await h.elements.get('safetyMode').fire('click');assert.match(h.elements.get('safetyPanel').innerHTML,/რისკი ვერ შეფასდა/);
 });
